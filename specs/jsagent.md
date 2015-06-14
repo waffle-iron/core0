@@ -94,7 +94,8 @@ identification
 agent config
 ------------
 TOML format:
-'''
+
+```
 #we have 2 agentcontrollers configured
 agentcontroller:[‘192.168.1.1’,’212.3.246.27:3400’]
 #when $:$ then is ipaddr:port
@@ -110,7 +111,7 @@ channel.in.cmds:[0] #means longpolling for commands will only happen on agentcon
 channel.in.socket:[0]
 
 stats.interval:5 #means gather stats per process every 5 seconds
-'''
+```
 
 Processes
 ---------
