@@ -100,11 +100,11 @@ TOML format:
 agentcontroller:[‘192.168.1.1’,’212.3.246.27:3400’]
 #when $:$ then is ipaddr:port
 logging.1:
-forward:[0] # this would refer to first configured agentcontroller (pos 0 in list agentcontroller)
-retention:600 #nr of hours messages are kept
+    forward:[0] # this would refer to first configured agentcontroller (pos 0 in list agentcontroller)
+    retention:600 #nr of hours messages are kept
 logging.2:
-forward:[0,1]
-retention:600
+    forward:[0,1]
+    retention:600
 
 channel.in.cmds:[0] #means longpolling for commands will only happen on agentcontroller 0
 
