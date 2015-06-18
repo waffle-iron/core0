@@ -20,7 +20,6 @@ type Process struct {
     cmd *Cmd
     pid int
     runs int
-
 }
 
 
@@ -67,6 +66,7 @@ func (pm *PM) Run() {
     }()
 }
 
+
 func (ps *Process) run() {
     args := ps.cmd.args
     cmd := exec.Command(args.GetName(),
@@ -83,15 +83,34 @@ func (ps *Process) run() {
     //     log.Println("Failed to open process stderr", err)
     // }
 
-    err := cmd.Start()
+    stdin, err := cmd.StdinPipe()
+    if err != nil {
+        log.Println("Failed to open process stdin", err)
+    }
+
+    err = cmd.Start()
     if err != nil {
         log.Println("Failed to start process", err)
+        return
     }
+
+    if ps.cmd.data != "" {
+        //write data to command stdin.
+        _, err = stdin.Write([]byte(ps.cmd.data))
+        if err != nil {
+            log.Println("Failed to write to process stdin", err)
+        }
+    }
+
+    stdin.Close()
 
     psexit := make(chan bool)
 
     go func() {
-        cmd.Wait()
+        err := cmd.Wait()
+        if err != nil {
+            log.Println(err)
+        }
         psexit <- cmd.ProcessState.Success()
     }()
 
@@ -139,4 +158,15 @@ func (ps *Process) run() {
             log.Println("Not restarting")
         }
     }
+
+    //recurring
+    if success && args.GetRecurringPeriod() > 0 {
+        go func() {
+            time.Sleep(time.Duration(args.GetRecurringPeriod()) * time.Second)
+            ps.runs = 0
+            log.Println("Recurring ...")
+            ps.run()
+        }()
+    }
 }
+

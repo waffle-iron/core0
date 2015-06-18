@@ -10,15 +10,16 @@ func main() {
     mgr := pm.NewPM()
 
     mgr.Run()
+
     args := &pm.BasicArgs{
-        Name: "sleep",
-        CmdArgs: []string{"30"},
-        WorkingDir: "/home/azmy",
-        //MaxTime: 10,
-        MaxRestart: 2,
+        Name: "/bin/bash",
+        CmdArgs: []string{"-c", "cat > test.txt"},
+        //WorkingDir: "/home/azmy",
+        //MaxRestart: 2,
+        //RecurringPeriod: 3,
     }
 
-    mgr.NewCmd("execute", "id", args, "")
+    mgr.NewCmd("execute", "id", args, "Hello world")
 
     for {
         select {
