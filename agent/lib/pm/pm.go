@@ -144,7 +144,7 @@ func (ps *Process) run(callback MeterHandler) {
 
     statsInterval := args.GetStatsInterval()
     if statsInterval == 0 {
-        statsInterval = 2 //TODO, use value from configurations.
+        statsInterval = 30 //TODO, use value from configurations.
     }
 
     var success bool
