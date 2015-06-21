@@ -5,6 +5,7 @@ import (
     "os/exec"
     "time"
     "log"
+    "github.com/shirou/gopsutil/process"
 )
 
 
@@ -26,14 +27,16 @@ type Process struct {
 type PM struct {
     cmds chan *Cmd
     processes map[string]*Process
+    meterHandlers []MeterHandler
 }
 
+type MeterHandler func (cmd *Cmd, p *process.Process)
 
 func NewPM() *PM {
     pm := new(PM)
     pm.cmds = make(chan *Cmd)
     pm.processes = make(map[string]*Process)
-
+    pm.meterHandlers = make([]MeterHandler, 0, 3)
     return pm
 }
 
@@ -50,6 +53,9 @@ func (pm *PM) NewCmd(name string, id string, args Args, data string) error {
     return nil
 }
 
+func (pm *PM) AddMeterHandler(handler MeterHandler) {
+    pm.meterHandlers = append(pm.meterHandlers, handler)
+}
 
 func (pm *PM) Run() {
     //process and start all commands according to args.
@@ -61,13 +67,18 @@ func (pm *PM) Run() {
             }
 
             pm.processes[cmd.id] = process // do we really need this ?
-            go process.run()
+            go process.run(pm.meterCallback)
         }
     }()
 }
 
+func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
+    for _, handler := range pm.meterHandlers {
+        handler(cmd, ps)
+    }
+}
 
-func (ps *Process) run() {
+func (ps *Process) run(callback MeterHandler) {
     args := ps.cmd.args
     cmd := exec.Command(args.GetName(),
                         args.GetCmdArgs()...)
@@ -138,6 +149,8 @@ func (ps *Process) run() {
 
     var success bool
 
+    psProcess, _ := process.NewProcess(int32(cmd.Process.Pid))
+
     loop:
     for {
         select {
@@ -153,7 +166,7 @@ func (ps *Process) run() {
             break loop
         case <- time.After(time.Duration(statsInterval) * time.Second):
             //monitor.
-            log.Println("monitor process ...")
+            callback(ps.cmd, psProcess)
         }
     }
 
@@ -164,7 +177,7 @@ func (ps *Process) run() {
         ps.runs += 1
         if ps.runs < args.GetMaxRestart() {
             log.Println("Restarting ...")
-            go ps.run()
+            go ps.run(callback)
         } else {
             log.Println("Not restarting")
         }
@@ -176,7 +189,7 @@ func (ps *Process) run() {
             time.Sleep(time.Duration(args.GetRecurringPeriod()) * time.Second)
             ps.runs = 0
             log.Println("Recurring ...")
-            ps.run()
+            ps.run(callback)
         }()
     }
 }
