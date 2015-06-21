@@ -73,15 +73,15 @@ func (ps *Process) run() {
                         args.GetCmdArgs()...)
     cmd.Dir = args.GetWorkingDir()
 
-    // stdout, err := cmd.StdoutPipe()
-    // if err != nil {
-    //     log.Println("Failed to open process stdout", err)
-    // }
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+        log.Println("Failed to open process stdout", err)
+    }
 
-    // stderr, err := cmd.StderrPipe()
-    // if err != nil {
-    //     log.Println("Failed to open process stderr", err)
-    // }
+    stderr, err := cmd.StderrPipe()
+    if err != nil {
+        log.Println("Failed to open process stderr", err)
+    }
 
     stdin, err := cmd.StdinPipe()
     if err != nil {
@@ -93,6 +93,17 @@ func (ps *Process) run() {
         log.Println("Failed to start process", err)
         return
     }
+
+    // start consuming outputs.
+    outConsumer := NewStreamConsumer(stdout, 1)
+    outConsumer.Consume(func (msg Message){
+        log.Println(msg)
+    })
+
+    errConsumer := NewStreamConsumer(stderr, 2)
+    errConsumer.Consume(func (msg Message){
+        log.Println("ERROR", msg)
+    })
 
     if ps.cmd.data != "" {
         //write data to command stdin.
@@ -169,4 +180,3 @@ func (ps *Process) run() {
         }()
     }
 }
-
