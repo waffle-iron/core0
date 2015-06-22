@@ -10,6 +10,11 @@ import (
     _ "github.com/mattn/go-sqlite3"
 )
 
+const (
+    RECYCLE_SIZE = 100 * 1024 * 1024
+)
+
+
 type DBFactory interface {
     GetDBCon() *sql.DB
 }
@@ -17,6 +22,7 @@ type DBFactory interface {
 type SqliteDBFactory struct {
     db *sql.DB
     dir string
+    getcount int
 }
 
 func NewSqliteFactory(dir string) DBFactory {
@@ -27,28 +33,39 @@ func NewSqliteFactory(dir string) DBFactory {
 }
 
 func (slite *SqliteDBFactory) GetDBCon() *sql.DB {
-    stat, err := os.Stat(slite.getDBFilePath("current"))
+    if slite.db == nil {
+        stat, err := os.Stat(slite.getDBFilePath("current"))
 
-    if os.IsNotExist(err) {
-        //init db.
-        slite.db = slite.initDB()
-    } else if stat.Size() >= RECYCLE_SIZE {
-        //move old file
-        if slite.db != nil {
+        if os.IsNotExist(err) {
+            //init db.
+            slite.db = slite.initDB()
+        } else if stat.Size() >= RECYCLE_SIZE {
+            //move old file
+            if slite.db != nil {
+                slite.db.Close()
+            }
+            os.Rename(
+                slite.getDBFilePath("current"),
+                slite.getDBFilePath(fmt.Sprintf("%d", time.Now().Unix())))
+            slite.db = slite.initDB()
+        } else {
+            db, err := sql.Open("sqlite3", slite.getDBFilePath("current"))
+            if err != nil {
+                log.Fatal("Couldn't open db connection", err)
+            }
+            slite.db = db
+        }
+    } else {
+        if slite.getcount >= 10000 {
+            //recycle.
             slite.db.Close()
+            slite.db = nil
+            slite.getcount = 0
+            slite.GetDBCon()
         }
-        os.Rename(
-            slite.getDBFilePath("current"),
-            slite.getDBFilePath(fmt.Sprintf("%d", time.Now().Unix())))
-        slite.db = slite.initDB()
-    } else if slite.db == nil {
-        db, err := sql.Open("sqlite3", slite.getDBFilePath("current"))
-        if err != nil {
-            log.Fatal("Couldn't open db connection", err)
-        }
-        slite.db = db
     }
 
+    slite.getcount += 1
     return slite.db
 }
 

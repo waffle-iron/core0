@@ -6,9 +6,7 @@ import (
     "time"
 )
 
-const (
-    RECYCLE_SIZE = 100 * 1024 * 1024
-)
+
 
 var RESULT_MESSAGE []int = []int{20, 21, 22, 23, 30}
 

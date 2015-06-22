@@ -25,9 +25,9 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-    mgr.AddMessageHandler(func (msg *pm.Message) {
-        log.Println(msg)
-    })
+    // mgr.AddMessageHandler(func (msg *pm.Message) {
+    //     log.Println(msg)
+    // })
 
     mgr.AddMessageHandler(logger.Log)
 
@@ -38,24 +38,26 @@ func main() {
     //start process mgr.
     mgr.Run()
 
-    // args := &pm.BasicArgs{
-    //     Name: "/bin/bash",
-    //     CmdArgs: []string{"-c", "cat > test.txt"},
-    //     //WorkingDir: "/home/azmy",
-    //     //MaxRestart: 2,
-    //     //RecurringPeriod: 3,
-    // }
-
-    //nginx -c /etc/nginx/nginx.fg.conf
     args := &pm.BasicArgs{
-        Name: "sudo",
-        CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
-        WorkingDir: "/home/azmy",
-        LogLevels: []int {1, 2},
-        LogLevelsDB: []int {2},
+        Name: "cat",
+        CmdArgs: []string{"data.log"},
+        LogLevels: []int{1, 2},
+        LogLevelsDB: []int{1},
+        //WorkingDir: "/home/azmy",
         //MaxRestart: 2,
         //RecurringPeriod: 3,
     }
+
+    //nginx -c /etc/nginx/nginx.fg.conf
+    // args := &pm.BasicArgs{
+    //     Name: "sudo",
+    //     CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
+    //     WorkingDir: "/home/azmy",
+    //     LogLevels: []int {1, 2},
+    //     LogLevelsDB: []int {2},
+    //     //MaxRestart: 2,
+    //     //RecurringPeriod: 3,
+    // }
 
     mgr.NewCmd("execute", "id", args, "Hello world")
 
