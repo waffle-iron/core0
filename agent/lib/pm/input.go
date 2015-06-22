@@ -13,20 +13,22 @@ import (
 var PM_MESG_PATTERN, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
 
 type StreamConsumer struct {
+    cmd *Cmd
     reader io.Reader
     level int
 }
 
 
-func NewStreamConsumer(reader io.Reader, level int) *StreamConsumer{
+func NewStreamConsumer(cmd *Cmd, reader io.Reader, level int) *StreamConsumer{
     return &StreamConsumer{
+        cmd: cmd,
         reader: reader,
         level: level,
     }
 }
 
 
-func (consumer *StreamConsumer) Consume(handler func (msg Message)) {
+func (consumer *StreamConsumer) Consume(handler MessageHandler) {
     // read input until the end (or closed)
     // process all messages as speced x:: or x:::
     // other messages that has no level are assumed of level consumer.level
@@ -50,7 +52,8 @@ func (consumer *StreamConsumer) Consume(handler func (msg Message)) {
                 matches := PM_MESG_PATTERN.FindStringSubmatch(line)
                 if matches == nil {
                     //use default level.
-                    handler(Message{
+                    handler(&Message{
+                        cmd: consumer.cmd,
                         level: consumer.level,
                         message: line,
                     })
@@ -63,7 +66,8 @@ func (consumer *StreamConsumer) Consume(handler func (msg Message)) {
                         multiline = true
                     } else {
                         //single line message
-                        handler(Message{
+                        handler(&Message{
+                            cmd: consumer.cmd,
                             level: level,
                             message: message,
                         })
@@ -78,7 +82,8 @@ func (consumer *StreamConsumer) Consume(handler func (msg Message)) {
                 if line == ":::" {
                     multiline = false
                     //flush message
-                    handler(Message{
+                    handler(&Message{
+                        cmd: consumer.cmd,
                         level: level,
                         message: message,
                     })

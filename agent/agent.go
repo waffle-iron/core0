@@ -15,13 +15,27 @@ func main() {
         log.Println("STATS", key, value)
     })
 
+    logger := pm.NewLogger(1000,
+                           1 * time.Minute,
+                           pm.NewSqliteFactory("./"))
+
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor.
         cpu, _ := ps.CPUPercent(0)
         statsd.Avg("cmd.cpu", cpu)
     })
 
+    mgr.AddMessageHandler(func (msg *pm.Message) {
+        log.Println(msg)
+    })
+
+    mgr.AddMessageHandler(logger.Log)
+
+    //start statsd aggregation
     statsd.Run()
+    //start logger
+    logger.Run()
+    //start process mgr.
     mgr.Run()
 
     // args := &pm.BasicArgs{
@@ -37,6 +51,8 @@ func main() {
         Name: "sudo",
         CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
         WorkingDir: "/home/azmy",
+        LogLevels: []int {1, 2},
+        LogLevelsDB: []int {2},
         //MaxRestart: 2,
         //RecurringPeriod: 3,
     }
@@ -49,5 +65,4 @@ func main() {
             log.Println("...")
         }
     }
-
 }

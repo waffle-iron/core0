@@ -1,8 +1,5 @@
 package pm
 
-import (
-    "github.com/Jumpscale/jsagent/agent/lib/utils"
-)
 
 type Args interface {
     GetName() string
@@ -25,9 +22,9 @@ type BasicArgs struct {
     MaxRestart int
     Domain string
     WorkingDir string
-    LogLevels string
-    LogLevelsDB string
-    LogLevelsAC string
+    LogLevels []int
+    LogLevelsDB []int
+    LogLevelsAC []int
     RecurringPeriod int
     StatsInterval int
 }
@@ -57,15 +54,15 @@ func (args *BasicArgs) GetWorkingDir() string {
 }
 
 func (args *BasicArgs) GetLogLevels() []int {
-    return utils.Expand(args.LogLevels, 1, 10)
+    return args.LogLevels
 }
 
 func (args *BasicArgs) GetLogLevelsDB() []int {
-    return utils.Expand(args.LogLevelsDB, 1, 10)
+    return args.LogLevelsDB
 }
 
 func (args *BasicArgs) GetLogLevelsAC() []int {
-    return utils.Expand(args.LogLevelsAC, 1, 10)
+    return args.LogLevelsAC
 }
 
 func (args *BasicArgs) GetRecurringPeriod() int {

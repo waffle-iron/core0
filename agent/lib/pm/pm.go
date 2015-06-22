@@ -23,25 +23,33 @@ type Process struct {
     runs int
 }
 
+type MeterHandler func (cmd *Cmd, p *process.Process)
+type MessageHandler func (msg *Message)
 
 type PM struct {
     cmds chan *Cmd
     processes map[string]*Process
     meterHandlers []MeterHandler
+    msgHandlers []MessageHandler
 }
 
-type MeterHandler func (cmd *Cmd, p *process.Process)
+
+type runCfg struct {
+    meterHandler MeterHandler
+    msgHandler MessageHandler
+}
 
 func NewPM() *PM {
     pm := new(PM)
     pm.cmds = make(chan *Cmd)
     pm.processes = make(map[string]*Process)
     pm.meterHandlers = make([]MeterHandler, 0, 3)
+    pm.msgHandlers = make([]MessageHandler, 0, 3)
     return pm
 }
 
 
-func (pm *PM) NewCmd(name string, id string, args Args, data string) error {
+func (pm *PM) NewCmd(name string, id string, args Args, data string) {
     cmd := &Cmd {
         id: id,
         name: name,
@@ -50,11 +58,14 @@ func (pm *PM) NewCmd(name string, id string, args Args, data string) error {
     }
 
     pm.cmds <- cmd
-    return nil
 }
 
 func (pm *PM) AddMeterHandler(handler MeterHandler) {
     pm.meterHandlers = append(pm.meterHandlers, handler)
+}
+
+func (pm *PM) AddMessageHandler(handler MessageHandler) {
+    pm.msgHandlers = append(pm.msgHandlers, handler)
 }
 
 func (pm *PM) Run() {
@@ -67,7 +78,10 @@ func (pm *PM) Run() {
             }
 
             pm.processes[cmd.id] = process // do we really need this ?
-            go process.run(pm.meterCallback)
+            go process.run(runCfg{
+                meterHandler: pm.meterCallback,
+                msgHandler: pm.msgCallback,
+            })
         }
     }()
 }
@@ -78,7 +92,16 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
     }
 }
 
-func (ps *Process) run(callback MeterHandler) {
+func (pm *PM) msgCallback(msg *Message) {
+    for _, handler := range pm.msgHandlers {
+        handler(msg)
+    }
+}
+
+//Start process, feed data over the process stdin, and start
+//consuming both stdout, and stderr.
+//All messages from the subprocesses are
+func (ps *Process) run(cfg runCfg) {
     args := ps.cmd.args
     cmd := exec.Command(args.GetName(),
                         args.GetCmdArgs()...)
@@ -106,15 +129,11 @@ func (ps *Process) run(callback MeterHandler) {
     }
 
     // start consuming outputs.
-    outConsumer := NewStreamConsumer(stdout, 1)
-    outConsumer.Consume(func (msg Message){
-        log.Println(msg)
-    })
+    outConsumer := NewStreamConsumer(ps.cmd, stdout, 1)
+    outConsumer.Consume(cfg.msgHandler)
 
-    errConsumer := NewStreamConsumer(stderr, 2)
-    errConsumer.Consume(func (msg Message){
-        log.Println("ERROR", msg)
-    })
+    errConsumer := NewStreamConsumer(ps.cmd, stderr, 2)
+    errConsumer.Consume(cfg.msgHandler)
 
     if ps.cmd.data != "" {
         //write data to command stdin.
@@ -166,7 +185,7 @@ func (ps *Process) run(callback MeterHandler) {
             break loop
         case <- time.After(time.Duration(statsInterval) * time.Second):
             //monitor.
-            callback(ps.cmd, psProcess)
+            cfg.meterHandler(ps.cmd, psProcess)
         }
     }
 
@@ -177,7 +196,7 @@ func (ps *Process) run(callback MeterHandler) {
         ps.runs += 1
         if ps.runs < args.GetMaxRestart() {
             log.Println("Restarting ...")
-            go ps.run(callback)
+            go ps.run(cfg)
         } else {
             log.Println("Not restarting")
         }
@@ -189,7 +208,7 @@ func (ps *Process) run(callback MeterHandler) {
             time.Sleep(time.Duration(args.GetRecurringPeriod()) * time.Second)
             ps.runs = 0
             log.Println("Recurring ...")
-            ps.run(callback)
+            ps.run(cfg)
         }()
     }
 }
