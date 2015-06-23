@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-    mgr := pm.NewPM()
+    mgr := pm.NewPM("./mid.f")
 
     statsd := stats.NewStatsd(60, func (key string, value float64) {
         log.Println("STATS", key, value)
