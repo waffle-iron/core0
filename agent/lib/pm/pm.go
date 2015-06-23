@@ -148,6 +148,8 @@ func (ps *Process) run(cfg runCfg) {
     psexit := make(chan bool)
 
     go func() {
+        <- outConsumer.Signal
+        <- errConsumer.Signal
         err := cmd.Wait()
         if err != nil {
             log.Println(err)

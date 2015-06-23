@@ -16,6 +16,7 @@ type StreamConsumer struct {
     cmd *Cmd
     reader io.Reader
     level int
+    Signal chan int
 }
 
 
@@ -24,6 +25,7 @@ func NewStreamConsumer(cmd *Cmd, reader io.Reader, level int) *StreamConsumer{
         cmd: cmd,
         reader: reader,
         level: level,
+        Signal: make(chan int),
     }
 }
 
@@ -48,51 +50,55 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
 
             line = strings.TrimRight(line, "\n")
 
-            if !multiline {
-                matches := PM_MESG_PATTERN.FindStringSubmatch(line)
-                if matches == nil {
-                    //use default level.
-                    handler(&Message{
-                        cmd: consumer.cmd,
-                        level: consumer.level,
-                        message: line,
-                    })
-                } else {
-                    l, _ := strconv.ParseInt(matches[1], 10, 0)
-                    level = int(l)
-                    message = matches[3]
-
-                    if matches[2] == ":::" {
-                        multiline = true
+            if line != "" {
+                if !multiline {
+                    matches := PM_MESG_PATTERN.FindStringSubmatch(line)
+                    if matches == nil {
+                        //use default level.
+                        handler(&Message{
+                            cmd: consumer.cmd,
+                            level: consumer.level,
+                            message: line,
+                        })
                     } else {
-                        //single line message
+                        l, _ := strconv.ParseInt(matches[1], 10, 0)
+                        level = int(l)
+                        message = matches[3]
+
+                        if matches[2] == ":::" {
+                            multiline = true
+                        } else {
+                            //single line message
+                            handler(&Message{
+                                cmd: consumer.cmd,
+                                level: level,
+                                message: message,
+                            })
+                        }
+                    }
+                } else {
+                    /*
+                    A known issue is that if stream was closed (EOF) before
+                    we receive the ::: termination of multiline string. We discard
+                    the uncomplete multiline string message.
+                    */
+                    if line == ":::" {
+                        multiline = false
+                        //flush message
                         handler(&Message{
                             cmd: consumer.cmd,
                             level: level,
                             message: message,
                         })
+                    } else {
+                        message += "\n" + line
                     }
-                }
-            } else {
-                /*
-                A known issue is that if stream was closed (EOF) before
-                we receive the ::: termination of multiline string. We discard
-                the uncomplete multiline string message.
-                */
-                if line == ":::" {
-                    multiline = false
-                    //flush message
-                    handler(&Message{
-                        cmd: consumer.cmd,
-                        level: level,
-                        message: message,
-                    })
-                } else {
-                    message += "\n" + line
                 }
             }
 
             if err == io.EOF {
+                consumer.Signal <- 1
+                close(consumer.Signal)
                 return
             }
         }
