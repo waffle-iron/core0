@@ -4,17 +4,32 @@ import (
     "fmt"
     "log"
     "time"
+    "encoding/json"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
 )
 
 type Message struct {
+    id uint32
     cmd *Cmd
     level int
     message string
+    epoch int64
 }
 
+func (msg *Message) MarshalJSON() ([]byte, error) {
+    data := make(map[string]interface{})
+    args := msg.cmd.args
+    data["domain"] = args.GetDomain()
+    data["name"] = args.GetName()
+    data["epoch"] = msg.epoch
+    data["level"] = msg.level
+    data["id"] = msg.id
+    data["data"] = msg.message
 
-func (msg Message) String() string {
+    return json.Marshal(data)
+}
+
+func (msg *Message) String() string {
     return fmt.Sprintf("%d:%s", msg.level, msg.message)
 }
 
@@ -101,5 +116,12 @@ func (logger *ACLogger) flush() {
 }
 
 func (logger *ACLogger) send(buffer []*Message) {
+    s, err := json.Marshal(buffer)
+    if err != nil {
+        log.Println("Failed to serialize the logs")
+    }
+
+    log.Printf("%s\n", s)
+
     log.Println("Send batch to AC", len(buffer))
 }

@@ -100,6 +100,8 @@ func (pm *PM) msgCallback(msg *Message) {
         return
     }
 
+    //stamp msg.
+    msg.epoch = time.Now().Unix()
     for _, handler := range pm.msgHandlers {
         handler(msg)
     }
