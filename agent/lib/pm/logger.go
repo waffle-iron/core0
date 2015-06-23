@@ -57,8 +57,9 @@ func (logger *DBLogger) Log(msg *Message) {
         insert into logs (id, domain, name, epoch, level, data)
         values (?, ?, ?, ?, ?, ?)
     `
-    _, err := db.Exec(stmnt, 1, "testdomain", "testname",
-                      time.Now().Unix(), msg.level, msg.message)
+    args := msg.cmd.args
+    _, err := db.Exec(stmnt, msg.id, args.GetDomain(), args.GetName(),
+                      msg.epoch, msg.level, msg.message)
     if err != nil {
         log.Fatal(err)
     }
