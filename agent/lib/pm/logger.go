@@ -4,11 +4,8 @@ import (
     "fmt"
     "log"
     "time"
+    "github.com/Jumpscale/jsagent/agent/lib/utils"
 )
-
-
-
-var RESULT_MESSAGE []int = []int{20, 21, 22, 23, 30}
 
 type Message struct {
     cmd *Cmd
@@ -21,70 +18,88 @@ func (msg Message) String() string {
     return fmt.Sprintf("%d:%s", msg.level, msg.message)
 }
 
-type Logger struct {
-    queue_db chan *Message
-    queue_ac chan *Message
-    buffer []*Message
-    flushInt time.Duration
-    dbfactory DBFactory
+type Logger interface {
+    Log(msg *Message)
 }
 
-func NewLogger(bufsize int, flushInt time.Duration, dbfactory DBFactory) *Logger {
-    return &Logger{
-        queue_db: make (chan *Message, 1024),
-        queue_ac: make (chan *Message, 1024),
-        buffer: make([]*Message, bufsize, bufsize),
-        flushInt: flushInt,
-        dbfactory: dbfactory,
+type DBLogger struct {
+    factory DBFactory
+}
+
+func NewDBLogger(factory DBFactory) Logger {
+    return &DBLogger{
+        factory: factory,
     }
 }
 
-func in(l []int, x int) bool {
-    for i := 0; i < len(l); i++ {
-        if l[i] == x {
-            return true
-        }
-    }
-
-    return false
-}
-
-func (logger *Logger) Run() {
-    go func() {
-        for {
-            msg := <- logger.queue_db
-            //dump message directly to db
-            db := logger.dbfactory.GetDBCon()
-            stmnt := `
-                insert into logs (id, domain, name, epoch, level, data)
-                values (?, ?, ?, ?, ?, ?)
-            `
-            _, err := db.Exec(stmnt, 1, "testdomain", "testname",
-                              time.Now().Unix(), msg.level, msg.message)
-            if err != nil {
-                log.Fatal(err)
-            }
-        }
-    } ()
-}
-
-func (logger *Logger) Log(msg *Message) {
-    if in(RESULT_MESSAGE, msg.level) {
-        //send immediate to AC result
-    }
-
-    if !in(msg.cmd.args.GetLogLevels(), msg.level){
-        //ignore, no further processing.
+func (logger *DBLogger) Log(msg *Message) {
+    if !utils.In(msg.cmd.args.GetLogLevelsDB(), msg.level) {
         return
     }
 
-    if in(msg.cmd.args.GetLogLevelsDB(), msg.level) {
-        //send to db worker.
-        logger.queue_db <- msg
+    db := logger.factory.GetDBCon()
+    stmnt := `
+        insert into logs (id, domain, name, epoch, level, data)
+        values (?, ?, ?, ?, ?, ?)
+    `
+    _, err := db.Exec(stmnt, 1, "testdomain", "testname",
+                      time.Now().Unix(), msg.level, msg.message)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+
+type ACLogger struct {
+    endpoint string
+    buffer []*Message
+    queue chan *Message
+}
+
+func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
+    logger := &ACLogger {
+        endpoint: endpoint,
+        buffer: make([]*Message, 0, bufsize),
+        queue: make(chan *Message),
     }
 
-    if in(msg.cmd.args.GetLogLevelsAC(), msg.level) {
-        //send to ac logger.
-        logger.queue_ac <- msg
+    go func() {
+        //autostart logger flusher.
+        for {
+            select {
+            case msg := <- logger.queue:
+                if len(logger.buffer) < cap(logger.buffer) {
+                    logger.buffer = append(logger.buffer, msg)
+                }
+
+                if len(logger.buffer) == cap(logger.buffer) {
+                    //no more buffer space.
+                    logger.flush()
+                }
+            case <- time.After(flushInt):
+                logger.flush()
+            }
+        }
+    } ()
+
+    return logger
+}
+
+func (logger *ACLogger) Log(msg *Message) {
+    if !utils.In(msg.cmd.args.GetLogLevelsAC(), msg.level) {
+        return
     }
+    logger.queue <- msg
+}
+
+func (logger *ACLogger) flush() {
+    basket := make([]*Message, len(logger.buffer))
+    copy(basket, logger.buffer)
+    go logger.send(basket)
+
+    logger.buffer = logger.buffer[0:0]
+}
+
+func (logger *ACLogger) send(buffer []*Message) {
+    log.Println("Send batch to AC", len(buffer))
 }

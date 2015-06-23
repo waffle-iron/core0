@@ -5,9 +5,11 @@ import (
     "os/exec"
     "time"
     "log"
+    "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/shirou/gopsutil/process"
 )
 
+var RESULT_MESSAGE_LEVELS []int = []int{20, 21, 22, 23, 30}
 
 type Cmd struct {
     name string
@@ -93,6 +95,11 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) msgCallback(msg *Message) {
+    if !utils.In(RESULT_MESSAGE_LEVELS, msg.level) &&
+       !utils.In(msg.cmd.args.GetLogLevels(), msg.level) {
+        return
+    }
+
     for _, handler := range pm.msgHandlers {
         handler(msg)
     }
@@ -148,8 +155,11 @@ func (ps *Process) run(cfg runCfg) {
     psexit := make(chan bool)
 
     go func() {
+        //make sure all outputs are closed before waiting for the process
+        //to exit.
         <- outConsumer.Signal
         <- errConsumer.Signal
+
         err := cmd.Wait()
         if err != nil {
             log.Println(err)

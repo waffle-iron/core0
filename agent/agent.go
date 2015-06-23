@@ -15,9 +15,7 @@ func main() {
         log.Println("STATS", key, value)
     })
 
-    logger := pm.NewLogger(1000,
-                           1 * time.Minute,
-                           pm.NewSqliteFactory("./"))
+
 
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor.
@@ -25,39 +23,43 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-    // mgr.AddMessageHandler(func (msg *pm.Message) {
-    //     log.Println(msg)
-    // })
+    mgr.AddMessageHandler(func (msg *pm.Message) {
+        log.Println(msg)
+    })
 
-    mgr.AddMessageHandler(logger.Log)
+    dblogger := pm.NewDBLogger(pm.NewSqliteFactory("./"))
+    mgr.AddMessageHandler(dblogger.Log)
+
+    aclogger := pm.NewACLogger("/endpoint", 2, 10 * time.Second)
+    mgr.AddMessageHandler(aclogger.Log)
 
     //start statsd aggregation
     statsd.Run()
-    //start logger
-    logger.Run()
+
     //start process mgr.
     mgr.Run()
 
-    args := &pm.BasicArgs{
-        Name: "cat",
-        CmdArgs: []string{"data.log"},
-        LogLevels: []int{1, 2},
-        LogLevelsDB: []int{1},
-        //WorkingDir: "/home/azmy",
-        //MaxRestart: 2,
-        //RecurringPeriod: 3,
-    }
-
-    //nginx -c /etc/nginx/nginx.fg.conf
     // args := &pm.BasicArgs{
-    //     Name: "sudo",
-    //     CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
-    //     WorkingDir: "/home/azmy",
-    //     LogLevels: []int {1, 2},
-    //     LogLevelsDB: []int {2},
+    //     Name: "cat",
+    //     CmdArgs: []string{"data.log"},
+    //     LogLevels: []int{1, 2},
+    //     //LogLevelsDB: []int{1},
+    //     //WorkingDir: "/home/azmy",
     //     //MaxRestart: 2,
     //     //RecurringPeriod: 3,
     // }
+
+    //nginx -c /etc/nginx/nginx.fg.conf
+    args := &pm.BasicArgs{
+        Name: "sudo",
+        CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
+        WorkingDir: "/home/azmy",
+        LogLevels: []int {1, 2},
+        LogLevelsDB: []int {2},
+        LogLevelsAC: []int {2},
+        //MaxRestart: 2,
+        //RecurringPeriod: 3,
+    }
 
     mgr.NewCmd("execute", "id", args, "Hello world")
 
