@@ -30,7 +30,7 @@ func main() {
     dblogger := pm.NewDBLogger(pm.NewSqliteFactory("./"))
     mgr.AddMessageHandler(dblogger.Log)
 
-    aclogger := pm.NewACLogger("/endpoint", 2, 10 * time.Second)
+    aclogger := pm.NewACLogger("http://localhost:8080/log", 2, 10 * time.Second)
     mgr.AddMessageHandler(aclogger.Log)
 
     //start statsd aggregation

@@ -5,6 +5,8 @@ import (
     "log"
     "time"
     "encoding/json"
+    "bytes"
+    "net/http"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
 )
 
@@ -117,12 +119,22 @@ func (logger *ACLogger) flush() {
 }
 
 func (logger *ACLogger) send(buffer []*Message) {
-    s, err := json.Marshal(buffer)
+    if len(buffer) == 0 {
+        //buffer can be of length zero, when flushed on timer while
+        //no messages are ready.
+        return
+    }
+
+    msgs, err := json.Marshal(buffer)
     if err != nil {
         log.Println("Failed to serialize the logs")
     }
 
-    log.Printf("%s\n", s)
-
-    log.Println("Send batch to AC", len(buffer))
+    reader := bytes.NewReader(msgs)
+    resp, err := http.Post(logger.endpoint, "application/json", reader)
+    if err != nil {
+        log.Println("Failed to send log batch to AC", err)
+        return
+    }
+    resp.Body.Close()
 }
