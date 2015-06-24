@@ -9,12 +9,9 @@ import (
     "github.com/shirou/gopsutil/process"
 )
 
-type Process struct {
-    cmd *Cmd
-    pid int
-    runs int
+type Process interface{
+    run(runCfg)
 }
-
 
 type runCfg struct {
     meterHandler MeterHandler
@@ -35,10 +32,23 @@ type JobResult struct {
     Time int64 `json:"time"`
 }
 
+type ExtProcess struct {
+    cmd *Cmd
+    pid int
+    runs int
+}
+
+
+func NewExtProcess(cmd *Cmd) Process {
+    return &ExtProcess{
+        cmd: cmd,
+    }
+}
+
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
-func (ps *Process) run(cfg runCfg) {
+func (ps *ExtProcess) run(cfg runCfg) {
     args := ps.cmd.args
     cmd := exec.Command(args.GetName(),
                         args.GetCmdArgs()...)

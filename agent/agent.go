@@ -44,6 +44,22 @@ func main() {
     //start process mgr.
     mgr.Run()
 
+    // cmd := `
+    // {
+    //     "id": "job-id",
+    //     "gid": "gid",
+    //     "nid": "nid",
+    //     "cmd": "execute",
+    //     "args": {
+    //         "name": "python2.7",
+    //         "args": ["test.py"],
+    //         "loglevles": [3],
+    //         "loglevels_db": [3],
+    //         "max_time": 5
+    //     },
+    //     "data": ""
+    // }
+    // `
     args := &pm.BasicArgs{
         Name: "python2.7",
         CmdArgs: []string{"test.py"},
