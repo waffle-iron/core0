@@ -1,5 +1,8 @@
 package pm
 
+import (
+    "encoding/json"
+)
 
 type Args interface {
     GetName() string
@@ -71,4 +74,122 @@ func (args *BasicArgs) GetRecurringPeriod() int {
 
 func (args *BasicArgs) GetStatsInterval() int {
     return args.StatsInterval
+}
+
+type MapArgs struct {
+    data map[string]interface{}
+}
+
+func NewMapArgs(data map[string]interface{}) Args{
+    return &MapArgs{
+        data: data,
+    }
+}
+
+func (args *MapArgs) MarshalJSON() ([]byte, error) {
+    return json.Marshal(args.data)
+}
+
+func (args *MapArgs) getInt(key string) int {
+    s, ok := args.data[key]
+    if ok {
+        return s.(int)
+    }
+    return 0
+}
+
+func (args *MapArgs) getString(key string) string {
+    s, ok := args.data[key]
+    if ok {
+        return s.(string)
+    }
+    return ""
+}
+
+func (args *MapArgs) getFloat(key string) float64 {
+    s, ok := args.data[key]
+    if ok {
+        return s.(float64)
+    }
+    return 0
+}
+
+func (args *MapArgs) getMap(key string) map[string]interface{} {
+    s, ok := args.data[key]
+    if ok {
+        return s.(map[string]interface{})
+    }
+
+    return make(map[string]interface{})
+}
+
+func (args *MapArgs) getArray(key string) []interface{} {
+    s, ok := args.data[key]
+    if ok {
+        return s.([]interface{})
+    }
+
+    return make([]interface{}, 0)
+}
+
+func (args *MapArgs) getStringArray(key string) []string {
+    s, ok := args.data[key]
+    if ok {
+        return s.([]string)
+    }
+
+    return make([]string, 0)
+}
+
+func (args *MapArgs) getIntArray(key string) []int {
+    s, ok := args.data[key]
+    if ok {
+        return s.([]int)
+    }
+
+    return make([]int, 0)
+}
+
+func (args *MapArgs) GetName() string {
+    return args.getString("name")
+}
+
+func (args *MapArgs) GetCmdArgs() []string {
+    return args.getStringArray("args")
+}
+
+func (args *MapArgs) GetMaxTime() int {
+    return args.getInt("max_time")
+}
+
+func (args *MapArgs) GetMaxRestart() int {
+    return args.getInt("max_restart")
+}
+
+func (args *MapArgs) GetDomain() string {
+    return args.getString("domain")
+}
+
+func (args *MapArgs) GetWorkingDir() string {
+    return args.getString("working_dir")
+}
+
+func (args *MapArgs) GetLogLevels() []int {
+    return args.getIntArray("loglevels")
+}
+
+func (args *MapArgs) GetLogLevelsDB() []int {
+    return args.getIntArray("logevels_db")
+}
+
+func (args *MapArgs) GetLogLevelsAC() []int {
+    return args.getIntArray("logevels_ac")
+}
+
+func (args *MapArgs) GetRecurringPeriod() int {
+    return args.getInt("recurring_period")
+}
+
+func (args *MapArgs) GetStatsInterval() int {
+    return args.getInt("stats_interval")
 }

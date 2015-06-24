@@ -60,16 +60,27 @@ func main() {
     //     "data": ""
     // }
     // `
-    args := &pm.BasicArgs{
-        Name: "python2.7",
-        CmdArgs: []string{"test.py"},
-        LogLevels: []int{3},
-        LogLevelsDB: []int{3},
-        MaxTime: 5,
-        //WorkingDir: "/home/azmy",
-        //MaxRestart: 2,
-        //RecurringPeriod: 3,
+
+    margs := map[string]interface{} {
+        "name": "python2.7",
+        "args": []string{"test.py"},
+        "loglevles": []int{3},
+        "loglevels_db": []int{3},
+        "max_time": 5,
     }
+
+    args := pm.NewMapArgs(margs)
+
+    // args := &pm.BasicArgs{
+    //     Name: "python2.7",
+    //     CmdArgs: []string{"test.py"},
+    //     LogLevels: []int{3},
+    //     LogLevelsDB: []int{3},
+    //     MaxTime: 5,
+    //     //WorkingDir: "/home/azmy",
+    //     //MaxRestart: 2,
+    //     //RecurringPeriod: 3,
+    // }
 
     //nginx -c /etc/nginx/nginx.fg.conf
     // args := &pm.BasicArgs{
