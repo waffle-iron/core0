@@ -25,9 +25,9 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-    mgr.AddMessageHandler(func (msg *pm.Message) {
-        log.Println(msg)
-    })
+    // mgr.AddMessageHandler(func (msg *pm.Message) {
+    //     log.Println(msg)
+    // })
 
     dblogger := pm.NewDBLogger(pm.NewSqliteFactory("./"))
     mgr.AddMessageHandler(dblogger.Log)
@@ -61,15 +61,31 @@ func main() {
     // }
     // `
 
-    margs := map[string]interface{} {
-        "name": "python2.7",
-        "args": []string{"test.py"},
-        "loglevles": []int{3},
-        "loglevels_db": []int{3},
-        "max_time": 5,
-    }
+    // margs := map[string]interface{} {
+    //     "name": "python2.7",
+    //     "args": []string{"test.py"},
+    //     "loglevles": []int{3},
+    //     "loglevels_db": []int{3},
+    //     "max_time": 5,
+    // }
 
-    args := pm.NewMapArgs(margs)
+    // args := pm.NewMapArgs(margs)
+
+    cmd := map[string]interface{} {
+        "id": "job-id",
+        "gid": 1,
+        "nid": 10,
+        "name": "execute",
+        "args": map[string]interface{} {
+            "name": "python2.7",
+            "args": []string{"test.py"},
+            "loglevels": []int{3},
+            "loglevels_db": []int{3},
+            "max_time": 5,
+            "max_restart": 2,
+        },
+        "data": "",
+    }
 
     // args := &pm.BasicArgs{
     //     Name: "python2.7",
@@ -94,7 +110,8 @@ func main() {
     //     //RecurringPeriod: 3,
     // }
 
-    mgr.NewCmd("execute", "id", args, "Hello world")
+    //mgr.NewCmd(0, 0, "id", "execute", args, "Hello world")
+    mgr.NewMapCmd(cmd)
 
     for {
         select {

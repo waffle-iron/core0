@@ -21,8 +21,8 @@ type Message struct {
 func (msg *Message) MarshalJSON() ([]byte, error) {
     data := make(map[string]interface{})
     args := msg.cmd.args
-    data["domain"] = args.GetDomain()
-    data["name"] = args.GetName()
+    data["domain"] = args.GetString("domaing")
+    data["name"] = args.GetString("name")
     data["epoch"] = msg.epoch
     data["level"] = msg.level
     data["id"] = msg.id
@@ -50,7 +50,7 @@ func NewDBLogger(factory DBFactory) Logger {
 }
 
 func (logger *DBLogger) Log(msg *Message) {
-    if !utils.In(msg.cmd.args.GetLogLevelsDB(), msg.level) {
+    if !utils.In(msg.cmd.args.GetIntArray("loglevels_db"), msg.level) {
         return
     }
 
@@ -60,7 +60,7 @@ func (logger *DBLogger) Log(msg *Message) {
         values (?, ?, ?, ?, ?, ?)
     `
     args := msg.cmd.args
-    _, err := db.Exec(stmnt, msg.id, args.GetDomain(), args.GetName(),
+    _, err := db.Exec(stmnt, msg.id, args.GetString("domain"), args.GetString("name"),
                       msg.epoch, msg.level, msg.message)
     if err != nil {
         log.Fatal(err)
@@ -104,7 +104,7 @@ func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
 }
 
 func (logger *ACLogger) Log(msg *Message) {
-    if !utils.In(msg.cmd.args.GetLogLevelsAC(), msg.level) {
+    if !utils.In(msg.cmd.args.GetIntArray("loglevels_ac"), msg.level) {
         return
     }
     logger.queue <- msg

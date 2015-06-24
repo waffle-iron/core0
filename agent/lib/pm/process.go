@@ -38,7 +38,6 @@ type ExtProcess struct {
     runs int
 }
 
-
 func NewExtProcess(cmd *Cmd) Process {
     return &ExtProcess{
         cmd: cmd,
@@ -50,9 +49,9 @@ func NewExtProcess(cmd *Cmd) Process {
 //All messages from the subprocesses are
 func (ps *ExtProcess) run(cfg runCfg) {
     args := ps.cmd.args
-    cmd := exec.Command(args.GetName(),
-                        args.GetCmdArgs()...)
-    cmd.Dir = args.GetWorkingDir()
+    cmd := exec.Command(args.GetString("name"),
+                        args.GetStringArray("args")...)
+    cmd.Dir = args.GetString("working_dir")
 
     stdout, err := cmd.StdoutPipe()
     if err != nil {
@@ -123,11 +122,11 @@ func (ps *ExtProcess) run(cfg runCfg) {
 
     var timeout <-chan time.Time
 
-    if args.GetMaxTime() > 0 {
-        timeout = time.After(time.Duration(args.GetMaxTime()) * time.Second)
+    if args.GetInt("max_time") > 0 {
+        timeout = time.After(time.Duration(args.GetInt("max_time")) * time.Second)
     }
 
-    statsInterval := args.GetStatsInterval()
+    statsInterval := args.GetInt("stats_interval")
     if statsInterval == 0 {
         statsInterval = 30 //TODO, use value from configurations.
     }
@@ -161,9 +160,9 @@ func (ps *ExtProcess) run(cfg runCfg) {
     //process exited.
     log.Println("Exit status: ", success)
 
-    if !success && args.GetMaxRestart() > 0 {
+    if !success && args.GetInt("max_restart") > 0 {
         ps.runs += 1
-        if ps.runs < args.GetMaxRestart() {
+        if ps.runs < args.GetInt("max_restart") {
             log.Println("Restarting ...")
             go ps.run(cfg)
         } else {
@@ -172,9 +171,9 @@ func (ps *ExtProcess) run(cfg runCfg) {
     }
 
     //recurring
-    if success && args.GetRecurringPeriod() > 0 {
+    if success && args.GetInt("recurring_period") > 0 {
         go func() {
-            time.Sleep(time.Duration(args.GetRecurringPeriod()) * time.Second)
+            time.Sleep(time.Duration(args.GetInt("recurring_period")) * time.Second)
             ps.runs = 0
             log.Println("Recurring ...")
             ps.run(cfg)

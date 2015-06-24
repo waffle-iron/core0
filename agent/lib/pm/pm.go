@@ -14,8 +14,10 @@ import (
 var RESULT_MESSAGE_LEVELS []int = []int{20, 21, 22, 23, 30}
 
 type Cmd struct {
-    name string
     id string
+    gid int
+    nid int
+    name string
     args Args
     data string
 }
@@ -70,12 +72,28 @@ func saveMid(midfile string, mid uint32) {
     ioutil.WriteFile(midfile, []byte(fmt.Sprintf("%d", mid)), 0644)
 }
 
-func (pm *PM) NewCmd(name string, id string, args Args, data string) {
+func (pm *PM) NewCmd(gid int, nid int, id string,
+                     name string, args Args, data string) {
     cmd := &Cmd {
+        gid: gid,
+        nid: nid,
         id: id,
         name: name,
         args: args,
         data: data,
+    }
+
+    pm.cmds <- cmd
+}
+
+func (pm *PM) NewMapCmd(data map[string]interface{}) {
+    cmd := &Cmd {
+        gid: data["gid"].(int),
+        nid: data["nid"].(int),
+        id: data["id"].(string),
+        name: data["name"].(string),
+        data: data["data"].(string),
+        args: NewMapArgs(data["args"].(map[string]interface{})),
     }
 
     pm.cmds <- cmd
@@ -106,7 +124,12 @@ func (pm *PM) Run() {
     go func() {
         for {
             cmd := <- pm.cmds
-            process := NewExtProcess(cmd)
+            process := NewProcess(cmd)
+
+            if process == nil {
+                log.Println("Unknow command", cmd.name)
+                return
+            }
 
             pm.processes[cmd.id] = process // do we really need this ?
             go process.run(runCfg{
@@ -125,7 +148,7 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) msgCallback(msg *Message) {
-    if !utils.In(msg.cmd.args.GetLogLevels(), msg.level) {
+    if !utils.In(msg.cmd.args.GetIntArray("loglevels"), msg.level) {
         return
     }
 
