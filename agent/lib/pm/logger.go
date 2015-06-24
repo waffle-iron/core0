@@ -128,6 +128,7 @@ func (logger *ACLogger) send(buffer []*Message) {
     msgs, err := json.Marshal(buffer)
     if err != nil {
         log.Println("Failed to serialize the logs")
+        return
     }
 
     reader := bytes.NewReader(msgs)

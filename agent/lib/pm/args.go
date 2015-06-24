@@ -16,17 +16,17 @@ type Args interface {
 }
 
 type BasicArgs struct {
-    Name string
-    CmdArgs []string
-    MaxTime int
-    MaxRestart int
-    Domain string
-    WorkingDir string
-    LogLevels []int
-    LogLevelsDB []int
-    LogLevelsAC []int
-    RecurringPeriod int
-    StatsInterval int
+    Name string `json:"name"`
+    CmdArgs []string `json:"args"`
+    MaxTime int `json:"max_time"`
+    MaxRestart int `json:"max_restart"`
+    Domain string `json:"domain"`
+    WorkingDir string `json:"working_dir"`
+    LogLevels []int `json:"loglevels"`
+    LogLevelsDB []int `json:"logevels_db"`
+    LogLevelsAC []int `json:"logevels_ac"`
+    RecurringPeriod int `json:"recurring_period"`
+    StatsInterval int `json:"stats_interval"`
 }
 
 func (args *BasicArgs) GetName() string {
