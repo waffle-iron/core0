@@ -176,8 +176,9 @@ Agent connects to AC using long polling over rest
         -   workingdir: working dir for cmd to execute in
 
 -   get_msgs
-    -   args:
-        -   idfrom, idto (optional)
+    - Only return the first 1000 match.
+    - data:
+        -   jobid (optional)
         -   timefrom,timeto (optional)
         -   levels (2 or 1,2,3 or 1-6, or *)
 
