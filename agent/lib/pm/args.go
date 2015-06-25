@@ -12,6 +12,8 @@ type Args interface {
     GetArray(key string) []interface{}
     GetStringArray(key string) []string
     GetIntArray(key string) []int
+    Set(key string, value interface{})
+    Clone(deep bool) Args
 }
 
 type MapArgs struct {
@@ -86,4 +88,32 @@ func (args *MapArgs) GetIntArray(key string) []int {
     }
 
     return make([]int, 0)
+}
+
+func (args *MapArgs) Set(key string, value interface{}) {
+    args.data[key] = value
+}
+
+func (args *MapArgs) Clone(deep bool) Args {
+    data := make(map[string]interface{})
+    for k, v := range args.data {
+        if deep {
+            switch tv := v.(type) {
+            case []int:
+                l := make([]int, len(tv))
+                copy(l, tv)
+                data[k] = l
+            case []string:
+                l := make([]string, len(tv))
+                copy(l, tv)
+                data[k] = l
+            }
+        } else {
+            data[k] = v
+        }
+    }
+
+    return &MapArgs{
+        data: data,
+    }
 }

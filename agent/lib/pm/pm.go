@@ -87,12 +87,16 @@ func (pm *PM) NewCmd(gid int, nid int, id string,
 }
 
 func (pm *PM) NewMapCmd(data map[string]interface{}) {
+    stdin, ok := data["data"]
+    if !ok {
+        stdin = ""
+    }
     cmd := &Cmd {
         gid: data["gid"].(int),
         nid: data["nid"].(int),
         id: data["id"].(string),
         name: data["name"].(string),
-        data: data["data"].(string),
+        data: stdin.(string),
         args: NewMapArgs(data["args"].(map[string]interface{})),
     }
 
@@ -128,14 +132,15 @@ func (pm *PM) Run() {
 
             if process == nil {
                 log.Println("Unknow command", cmd.name)
-                return
+                continue
             }
 
             pm.processes[cmd.id] = process // do we really need this ?
-            go process.run(runCfg{
-                meterHandler: pm.meterCallback,
-                msgHandler: pm.msgCallback,
-                resultHandler: pm.resultCallback,
+            go process.run(RunCfg{
+                ProcessManager: pm,
+                MeterHandler: pm.meterCallback,
+                MessageHandler: pm.msgCallback,
+                ResultHandler: pm.resultCallback,
             })
         }
     }()

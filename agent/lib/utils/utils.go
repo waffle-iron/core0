@@ -14,3 +14,9 @@ func In(l []int, x int) bool {
 
     return false
 }
+
+func Update(dst map[string]interface{}, src map[string]interface{}){
+    for k, v := range src {
+        dst[k] = v
+    }
+}

@@ -7,6 +7,7 @@ import (
     "time"
     "encoding/json"
     "log"
+    // "os"
 )
 
 func main() {
@@ -25,9 +26,10 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-    // mgr.AddMessageHandler(func (msg *pm.Message) {
-    //     log.Println(msg)
-    // })
+    mgr.AddMessageHandler(func (msg *pm.Message) {
+        log.Println(msg)
+    })
+
 
     dblogger := pm.NewDBLogger(pm.NewSqliteFactory("./"))
     mgr.AddMessageHandler(dblogger.Log)
@@ -59,7 +61,7 @@ func main() {
     //     },
     //     "data": ""
     // }
-    // `
+    // // `
 
     // margs := map[string]interface{} {
     //     "name": "python2.7",
@@ -75,17 +77,61 @@ func main() {
         "id": "job-id",
         "gid": 1,
         "nid": 10,
-        "name": "execute",
+        "name": "get_msgs",
         "args": map[string]interface{} {
-            "name": "python2.7",
-            "args": []string{"test.py"},
-            "loglevels": []int{3},
+            "loglevels": []int{1, 2, 3},
             "loglevels_db": []int{3},
-            "max_time": 5,
-            "max_restart": 2,
+            "max_time": 20,
         },
-        "data": "",
+        "data": `{
+            "idfrom": 0,
+            "idto": 100,
+            "timefrom": 100000,
+            "timeto": 200000,
+            "levels": "3-5"
+        }`,
     }
+
+    ping := map[string]interface{} {
+        "id": "asdfasdg",
+        "gid": 1,
+        "nid": 10,
+        "name": "ping",
+        "args": map[string]interface{} {
+            "loglevels": []int{1, 2, 3},
+            "loglevels_db": []int{3},
+            "max_time": 20,
+        },
+        //"data": "",
+    }
+
+    restart := map[string]interface{} {
+        "id": "asdfasdg",
+        "gid": 1,
+        "nid": 10,
+        "name": "restart",
+        "args": map[string]interface{} {
+            // "loglevels": []int{1, 2, 3},
+            // "loglevels_db": []int{3},
+            // "max_time": 20,
+        },
+        //"data": "",
+    }
+
+    // jscmd := map[string]interface{} {
+    //     "id": "JS-job-id",
+    //     "gid": 1,
+    //     "nid": 10,
+    //     "name": "execute_js_py",
+    //     "args": map[string]interface{} {
+    //         "name": "test.py",
+    //         "loglevels": []int{3},
+    //         "loglevels_db": []int{3},
+    //         "max_time": 5,
+    //         "max_restart": 2,
+    //     },
+    //     "data": "",
+    // }
 
     // args := &pm.BasicArgs{
     //     Name: "python2.7",
@@ -111,7 +157,10 @@ func main() {
     // }
 
     //mgr.NewCmd(0, 0, "id", "execute", args, "Hello world")
+    // mgr.NewMapCmd(jscmd)
     mgr.NewMapCmd(cmd)
+    mgr.NewMapCmd(ping)
+    //mgr.NewMapCmd(restart)
 
     for {
         select {

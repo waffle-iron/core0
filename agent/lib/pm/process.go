@@ -10,13 +10,14 @@ import (
 )
 
 type Process interface{
-    run(runCfg)
+    run(RunCfg)
 }
 
-type runCfg struct {
-    meterHandler MeterHandler
-    msgHandler MessageHandler
-    resultHandler ResultHandler
+type RunCfg struct {
+    ProcessManager *PM
+    MeterHandler MeterHandler
+    MessageHandler MessageHandler
+    ResultHandler ResultHandler
 }
 
 type JobResult struct {
@@ -47,7 +48,7 @@ func NewExtProcess(cmd *Cmd) Process {
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
-func (ps *ExtProcess) run(cfg runCfg) {
+func (ps *ExtProcess) run(cfg RunCfg) {
     args := ps.cmd.args
     cmd := exec.Command(args.GetString("name"),
                         args.GetStringArray("args")...)
@@ -84,7 +85,7 @@ func (ps *ExtProcess) run(cfg runCfg) {
             result = msg
         }
 
-        cfg.msgHandler(msg)
+        cfg.MessageHandler(msg)
     }
 
     // start consuming outputs.
@@ -152,7 +153,7 @@ func (ps *ExtProcess) run(cfg runCfg) {
             break loop
         case <- time.After(time.Duration(statsInterval) * time.Second):
             //monitor.
-            cfg.meterHandler(ps.cmd, psProcess)
+            cfg.MeterHandler(ps.cmd, psProcess)
         }
     }
 
@@ -204,5 +205,5 @@ func (ps *ExtProcess) run(cfg runCfg) {
     }
 
     //delegating the result.
-    cfg.resultHandler(jobresult)
+    cfg.ResultHandler(jobresult)
 }
