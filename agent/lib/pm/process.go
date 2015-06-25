@@ -11,6 +11,7 @@ import (
 
 type Process interface{
     run(RunCfg)
+    kill()
 }
 
 type RunCfg struct {
@@ -18,6 +19,7 @@ type RunCfg struct {
     MeterHandler MeterHandler
     MessageHandler MessageHandler
     ResultHandler ResultHandler
+    Signal chan int
 }
 
 type JobResult struct {
@@ -35,6 +37,7 @@ type JobResult struct {
 
 type ExtProcess struct {
     cmd *Cmd
+    ctrl chan int
     pid int
     runs int
 }
@@ -42,8 +45,10 @@ type ExtProcess struct {
 func NewExtProcess(cmd *Cmd) Process {
     return &ExtProcess{
         cmd: cmd,
+        ctrl: make(chan int),
     }
 }
+
 
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
@@ -134,6 +139,7 @@ func (ps *ExtProcess) run(cfg RunCfg) {
 
     var success bool
     var timedout bool
+    var killed bool
 
     psProcess, _ := process.NewProcess(int32(cmd.Process.Pid))
 
@@ -151,6 +157,16 @@ func (ps *ExtProcess) run(cfg RunCfg) {
             success = false
             timedout = true
             break loop
+        case s := <- ps.ctrl:
+            if s == 1 {
+                //kill signal
+                log.Println("killing process")
+                cmd.Process.Kill()
+                success = false
+                killed = true
+                ps.runs = 0
+                break loop
+            }
         case <- time.After(time.Duration(statsInterval) * time.Second):
             //monitor.
             cfg.MeterHandler(ps.cmd, psProcess)
@@ -160,11 +176,19 @@ func (ps *ExtProcess) run(cfg RunCfg) {
     endtime := time.Now().Unix()
     //process exited.
     log.Println("Exit status: ", success)
+    restarting := false
+    defer func() {
+        if !restarting {
+            close(ps.ctrl)
+            cfg.Signal <- 1 // forces the PM to clean up
+        }
+    }()
 
     if !success && args.GetInt("max_restart") > 0 {
         ps.runs += 1
         if ps.runs < args.GetInt("max_restart") {
             log.Println("Restarting ...")
+            restarting = true
             go ps.run(cfg)
         } else {
             log.Println("Not restarting")
@@ -172,7 +196,8 @@ func (ps *ExtProcess) run(cfg RunCfg) {
     }
 
     //recurring
-    if success && args.GetInt("recurring_period") > 0 {
+    if args.GetInt("recurring_period") > 0 {
+        restarting = true
         go func() {
             time.Sleep(time.Duration(args.GetInt("recurring_period")) * time.Second)
             ps.runs = 0
@@ -186,6 +211,8 @@ func (ps *ExtProcess) run(cfg RunCfg) {
         state = "SUCCESS"
     } else if timedout {
         state = "TIMEOUT"
+    } else if killed {
+        state = "KILLED"
     } else {
         state = "ERROR"
     }
@@ -204,6 +231,17 @@ func (ps *ExtProcess) run(cfg RunCfg) {
         jobresult.Level = result.level
     }
 
+    if success && restarting && result == nil {
+        //this is a recurring task. No need to flud
+        //AC with success status.
+        return
+    }
+
     //delegating the result.
     cfg.ResultHandler(jobresult)
+}
+
+
+func (ps *ExtProcess) kill() {
+    ps.ctrl <- 1
 }

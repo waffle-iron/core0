@@ -22,6 +22,9 @@ type Cmd struct {
     data string
 }
 
+func (cmd *Cmd) String() string {
+    return fmt.Sprintf("%d:%d:%s(%s)", cmd.gid, cmd.nid, cmd.id, cmd.name)
+}
 
 type MeterHandler func (cmd *Cmd, p *process.Process)
 type MessageHandler func (msg *Message)
@@ -135,15 +138,32 @@ func (pm *PM) Run() {
                 continue
             }
 
-            pm.processes[cmd.id] = process // do we really need this ?
+            pm.processes[cmd.id] = process
+            // A process must signal it's termination (that it's not going
+            // to restart) for the process manager to clean up it's reference
+            signal := make(chan int)
+            go func () {
+                <- signal
+                close(signal)
+                delete(pm.processes, cmd.id)
+            } ()
+
             go process.run(RunCfg{
                 ProcessManager: pm,
                 MeterHandler: pm.meterCallback,
                 MessageHandler: pm.msgCallback,
                 ResultHandler: pm.resultCallback,
+                Signal: signal,
             })
+
         }
     }()
+}
+
+func (pm *PM) Killall() {
+    for _, v := range pm.processes {
+        go v.kill()
+    }
 }
 
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {

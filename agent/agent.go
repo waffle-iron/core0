@@ -101,65 +101,69 @@ func main() {
             "loglevels": []int{1, 2, 3},
             "loglevels_db": []int{3},
             "max_time": 20,
+            "recurring_period": 10,
         },
-        //"data": "",
     }
 
-    restart := map[string]interface{} {
-        "id": "asdfasdg",
-        "gid": 1,
-        "nid": 10,
-        "name": "restart",
-        "args": map[string]interface{} {
-            // "loglevels": []int{1, 2, 3},
-            // "loglevels_db": []int{3},
-            // "max_time": 20,
-        },
-        //"data": "",
-    }
-
-    // jscmd := map[string]interface{} {
-    //     "id": "JS-job-id",
+    // restart := map[string]interface{} {
+    //     "id": "asdfasdg",
     //     "gid": 1,
     //     "nid": 10,
-    //     "name": "execute_js_py",
+    //     "name": "restart",
     //     "args": map[string]interface{} {
-    //         "name": "test.py",
-    //         "loglevels": []int{3},
-    //         "loglevels_db": []int{3},
-    //         "max_time": 5,
-    //         "max_restart": 2,
+    //         // "loglevels": []int{1, 2, 3},
+    //         // "loglevels_db": []int{3},
+    //         // "max_time": 20,
     //     },
-    //     "data": "",
     // }
 
-    // args := &pm.BasicArgs{
-    //     Name: "python2.7",
-    //     CmdArgs: []string{"test.py"},
-    //     LogLevels: []int{3},
-    //     LogLevelsDB: []int{3},
-    //     MaxTime: 5,
-    //     //WorkingDir: "/home/azmy",
-    //     //MaxRestart: 2,
-    //     //RecurringPeriod: 3,
-    // }
+    jscmd := map[string]interface{} {
+        "id": "JS-job-id",
+        "gid": 1,
+        "nid": 10,
+        "name": "execute_js_py",
+        "args": map[string]interface{} {
+            "name": "test.py",
+            "loglevels": []int{3},
+            "loglevels_db": []int{3},
+            "max_time": 5,
+            "max_restart": 2,
+        },
+        "data": "",
+    }
 
-    //nginx -c /etc/nginx/nginx.fg.conf
-    // args := &pm.BasicArgs{
-    //     Name: "sudo",
-    //     CmdArgs: []string{"nginx", "-c", "/etc/nginx/nginx.fg.conf"},
-    //     WorkingDir: "/home/azmy",
-    //     LogLevels: []int {1, 2},
-    //     LogLevelsDB: []int {2},
-    //     LogLevelsAC: []int {2},
-    //     //MaxRestart: 2,
-    //     //RecurringPeriod: 3,
-    // }
+    jscmd2 := map[string]interface{} {
+        "id": "recurring",
+        "gid": 1,
+        "nid": 10,
+        "name": "execute_js_py",
+        "args": map[string]interface{} {
+            "name": "recurring.py",
+            "loglevels": []int{3},
+            // "loglevels_db": []int{3},
+            "max_time": 5,
+            "recurring_period": 2,
+        },
+        "data": "",
+    }
 
-    //mgr.NewCmd(0, 0, "id", "execute", args, "Hello world")
-    // mgr.NewMapCmd(jscmd)
+    killall := map[string]interface{} {
+        "id": "kill",
+        "gid": 1,
+        "nid": 10,
+        "name": "killall",
+        "args": map[string]interface{} {
+
+        },
+    }
+
     mgr.NewMapCmd(cmd)
     mgr.NewMapCmd(ping)
+    mgr.NewMapCmd(jscmd)
+    mgr.NewMapCmd(jscmd2)
+
+    // time.Sleep(3 * time.Second)
+    mgr.NewMapCmd(killall)
     //mgr.NewMapCmd(restart)
 
     for {

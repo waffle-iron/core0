@@ -50,7 +50,7 @@ func (msg *Message) MarshalJSON() ([]byte, error) {
 }
 
 func (msg *Message) String() string {
-    return fmt.Sprintf("%d:%s", msg.level, msg.message)
+    return fmt.Sprintf("%s|%d:%s", msg.cmd, msg.level, msg.message)
 }
 
 type Logger interface {

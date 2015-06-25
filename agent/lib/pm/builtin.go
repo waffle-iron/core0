@@ -18,6 +18,7 @@ const (
     CMD_GET_MSGS = "get_msgs"
     CMD_PING = "ping"
     CMD_RESTART = "restart"
+    CMD_KILLALL = "killall"
 )
 
 type ProcessConstructor func (cmd *Cmd) Process
@@ -29,6 +30,7 @@ var CMD_MAP = map[string]ProcessConstructor {
     // CMD_GET_MSGS: extScript("python2.7", "./builtin", "get_msgs.py"),
     CMD_PING: internalScript(ping),
     CMD_RESTART: internalScript(restart),
+    CMD_KILLALL: internalScript(killall),
 }
 
 
@@ -103,9 +105,14 @@ func (ps *JsScriptProcess) run(cfg RunCfg) {
             result.Cmd = ps.cmd.name
             cfg.ResultHandler(result)
             },
+        Signal: cfg.Signal,
     }
 
     ps.extps.run(extcfg)
+}
+
+func (ps *JsScriptProcess) kill() {
+    ps.extps.kill()
 }
 
 type Runable func (*Cmd, RunCfg)
@@ -127,9 +134,16 @@ func internalScript (runable Runable) ProcessConstructor {
 }
 
 func (ps *internalProcess) run(cfg RunCfg) {
+    defer func() {
+        cfg.Signal <- 1
+    }()
+
     ps.runable(ps.cmd, cfg)
 }
 
+func (ps *internalProcess) kill (){
+    //you can't kill an internal process.
+}
 
 func ping(cmd *Cmd, cfg RunCfg) {
     result := &JobResult {
@@ -152,16 +166,6 @@ func restart(cmd *Cmd, cfg RunCfg) {
     os.Exit(0)
 }
 
-// func get_msgs(cmd *Cmd, cfg RunCfg) {
-//     result := &JobResult {
-//         Id: cmd.id,
-//         Gid: cmd.gid,
-//         Nid: cmd.nid,
-//         Args: cmd.args,
-//         StartTime: time.Now().Unix(),
-//     }
-
-//     return result
-// }
-
-
+func killall(cmd *Cmd, cfg RunCfg) {
+    cfg.ProcessManager.Killall()
+}
