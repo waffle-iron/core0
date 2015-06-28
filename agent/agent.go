@@ -15,12 +15,12 @@ import (
 func main() {
     mgr := pm.NewPM("./mid.f")
 
-    statsd := stats.NewStatsd(60, func (key string, value float64) {
+    statsd := stats.NewStatsd(60 * time.Second, func (key string, value float64) {
         log.Println("STATS", key, value)
     })
 
     //start statsd aggregation
-    statsd.Run()
+    //statsd.Run()
 
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor.
@@ -98,7 +98,7 @@ func main() {
         "id": "asdfasdg",
         "gid": 1,
         "nid": 10,
-        "name": "get_mem_info",
+        "name": "get_os_info",
         "args": map[string]interface{} {
             "loglevels": []int{1, 2, 3},
             "loglevels_db": []int{3},
@@ -159,7 +159,6 @@ func main() {
     // }
 
     mgr.NewMapCmd(mem)
-
 
     for {
         select {
