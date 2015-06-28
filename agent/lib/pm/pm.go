@@ -148,7 +148,7 @@ func (pm *PM) Run() {
                 delete(pm.processes, cmd.Id)
             } ()
 
-            go process.run(RunCfg{
+            go process.Run(RunCfg{
                 ProcessManager: pm,
                 MeterHandler: pm.meterCallback,
                 MessageHandler: pm.msgCallback,
@@ -162,7 +162,7 @@ func (pm *PM) Run() {
 
 func (pm *PM) Killall() {
     for _, v := range pm.processes {
-        go v.kill()
+        go v.Kill()
     }
 }
 

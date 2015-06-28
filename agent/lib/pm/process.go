@@ -30,8 +30,8 @@ const (
 )
 
 type Process interface{
-    run(RunCfg)
-    kill()
+    Run(RunCfg)
+    Kill()
 }
 
 type RunCfg struct {
@@ -98,7 +98,7 @@ func NewExtProcess(cmd *Cmd) Process {
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
-func (ps *ExtProcess) run(cfg RunCfg) {
+func (ps *ExtProcess) Run(cfg RunCfg) {
     args := ps.cmd.Args
     cmd := exec.Command(args.GetString("name"),
                         args.GetStringArray("args")...)
@@ -235,7 +235,7 @@ func (ps *ExtProcess) run(cfg RunCfg) {
         if ps.runs < args.GetInt("max_restart") {
             log.Println("Restarting ...")
             restarting = true
-            go ps.run(cfg)
+            go ps.Run(cfg)
         } else {
             log.Println("Not restarting")
         }
@@ -248,7 +248,7 @@ func (ps *ExtProcess) run(cfg RunCfg) {
             time.Sleep(time.Duration(args.GetInt("recurring_period")) * time.Second)
             ps.runs = 0
             log.Println("Recurring ...")
-            ps.run(cfg)
+            ps.Run(cfg)
         }()
     }
 
@@ -288,6 +288,6 @@ func (ps *ExtProcess) run(cfg RunCfg) {
 }
 
 
-func (ps *ExtProcess) kill() {
+func (ps *ExtProcess) Kill() {
     ps.ctrl <- 1
 }
