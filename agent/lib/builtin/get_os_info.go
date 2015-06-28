@@ -8,14 +8,14 @@ import (
 )
 
 const (
-    CMD_GET_HOST_INFO = "get_host_info"
+    CMD_GET_OS_INFO = "get_os_info"
 )
 
 func init() {
-    pm.CMD_MAP[CMD_GET_HOST_INFO] = InternalProcessFactory(getHostInfo)
+    pm.CMD_MAP[CMD_GET_OS_INFO] = InternalProcessFactory(getOsInfo)
 }
 
-func getHostInfo(cmd *pm.Cmd, cfg pm.RunCfg) {
+func getOsInfo(cmd *pm.Cmd, cfg pm.RunCfg) {
     result := &pm.JobResult {
         Id: cmd.Id,
         Gid: cmd.Gid,
