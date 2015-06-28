@@ -75,35 +75,34 @@ func main() {
 
     // args := pm.NewMapArgs(margs)
 
-    cmd := map[string]interface{} {
-        "id": "job-id",
-        "gid": 1,
-        "nid": 10,
-        "name": "get_msgs",
-        "args": map[string]interface{} {
-            "loglevels": []int{1, 2, 3},
-            "loglevels_db": []int{3},
-            "max_time": 20,
-        },
-        "data": `{
-            "idfrom": 0,
-            "idto": 100,
-            "timefrom": 100000,
-            "timeto": 200000,
-            "levels": "3-5"
-        }`,
-    }
+    // cmd := map[string]interface{} {
+    //     "id": "job-id",
+    //     "gid": 1,
+    //     "nid": 10,
+    //     "name": "get_msgs",
+    //     "args": map[string]interface{} {
+    //         "loglevels": []int{1, 2, 3},
+    //         "loglevels_db": []int{3},
+    //         "max_time": 20,
+    //     },
+    //     "data": `{
+    //         "idfrom": 0,
+    //         "idto": 100,
+    //         "timefrom": 100000,
+    //         "timeto": 200000,
+    //         "levels": "3-5"
+    //     }`,
+    // }
 
-    ping := map[string]interface{} {
+    mem := map[string]interface{} {
         "id": "asdfasdg",
         "gid": 1,
         "nid": 10,
-        "name": "ping",
+        "name": "get_mem_info",
         "args": map[string]interface{} {
             "loglevels": []int{1, 2, 3},
             "loglevels_db": []int{3},
             "max_time": 20,
-            "recurring_period": 10,
         },
     }
 
@@ -119,54 +118,48 @@ func main() {
     //     },
     // }
 
-    jscmd := map[string]interface{} {
-        "id": "JS-job-id",
-        "gid": 1,
-        "nid": 10,
-        "name": "execute_js_py",
-        "args": map[string]interface{} {
-            "name": "test.py",
-            "loglevels": []int{3},
-            "loglevels_db": []int{3},
-            "max_time": 5,
-            "max_restart": 2,
-        },
-        "data": "",
-    }
+    // jscmd := map[string]interface{} {
+    //     "id": "JS-job-id",
+    //     "gid": 1,
+    //     "nid": 10,
+    //     "name": "execute_js_py",
+    //     "args": map[string]interface{} {
+    //         "name": "test.py",
+    //         "loglevels": []int{3},
+    //         "loglevels_db": []int{3},
+    //         "max_time": 5,
+    //         "max_restart": 2,
+    //     },
+    //     "data": "",
+    // }
 
-    jscmd2 := map[string]interface{} {
-        "id": "recurring",
-        "gid": 1,
-        "nid": 10,
-        "name": "execute_js_py",
-        "args": map[string]interface{} {
-            "name": "recurring.py",
-            "loglevels": []int{3},
-            // "loglevels_db": []int{3},
-            "max_time": 5,
-            "recurring_period": 2,
-        },
-        "data": "",
-    }
+    // jscmd2 := map[string]interface{} {
+    //     "id": "recurring",
+    //     "gid": 1,
+    //     "nid": 10,
+    //     "name": "execute_js_py",
+    //     "args": map[string]interface{} {
+    //         "name": "recurring.py",
+    //         "loglevels": []int{3},
+    //         // "loglevels_db": []int{3},
+    //         "max_time": 5,
+    //         "recurring_period": 2,
+    //     },
+    //     "data": "",
+    // }
 
-    killall := map[string]interface{} {
-        "id": "kill",
-        "gid": 1,
-        "nid": 10,
-        "name": "killall",
-        "args": map[string]interface{} {
+    // killall := map[string]interface{} {
+    //     "id": "kill",
+    //     "gid": 1,
+    //     "nid": 10,
+    //     "name": "killall",
+    //     "args": map[string]interface{} {
 
-        },
-    }
+    //     },
+    // }
 
-    mgr.NewMapCmd(cmd)
-    mgr.NewMapCmd(ping)
-    mgr.NewMapCmd(jscmd)
-    mgr.NewMapCmd(jscmd2)
+    mgr.NewMapCmd(mem)
 
-    // time.Sleep(3 * time.Second)
-    mgr.NewMapCmd(killall)
-    //mgr.NewMapCmd(restart)
 
     for {
         select {

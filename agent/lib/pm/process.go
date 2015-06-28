@@ -27,6 +27,11 @@ const (
     L_RESULT_TOML = 22  // result message, toml
     L_RESULT_HRD = 23  // result message, hrd
     L_RESULT_JOB = 30  // job, json (full result of a job)
+
+    S_SUCCESS = "SUCCESS"
+    S_ERROR = "ERROR"
+    S_TIMEOUT = "TIMEOUT"
+    S_KILLED = "KILLED"
 )
 
 type Process interface{
@@ -254,13 +259,13 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
     var state string
     if success {
-        state = "SUCCESS"
+        state = S_SUCCESS
     } else if timedout {
-        state = "TIMEOUT"
+        state = S_TIMEOUT
     } else if killed {
-        state = "KILLED"
+        state = S_KILLED
     } else {
-        state = "ERROR"
+        state = S_ERROR
     }
 
     jobresult := &JobResult{
