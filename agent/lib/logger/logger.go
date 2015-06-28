@@ -25,7 +25,7 @@ func NewDBLogger(factory DBFactory) Logger {
 }
 
 func (logger *DBLogger) Log(msg *pm.Message) {
-    if !utils.In(msg.Cmd.args.GetIntArray("loglevels_db"), msg.Level) {
+    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels_db"), msg.Level) {
         return
     }
 
@@ -34,7 +34,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
         insert into logs (id, domain, name, epoch, level, data)
         values (?, ?, ?, ?, ?, ?)
     `
-    args := msg.Cmd.args
+    args := msg.Cmd.Args
     _, err := db.Exec(stmnt, msg.Id, args.GetString("domain"), args.GetString("name"),
                       msg.Epoch, msg.Level, msg.Message)
     if err != nil {
@@ -79,7 +79,7 @@ func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
 }
 
 func (logger *ACLogger) Log(msg *pm.Message) {
-    if !utils.In(msg.Cmd.args.GetIntArray("loglevels_ac"), msg.Level) {
+    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels_ac"), msg.Level) {
         return
     }
     logger.queue <- msg

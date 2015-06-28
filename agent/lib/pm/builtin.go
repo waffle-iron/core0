@@ -35,7 +35,7 @@ var CMD_MAP = map[string]ProcessConstructor {
 
 
 func NewProcess(cmd *Cmd) Process {
-    constructor, ok := CMD_MAP[cmd.name]
+    constructor, ok := CMD_MAP[cmd.Name]
     if !ok {
         return nil
     }
@@ -56,13 +56,13 @@ type JsScriptProcess struct {
 func extScript(exe string, workdir string, name string) ProcessConstructor {
     //create a new execute process with python2.7 or lua as executors.
     constructor := func(cmd *Cmd) Process {
-        args := cmd.args.Clone(false)
+        args := cmd.Args.Clone(false)
         var script string
 
         if name != "" {
             script = name
         } else {
-            script = cmd.args.GetString("name")
+            script = cmd.Args.GetString("name")
         }
 
         args.Set("name", exe)
@@ -70,12 +70,12 @@ func extScript(exe string, workdir string, name string) ProcessConstructor {
         args.Set("working_dir", workdir)
 
         extcmd := &Cmd {
-            id: cmd.id,
-            gid: cmd.gid,
-            nid: cmd.nid,
-            name: CMD_EXECUTE,
-            data: cmd.data,
-            args: args,
+            Id: cmd.Id,
+            Gid: cmd.Gid,
+            Nid: cmd.Nid,
+            Name: CMD_EXECUTE,
+            Data: cmd.Data,
+            Args: args,
         }
 
         return &JsScriptProcess{
@@ -101,8 +101,8 @@ func (ps *JsScriptProcess) run(cfg RunCfg) {
             cfg.MessageHandler(msg)
             },
         ResultHandler: func(result *JobResult) {
-            result.Args = ps.cmd.args
-            result.Cmd = ps.cmd.name
+            result.Args = ps.cmd.Args
+            result.Cmd = ps.cmd.Name
             cfg.ResultHandler(result)
             },
         Signal: cfg.Signal,
@@ -147,10 +147,10 @@ func (ps *internalProcess) kill (){
 
 func ping(cmd *Cmd, cfg RunCfg) {
     result := &JobResult {
-        Id: cmd.id,
-        Gid: cmd.gid,
-        Nid: cmd.nid,
-        Args: cmd.args,
+        Id: cmd.Id,
+        Gid: cmd.Gid,
+        Nid: cmd.Nid,
+        Args: cmd.Args,
         StartTime: time.Now().Unix(),
         Time: 0,
         State: "SUCCESS",

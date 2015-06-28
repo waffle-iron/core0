@@ -32,7 +32,7 @@ func main() {
     })
 
 
-    dblogger := logger.NewDBLogger(pm.NewSqliteFactory("./"))
+    dblogger := logger.NewDBLogger(logger.NewSqliteFactory("./"))
     mgr.AddMessageHandler(dblogger.Log)
 
     aclogger := logger.NewACLogger("http://localhost:8080/log", 2, 10 * time.Second)

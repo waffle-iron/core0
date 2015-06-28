@@ -65,7 +65,7 @@ type Message struct {
 
 func (msg *Message) MarshalJSON() ([]byte, error) {
     data := make(map[string]interface{})
-    args := msg.Cmd.args
+    args := msg.Cmd.Args
     data["domain"] = args.GetString("domaing")
     data["name"] = args.GetString("name")
     data["epoch"] = msg.Epoch
@@ -99,7 +99,7 @@ func NewExtProcess(cmd *Cmd) Process {
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
 func (ps *ExtProcess) run(cfg RunCfg) {
-    args := ps.cmd.args
+    args := ps.cmd.Args
     cmd := exec.Command(args.GetString("name"),
                         args.GetStringArray("args")...)
     cmd.Dir = args.GetString("working_dir")
@@ -146,9 +146,9 @@ func (ps *ExtProcess) run(cfg RunCfg) {
     errConsumer := NewStreamConsumer(ps.cmd, stderr, 2)
     errConsumer.Consume(msgInterceptor)
 
-    if ps.cmd.data != "" {
+    if ps.cmd.Data != "" {
         //write data to command stdin.
-        _, err = stdin.Write([]byte(ps.cmd.data))
+        _, err = stdin.Write([]byte(ps.cmd.Data))
         if err != nil {
             log.Println("Failed to write to process stdin", err)
         }
@@ -264,9 +264,9 @@ func (ps *ExtProcess) run(cfg RunCfg) {
     }
 
     jobresult := &JobResult{
-        Id: ps.cmd.id,
-        Cmd: ps.cmd.name,
-        Args: ps.cmd.args,
+        Id: ps.cmd.Id,
+        Cmd: ps.cmd.Name,
+        Args: ps.cmd.Args,
         State: state,
         StartTime: starttime,
         Time: endtime - starttime,

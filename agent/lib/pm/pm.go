@@ -14,16 +14,16 @@ import (
 var RESULT_MESSAGE_LEVELS []int = []int{20, 21, 22, 23, 30}
 
 type Cmd struct {
-    id string
-    gid int
-    nid int
-    name string
-    args Args
-    data string
+    Id string
+    Gid int
+    Nid int
+    Name string
+    Args Args
+    Data string
 }
 
 func (cmd *Cmd) String() string {
-    return fmt.Sprintf("%d:%d:%s(%s)", cmd.gid, cmd.nid, cmd.id, cmd.name)
+    return fmt.Sprintf("%d:%d:%s(%s)", cmd.Gid, cmd.Nid, cmd.Id, cmd.Name)
 }
 
 type MeterHandler func (cmd *Cmd, p *process.Process)
@@ -78,12 +78,12 @@ func saveMid(midfile string, mid uint32) {
 func (pm *PM) NewCmd(gid int, nid int, id string,
                      name string, args Args, data string) {
     cmd := &Cmd {
-        gid: gid,
-        nid: nid,
-        id: id,
-        name: name,
-        args: args,
-        data: data,
+        Gid: gid,
+        Nid: nid,
+        Id: id,
+        Name: name,
+        Args: args,
+        Data: data,
     }
 
     pm.cmds <- cmd
@@ -95,12 +95,12 @@ func (pm *PM) NewMapCmd(data map[string]interface{}) {
         stdin = ""
     }
     cmd := &Cmd {
-        gid: data["gid"].(int),
-        nid: data["nid"].(int),
-        id: data["id"].(string),
-        name: data["name"].(string),
-        data: stdin.(string),
-        args: NewMapArgs(data["args"].(map[string]interface{})),
+        Gid: data["gid"].(int),
+        Nid: data["nid"].(int),
+        Id: data["id"].(string),
+        Name: data["name"].(string),
+        Data: stdin.(string),
+        Args: NewMapArgs(data["args"].(map[string]interface{})),
     }
 
     pm.cmds <- cmd
@@ -134,18 +134,18 @@ func (pm *PM) Run() {
             process := NewProcess(cmd)
 
             if process == nil {
-                log.Println("Unknow command", cmd.name)
+                log.Println("Unknow command", cmd.Name)
                 continue
             }
 
-            pm.processes[cmd.id] = process
+            pm.processes[cmd.Id] = process
             // A process must signal it's termination (that it's not going
             // to restart) for the process manager to clean up it's reference
             signal := make(chan int)
             go func () {
                 <- signal
                 close(signal)
-                delete(pm.processes, cmd.id)
+                delete(pm.processes, cmd.Id)
             } ()
 
             go process.run(RunCfg{
@@ -173,7 +173,7 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) msgCallback(msg *Message) {
-    if !utils.In(msg.Cmd.args.GetIntArray("loglevels"), msg.Level) {
+    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels"), msg.Level) {
         return
     }
 
