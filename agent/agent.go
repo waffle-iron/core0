@@ -4,6 +4,7 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/pm"
     "github.com/Jumpscale/jsagent/agent/lib/logger"
     "github.com/Jumpscale/jsagent/agent/lib/stats"
+    _ "github.com/Jumpscale/jsagent/agent/lib/builtin"
     "github.com/shirou/gopsutil/process"
     "time"
     "encoding/json"
