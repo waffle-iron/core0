@@ -97,7 +97,7 @@ func (ps *JsScriptProcess) run(cfg RunCfg) {
             cfg.MeterHandler(ps.cmd, p)
             },
         MessageHandler: func(msg *Message) {
-            msg.cmd = ps.cmd
+            msg.Cmd = ps.cmd
             cfg.MessageHandler(msg)
             },
         ResultHandler: func(result *JobResult) {
@@ -169,3 +169,13 @@ func restart(cmd *Cmd, cfg RunCfg) {
 func killall(cmd *Cmd, cfg RunCfg) {
     cfg.ProcessManager.Killall()
 }
+
+// func getProcessStats(cmd *Cmd, cfg RunCfg) {
+//     for _, process := range cfg.ProcessManager.processes {
+//         //only work with external processes
+//         switch p := process.(type) {
+//         case ExtProcess:
+//             pid := p.pid
+//         }
+//     }
+// }

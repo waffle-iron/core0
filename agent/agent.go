@@ -2,6 +2,7 @@ package main
 
 import (
     "github.com/Jumpscale/jsagent/agent/lib/pm"
+    "github.com/Jumpscale/jsagent/agent/lib/logger"
     "github.com/Jumpscale/jsagent/agent/lib/stats"
     "github.com/shirou/gopsutil/process"
     "time"
@@ -31,10 +32,10 @@ func main() {
     })
 
 
-    dblogger := pm.NewDBLogger(pm.NewSqliteFactory("./"))
+    dblogger := logger.NewDBLogger(pm.NewSqliteFactory("./"))
     mgr.AddMessageHandler(dblogger.Log)
 
-    aclogger := pm.NewACLogger("http://localhost:8080/log", 2, 10 * time.Second)
+    aclogger := logger.NewACLogger("http://localhost:8080/log", 2, 10 * time.Second)
     mgr.AddMessageHandler(aclogger.Log)
 
 

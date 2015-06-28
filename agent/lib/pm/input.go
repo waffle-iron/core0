@@ -56,9 +56,9 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
                     if matches == nil {
                         //use default level.
                         handler(&Message{
-                            cmd: consumer.cmd,
-                            level: consumer.level,
-                            message: line,
+                            Cmd: consumer.cmd,
+                            Level: consumer.level,
+                            Message: line,
                         })
                     } else {
                         l, _ := strconv.ParseInt(matches[1], 10, 0)
@@ -70,9 +70,9 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
                         } else {
                             //single line message
                             handler(&Message{
-                                cmd: consumer.cmd,
-                                level: level,
-                                message: message,
+                                Cmd: consumer.cmd,
+                                Level: level,
+                                Message: message,
                             })
                         }
                     }
@@ -86,9 +86,9 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
                         multiline = false
                         //flush message
                         handler(&Message{
-                            cmd: consumer.cmd,
-                            level: level,
-                            message: message,
+                            Cmd: consumer.cmd,
+                            Level: level,
+                            Message: message,
                         })
                     } else {
                         message += "\n" + line

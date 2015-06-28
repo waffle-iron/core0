@@ -173,14 +173,14 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) msgCallback(msg *Message) {
-    if !utils.In(msg.cmd.args.GetIntArray("loglevels"), msg.level) {
+    if !utils.In(msg.Cmd.args.GetIntArray("loglevels"), msg.Level) {
         return
     }
 
     //stamp msg.
-    msg.epoch = time.Now().Unix()
+    msg.Epoch = time.Now().Unix()
     //add ID
-    msg.id = pm.getNextMsgID()
+    msg.Id = pm.getNextMsgID()
     for _, handler := range pm.msgHandlers {
         handler(msg)
     }

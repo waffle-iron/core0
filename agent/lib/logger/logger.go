@@ -1,60 +1,17 @@
-package pm
+package logger
 
 import (
-    "fmt"
     "log"
     "time"
     "encoding/json"
     "bytes"
     "net/http"
+    "github.com/Jumpscale/jsagent/agent/lib/pm"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
 )
 
-const (
-    L_STDOUT = 1  // stdout
-    L_STDERR = 2  // stderr
-    L_PUBLIC = 3  // message for endusers / public message
-    L_OPERATOR = 4  // message for operator / internal message
-    L_UNKNOWN = 5  // log msg (unstructured = level5, cat=unknown)
-    L_STRUCTURED = 6  // log msg structured
-    L_WARNING = 7  // warning message
-    L_OPS_ERROR = 8  // ops error
-    L_CRITICAL = 9  // critical error
-    L_STATSD = 10  // statsd message(s)
-    L_RESULT_JSON = 20  // result message, json
-    L_RESULT_YAML = 21  // result message, yaml
-    L_RESULT_TOML = 22  // result message, toml
-    L_RESULT_HRD = 23  // result message, hrd
-    L_RESULT_JOB = 30  // job, json (full result of a job)
-)
-
-type Message struct {
-    id uint32
-    cmd *Cmd
-    level int
-    message string
-    epoch int64
-}
-
-func (msg *Message) MarshalJSON() ([]byte, error) {
-    data := make(map[string]interface{})
-    args := msg.cmd.args
-    data["domain"] = args.GetString("domaing")
-    data["name"] = args.GetString("name")
-    data["epoch"] = msg.epoch
-    data["level"] = msg.level
-    data["id"] = msg.id
-    data["data"] = msg.message
-
-    return json.Marshal(data)
-}
-
-func (msg *Message) String() string {
-    return fmt.Sprintf("%s|%d:%s", msg.cmd, msg.level, msg.message)
-}
-
 type Logger interface {
-    Log(msg *Message)
+    Log(msg *pm.Message)
 }
 
 type DBLogger struct {
@@ -67,8 +24,8 @@ func NewDBLogger(factory DBFactory) Logger {
     }
 }
 
-func (logger *DBLogger) Log(msg *Message) {
-    if !utils.In(msg.cmd.args.GetIntArray("loglevels_db"), msg.level) {
+func (logger *DBLogger) Log(msg *pm.Message) {
+    if !utils.In(msg.Cmd.args.GetIntArray("loglevels_db"), msg.Level) {
         return
     }
 
@@ -77,9 +34,9 @@ func (logger *DBLogger) Log(msg *Message) {
         insert into logs (id, domain, name, epoch, level, data)
         values (?, ?, ?, ?, ?, ?)
     `
-    args := msg.cmd.args
-    _, err := db.Exec(stmnt, msg.id, args.GetString("domain"), args.GetString("name"),
-                      msg.epoch, msg.level, msg.message)
+    args := msg.Cmd.args
+    _, err := db.Exec(stmnt, msg.Id, args.GetString("domain"), args.GetString("name"),
+                      msg.Epoch, msg.Level, msg.Message)
     if err != nil {
         log.Fatal(err)
     }
@@ -88,15 +45,15 @@ func (logger *DBLogger) Log(msg *Message) {
 
 type ACLogger struct {
     endpoint string
-    buffer []*Message
-    queue chan *Message
+    buffer []*pm.Message
+    queue chan *pm.Message
 }
 
 func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
     logger := &ACLogger {
         endpoint: endpoint,
-        buffer: make([]*Message, 0, bufsize),
-        queue: make(chan *Message),
+        buffer: make([]*pm.Message, 0, bufsize),
+        queue: make(chan *pm.Message),
     }
 
     go func() {
@@ -121,22 +78,22 @@ func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
     return logger
 }
 
-func (logger *ACLogger) Log(msg *Message) {
-    if !utils.In(msg.cmd.args.GetIntArray("loglevels_ac"), msg.level) {
+func (logger *ACLogger) Log(msg *pm.Message) {
+    if !utils.In(msg.Cmd.args.GetIntArray("loglevels_ac"), msg.Level) {
         return
     }
     logger.queue <- msg
 }
 
 func (logger *ACLogger) flush() {
-    basket := make([]*Message, len(logger.buffer))
+    basket := make([]*pm.Message, len(logger.buffer))
     copy(basket, logger.buffer)
     go logger.send(basket)
 
     logger.buffer = logger.buffer[0:0]
 }
 
-func (logger *ACLogger) send(buffer []*Message) {
+func (logger *ACLogger) send(buffer []*pm.Message) {
     if len(buffer) == 0 {
         //buffer can be of length zero, when flushed on timer while
         //no messages are ready.

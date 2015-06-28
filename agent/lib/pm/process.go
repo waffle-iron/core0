@@ -4,9 +4,29 @@ package pm
 import (
     "os/exec"
     "time"
+    "fmt"
     "log"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/shirou/gopsutil/process"
+    "encoding/json"
+)
+
+const (
+    L_STDOUT = 1  // stdout
+    L_STDERR = 2  // stderr
+    L_PUBLIC = 3  // message for endusers / public message
+    L_OPERATOR = 4  // message for operator / internal message
+    L_UNKNOWN = 5  // log msg (unstructured = level5, cat=unknown)
+    L_STRUCTURED = 6  // log msg structured
+    L_WARNING = 7  // warning message
+    L_OPS_ERROR = 8  // ops error
+    L_CRITICAL = 9  // critical error
+    L_STATSD = 10  // statsd message(s)
+    L_RESULT_JSON = 20  // result message, json
+    L_RESULT_YAML = 21  // result message, yaml
+    L_RESULT_TOML = 22  // result message, toml
+    L_RESULT_HRD = 23  // result message, hrd
+    L_RESULT_JOB = 30  // job, json (full result of a job)
 )
 
 type Process interface{
@@ -33,6 +53,31 @@ type JobResult struct {
     State string `json:"state"`
     StartTime int64 `json:"starttime"`
     Time int64 `json:"time"`
+}
+
+type Message struct {
+    Id uint32
+    Cmd *Cmd
+    Level int
+    Message string
+    Epoch int64
+}
+
+func (msg *Message) MarshalJSON() ([]byte, error) {
+    data := make(map[string]interface{})
+    args := msg.Cmd.args
+    data["domain"] = args.GetString("domaing")
+    data["name"] = args.GetString("name")
+    data["epoch"] = msg.Epoch
+    data["level"] = msg.Level
+    data["id"] = msg.Id
+    data["data"] = msg.Message
+
+    return json.Marshal(data)
+}
+
+func (msg *Message) String() string {
+    return fmt.Sprintf("%s|%d:%s", msg.Cmd, msg.Level, msg.Message)
 }
 
 type ExtProcess struct {
@@ -82,10 +127,11 @@ func (ps *ExtProcess) run(cfg RunCfg) {
         return
     }
 
+    ps.pid = cmd.Process.Pid
     var result *Message = nil
 
     msgInterceptor := func (msg *Message) {
-        if utils.In(RESULT_MESSAGE_LEVELS, msg.level) {
+        if utils.In(RESULT_MESSAGE_LEVELS, msg.Level) {
             //process result message.
             result = msg
         }
@@ -227,8 +273,8 @@ func (ps *ExtProcess) run(cfg RunCfg) {
     }
 
     if result != nil {
-        jobresult.Data = result.message
-        jobresult.Level = result.level
+        jobresult.Data = result.Message
+        jobresult.Level = result.Level
     }
 
     if success && restarting && result == nil {
