@@ -30,9 +30,9 @@ func main() {
     }
 
     statsd := stats.NewStatsd(time.Duration(settings.Stats.Interval) * time.Second,
-        func (key string, value float64) {
-        //TODO: send values to ac
-        log.Println("STATS", key, value)
+        func (stats *stats.Stats) {
+        s, _ := json.Marshal(stats)
+        log.Println(string(s))
     })
 
     //start statsd aggregation
@@ -116,33 +116,80 @@ func main() {
 
 
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
-        //monitor.
-        cpu, _ := ps.CPUPercent(0)
-        statsd.Avg("cmd.cpu", cpu)
+        //monitor and feed statsd
+
+        //TODO: Make sure this is the correct Base, key.
+        base := fmt.Sprintf("%d.%d.%s.%s", cmd.Gid, cmd.Nid,
+            cmd.Args.GetString("domain"), cmd.Args.GetString("name"))
+
+        cpu, err := ps.CPUPercent(0)
+        if err == nil {
+            statsd.Avg(fmt.Sprintf("%s.cpu", base), cpu)
+        }
+
+        mem, err := ps.MemoryInfo()
+        if err == nil {
+            statsd.Avg(fmt.Sprintf("%s.rss", base), float64(mem.RSS))
+            statsd.Avg(fmt.Sprintf("%s.vms", base), float64(mem.VMS))
+            statsd.Avg(fmt.Sprintf("%s.swap", base), float64(mem.Swap))
+        }
     })
 
     //start process mgr.
     mgr.Run()
 
     //example command.
-    scmd := `
+    // scmd := `
+    // {
+    //     "id": "job-id",
+    //     "gid": 0,
+    //     "nid": 1,
+    //     "cmd": "execute_js_py",
+    //     "args": {
+    //         "name": "test.py",
+    //         "loglevels": [3],
+    //         "loglevels_db": [3],
+    //         "max_time": 5
+    //     }
+    // }
+    // `
+
+    // ncmd := `
+    // {
+    //     "id": "nginx",
+    //     "gid": 0,
+    //     "nid": 1,
+    //     "cmd": "execute",
+    //     "args": {
+    //         "name": "sudo",
+    //         "args": ["nginx", "-c", "/etc/nginx/nginx.fg.conf"],
+    //         "loglevels_db": [2]
+    //     }
+    // }
+    // `
+    hcmd := `
     {
-        "id": "job-id",
+        "id": "heavy-process",
         "gid": 0,
         "nid": 1,
-        "cmd": "execute_js_py",
+        "cmd": "execute",
         "args": {
-            "name": "test.py",
-            "loglevels": [3],
-            "loglevels_db": [3],
-            "max_time": 5
+            "name": "zsh",
+            "domain": "js",
+            "args": ["-c", "while (true) {sleep 0.01}"],
+            "loglevels_db": [2]
         }
     }
     `
-
-    cmd, err := pm.LoadCmd([]byte(scmd))
+    cmd, err := pm.LoadCmd([]byte(hcmd))
     if err != nil {
         log.Fatal(err)
+    }
+
+    meterInt := cmd.Args.GetInt("stats_interval")
+
+    if meterInt == 0 {
+        cmd.Args.Set("stats_interval", settings.Monitor.Interval)
     }
 
     mgr.RunCmd(cmd)

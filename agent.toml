@@ -22,10 +22,18 @@ Cmds = [0] # long polling from agent 0
     FlushInt = 300 # seconds (5min)
     BatchSize = 1000 # max batch size, force flush if reached this count.
     AgentControllers = [] # to all agents
+    Levels = [2]
 
     [logging.console]
     Type = "console"
+    Levels = [2, 4, 7, 8, 9]
+
+[monitor]
+# for correct results.
+# the monitor.Interval must be less than the stats.Interval
+Interval = 10 # seconds
 
 [stats]
-Interval = 300 # seconds
+Interval = 60 # seconds
 AgentControllers = []
+

@@ -31,6 +31,10 @@ type Settings struct {
         AgentControllers []int
     }
 
+    Monitor struct {
+        Interval int
+    }
+
     Channel struct {
         Cmds []int
     }

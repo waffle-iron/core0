@@ -176,7 +176,8 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) msgCallback(msg *Message) {
-    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels"), msg.Level) {
+    levels := msg.Cmd.Args.GetIntArray("loglevels")
+    if len(levels) > 0 && !utils.In(levels, msg.Level) {
         return
     }
 
