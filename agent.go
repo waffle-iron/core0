@@ -22,6 +22,14 @@ func main() {
 
     utils.LoadTomlFile("agent.toml", &settings)
 
+    buildUrl := func (base string, endpoint string) string {
+        base = strings.TrimRight(base, "/")
+        return fmt.Sprintf("%s/%d/%d/%s", base,
+            settings.Main.Gid,
+            settings.Main.Nid,
+            endpoint)
+    }
+
     mgr := pm.NewPM(settings.Main.MessageIdFile)
 
     if settings.Stats.Interval == 0 {
@@ -31,20 +39,24 @@ func main() {
 
     statsd := stats.NewStatsd(time.Duration(settings.Stats.Interval) * time.Second,
         func (stats *stats.Stats) {
-        s, _ := json.Marshal(stats)
-        log.Println(string(s))
+
+        res, _ := json.Marshal(stats)
+        log.Println(string(res))
+        for _, base := range settings.Main.AgentControllers {
+            url := buildUrl(base, "stats")
+
+            reader := bytes.NewBuffer(res)
+            resp, err := http.Post(url, "application/json", reader)
+            if err != nil {
+                log.Println("Failed to send stats result to AC", url, err)
+                return
+            }
+            defer resp.Body.Close()
+        }
     })
 
     //start statsd aggregation
     statsd.Run()
-
-    buildUrl := func (base string, endpoint string) string {
-        base = strings.TrimRight(base, "/")
-        return fmt.Sprintf("%s/%d/%d/%s", base,
-            settings.Main.Gid,
-            settings.Main.Nid,
-            endpoint)
-    }
 
     //apply logging handlers.
     for _, logcfg := range settings.Logging {
