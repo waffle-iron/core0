@@ -53,7 +53,7 @@ func LoadCmd(str []byte) (*Cmd, error) {
 }
 
 func (cmd *Cmd) String() string {
-    return fmt.Sprintf("%d:%d:%s(%s)", cmd.Gid, cmd.Nid, cmd.Id, cmd.Name)
+    return fmt.Sprintf("%s# %s %s", cmd.Id, cmd.Name, cmd.Args.GetString("name"))
 }
 
 type MeterHandler func (cmd *Cmd, p *process.Process)
