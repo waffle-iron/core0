@@ -15,12 +15,36 @@ import (
     "fmt"
     "strings"
     "bytes"
+    "flag"
+    "os"
 )
 
 func main() {
     settings := agent.Settings{}
+    var cfg string
+    var help bool
 
-    utils.LoadTomlFile("agent.toml", &settings)
+    flag.BoolVar(&help, "h", false, "Print this help screen")
+    flag.StringVar(&cfg, "c", "", "Path to config file")
+    flag.Parse()
+
+    printHelp := func() {
+        fmt.Println("agent [options]")
+        flag.PrintDefaults()
+    }
+
+    if help {
+        printHelp()
+        return
+    }
+
+    if cfg == "" {
+        fmt.Println("Missing required option -c")
+        flag.PrintDefaults()
+        os.Exit(1)
+    }
+
+    utils.LoadTomlFile(cfg, &settings)
 
     buildUrl := func (base string, endpoint string) string {
         base = strings.TrimRight(base, "/")
@@ -208,7 +232,7 @@ func main() {
     for {
         select {
         case <- time.After(10 * time.Second):
-            log.Println("...")
+            log.Println("_/\\_ beep") // heart beat
         }
     }
 }
