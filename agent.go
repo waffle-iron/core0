@@ -77,10 +77,14 @@ func main() {
                     time.Duration(flushint) * time.Second,
                     logcfg.Levels)
                 mgr.AddMessageHandler(handler.Log)
+            case "console":
+                handler := logger.NewConsoleLogger(logcfg.Levels)
+                mgr.AddMessageHandler(handler.Log)
             default:
                 panic(fmt.Sprintf("Unsupported logger type: %s", logcfg.Type))
         }
     }
+
 
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor.
@@ -88,9 +92,7 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-    mgr.AddMessageHandler(func (msg *pm.Message) {
-        log.Println(msg)
-    })
+
 
 
     // dblogger := logger.NewDBLogger(logger.NewSqliteFactory("./"))
@@ -186,7 +188,7 @@ func main() {
         "args": map[string]interface{} {
             "name": "test.py",
             "loglevels": []int{3},
-            "loglevels_db": []int{3},
+            //"loglevels_db": []int{3},
             "max_time": 5,
             "recurring_period": 4,
             "max_restart": 2,

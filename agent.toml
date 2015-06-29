@@ -23,6 +23,9 @@ Cmds = [0] # long polling from agent 0
     BatchSize = 1000 # max batch size, force flush if reached this count.
     AgentControllers = [] # to all agents
 
+    [logging.console]
+    Type = "console"
+
 [stats]
 Interval = 300 # seconds
 AgentControllers = []

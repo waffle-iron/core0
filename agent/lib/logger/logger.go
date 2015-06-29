@@ -135,3 +135,21 @@ func (logger *ACLogger) send(buffer []*pm.Message) {
         defer resp.Body.Close()
     }
 }
+
+type ConsoleLogger struct {
+    defaults []int
+}
+
+func NewConsoleLogger(defaults []int) Logger {
+    return &ConsoleLogger{
+        defaults: defaults,
+    }
+}
+
+func (logger *ConsoleLogger) Log(msg *pm.Message) {
+    if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
+        return
+    }
+
+    log.Println(msg)
+}
