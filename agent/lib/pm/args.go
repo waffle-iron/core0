@@ -13,10 +13,13 @@ type Args interface {
     GetStringArray(key string) []string
     GetIntArray(key string) []int
     Set(key string, value interface{})
+    SetTag(tag int)
+    GetTag() int
     Clone(deep bool) Args
 }
 
 type MapArgs struct {
+    tag int
     data map[string]interface{}
 }
 
@@ -34,12 +37,24 @@ func (args *MapArgs) UnmarshalJSON(data []byte) error {
     return json.Unmarshal(data, &args.data)
 }
 
+func (args *MapArgs) ensureInt(value interface{}) int {
+    switch v := value.(type) {
+    case int:
+        return v
+    case float64:
+        return int(v)
+    }
+
+    return 0
+}
+
 func (args *MapArgs) GetInt(key string) int {
     s, ok := args.data[key]
-    if ok {
-        return s.(int)
+    if !ok {
+        return 0
     }
-    return 0
+
+    return args.ensureInt(s)
 }
 
 func (args *MapArgs) GetString(key string) string {
@@ -78,20 +93,42 @@ func (args *MapArgs) GetArray(key string) []interface{} {
 
 func (args *MapArgs) GetStringArray(key string) []string {
     s, ok := args.data[key]
-    if ok {
-        return s.([]string)
+    if !ok {
+        return []string{}
     }
 
-    return make([]string, 0)
+    switch t := s.(type) {
+    case []string:
+        return t
+    case []interface{}:
+        values := make([]string, len(t))
+        for i, v := range t {
+            values[i] = v.(string)
+        }
+        return values
+    }
+
+    return []string{}
 }
 
 func (args *MapArgs) GetIntArray(key string) []int {
     s, ok := args.data[key]
-    if ok {
-        return s.([]int)
+    if !ok {
+        return []int{}
     }
 
-    return make([]int, 0)
+    switch t := s.(type) {
+    case []int:
+        return t
+    case []interface{}:
+        values := make([]int, len(t))
+        for i, v := range t {
+            values[i] = args.ensureInt(v)
+        }
+        return values
+    }
+
+    return []int{}
 }
 
 func (args *MapArgs) Set(key string, value interface{}) {
@@ -118,6 +155,15 @@ func (args *MapArgs) Clone(deep bool) Args {
     }
 
     return &MapArgs{
+        tag: args.tag,
         data: data,
     }
+}
+
+func (args *MapArgs) SetTag(tag int) {
+    args.tag = tag
+}
+
+func (args *MapArgs) GetTag() int {
+    return args.tag
 }
