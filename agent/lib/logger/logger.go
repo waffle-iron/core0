@@ -16,16 +16,25 @@ type Logger interface {
 
 type DBLogger struct {
     factory DBFactory
+    defaults []int
 }
 
-func NewDBLogger(factory DBFactory) Logger {
+func NewDBLogger(factory DBFactory, defaults []int) Logger {
     return &DBLogger{
         factory: factory,
+        defaults: defaults,
     }
 }
 
 func (logger *DBLogger) Log(msg *pm.Message) {
-    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels_db"), msg.Level) {
+    levels := logger.defaults
+    msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+
+    if len(msgLevels) > 0 {
+        levels = msgLevels
+    }
+
+    if len(levels) > 0 && !utils.In(levels, msg.Level) {
         return
     }
 
@@ -44,16 +53,18 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
 
 type ACLogger struct {
-    endpoint string
+    endpoints []string
     buffer []*pm.Message
     queue chan *pm.Message
+    defaults []int
 }
 
-func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
+func NewACLogger(endpoints []string, bufsize int, flushInt time.Duration, defaults []int) Logger {
     logger := &ACLogger {
-        endpoint: endpoint,
+        endpoints: endpoints,
         buffer: make([]*pm.Message, 0, bufsize),
         queue: make(chan *pm.Message),
+        defaults: defaults,
     }
 
     go func() {
@@ -79,9 +90,17 @@ func NewACLogger(endpoint string, bufsize int, flushInt time.Duration) Logger {
 }
 
 func (logger *ACLogger) Log(msg *pm.Message) {
-    if !utils.In(msg.Cmd.Args.GetIntArray("loglevels_ac"), msg.Level) {
+    levels := logger.defaults
+    msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+
+    if len(msgLevels) > 0 {
+        levels = msgLevels
+    }
+
+    if len(levels) > 0 && !utils.In(levels, msg.Level) {
         return
     }
+
     logger.queue <- msg
 }
 
@@ -107,10 +126,12 @@ func (logger *ACLogger) send(buffer []*pm.Message) {
     }
 
     reader := bytes.NewReader(msgs)
-    resp, err := http.Post(logger.endpoint, "application/json", reader)
-    if err != nil {
-        log.Println("Failed to send log batch to AC", err)
-        return
+    for _, endpoint := range logger.endpoints {
+        resp, err := http.Post(endpoint, "application/json", reader)
+        if err != nil {
+            log.Println("Failed to send log batch to AC", endpoint, err)
+            continue
+        }
+        defer resp.Body.Close()
     }
-    resp.Body.Close()
 }

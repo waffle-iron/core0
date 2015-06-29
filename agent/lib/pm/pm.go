@@ -14,12 +14,12 @@ import (
 var RESULT_MESSAGE_LEVELS []int = []int{20, 21, 22, 23, 30}
 
 type Cmd struct {
-    Id string
-    Gid int
-    Nid int
-    Name string
-    Args Args
-    Data string
+    Id string `json:"id"`
+    Gid int `json:"gid"`
+    Nid int `json:"nid"`
+    Name string `json:"name"`
+    Args Args `json:"args"`
+    Data string `json:"data"`
 }
 
 func (cmd *Cmd) String() string {

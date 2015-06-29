@@ -26,6 +26,11 @@ type SqliteDBFactory struct {
 }
 
 func NewSqliteFactory(dir string) DBFactory {
+    err := os.MkdirAll(dir, os.ModeDir | 0755)
+    if err != nil {
+        log.Fatal("Couldn't create the log dir")
+    }
+
     return &SqliteDBFactory{
         db: nil,
         dir: dir,

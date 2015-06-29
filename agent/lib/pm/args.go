@@ -30,6 +30,10 @@ func (args *MapArgs) MarshalJSON() ([]byte, error) {
     return json.Marshal(args.data)
 }
 
+func (args *MapArgs) UnmarshalJSON(data []byte) error {
+    return json.Unmarshal(data, &args.data)
+}
+
 func (args *MapArgs) GetInt(key string) int {
     s, ok := args.data[key]
     if ok {

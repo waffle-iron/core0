@@ -1,0 +1,28 @@
+[main]
+Gid = 1
+Nid = 10
+MessageIdFile = "./.mid"
+AgentControllers = ["http://localhost:8080/"]
+
+[pm]
+PyScriptsDir = "./python"
+LuaScriptsDir = "./lua"
+
+[channel]
+Cmds = [0] # long polling from agent 0
+
+[logging]
+    [logging.db]
+    Type = "DB"
+    LogDir = "./logs"
+    Levels = []  # empty for all
+
+    [logging.ac]
+    Type = "AC"
+    FlushInt = 300 # seconds (5min)
+    BatchSize = 1000 # max batch size, force flush if reached this count.
+    AgentControllers = [] # to all agents
+
+[stats]
+Interval = 300 # seconds
+AgentControllers = []
