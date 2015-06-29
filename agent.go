@@ -6,14 +6,15 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/logger"
     "github.com/Jumpscale/jsagent/agent/lib/stats"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
-
     _ "github.com/Jumpscale/jsagent/agent/lib/builtin"
     "github.com/shirou/gopsutil/process"
     "time"
     "encoding/json"
+    "net/http"
     "log"
     "fmt"
     "strings"
+    "bytes"
 )
 
 func main() {
@@ -37,6 +38,13 @@ func main() {
     //start statsd aggregation
     statsd.Run()
 
+    buildUrl := func (base string, endpoint string) string {
+        base = strings.TrimRight(base, "/")
+        return fmt.Sprintf("%s/%d/%d/%s", base,
+            settings.Main.Gid,
+            settings.Main.Nid,
+            endpoint)
+    }
 
     //apply logging handlers.
     for _, logcfg := range settings.Logging {
@@ -52,13 +60,17 @@ func main() {
                     //specific ones.
                     endpoints = make([]string, 0, len(logcfg.AgentControllers))
                     for _, aci := range logcfg.AgentControllers {
-                        endpoints = append(endpoints, settings.Main.AgentControllers[aci])
+                        endpoints = append(
+                            endpoints,
+                            buildUrl(settings.Main.AgentControllers[aci], "log"))
                     }
                 } else {
                     //all ACs
                     endpoints = make([]string, 0, len(settings.Main.AgentControllers))
                     for _, ac := range settings.Main.AgentControllers {
-                        endpoints = append(endpoints, ac)
+                        endpoints = append(
+                            endpoints,
+                            buildUrl(ac, "log"))
                     }
                 }
 
@@ -85,6 +97,23 @@ func main() {
         }
     }
 
+    mgr.AddResultHandler(func (result *pm.JobResult) {
+        //send result to AC.
+        res, _ := json.Marshal(result)
+        log.Println(string(res))
+        url := buildUrl(
+            settings.Main.AgentControllers[result.Args.GetTag()],
+            "result")
+
+        reader := bytes.NewBuffer(res)
+        resp, err := http.Post(url, "application/json", reader)
+        if err != nil {
+            log.Println("Failed to send job result to AC", url, err)
+            return
+        }
+        defer resp.Body.Close()
+    })
+
 
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor.
@@ -92,137 +121,31 @@ func main() {
         statsd.Avg("cmd.cpu", cpu)
     })
 
-
-
-
-    // dblogger := logger.NewDBLogger(logger.NewSqliteFactory("./"))
-    // mgr.AddMessageHandler(dblogger.Log)
-
-    // aclogger := logger.NewACLogger("http://localhost:8080/log", 2, 10 * time.Second)
-    // mgr.AddMessageHandler(aclogger.Log)
-
-
-    mgr.AddResultHandler(func (result *pm.JobResult) {
-        s, _ := json.Marshal(result)
-        log.Printf("%s", s)
-    })
-
     //start process mgr.
     mgr.Run()
 
-    // cmd := `
-    // {
-    //     "id": "job-id",
-    //     "gid": "gid",
-    //     "nid": "nid",
-    //     "cmd": "execute",
-    //     "args": {
-    //         "name": "python2.7",
-    //         "args": ["test.py"],
-    //         "loglevles": [3],
-    //         "loglevels_db": [3],
-    //         "max_time": 5
-    //     },
-    //     "data": ""
-    // }
-    // // `
-
-    // margs := map[string]interface{} {
-    //     "name": "python2.7",
-    //     "args": []string{"test.py"},
-    //     "loglevles": []int{3},
-    //     "loglevels_db": []int{3},
-    //     "max_time": 5,
-    // }
-
-    // args := pm.NewMapArgs(margs)
-
-    // cmd := map[string]interface{} {
-    //     "id": "job-id",
-    //     "gid": 1,
-    //     "nid": 10,
-    //     "name": "get_msgs",
-    //     "args": map[string]interface{} {
-    //         "loglevels": []int{1, 2, 3},
-    //         "loglevels_db": []int{3},
-    //         "max_time": 20,
-    //     },
-    //     "data": `{
-    //         "idfrom": 0,
-    //         "idto": 100,
-    //         "timefrom": 100000,
-    //         "timeto": 200000,
-    //         "levels": "3-5"
-    //     }`,
-    // }
-
-    mem := map[string]interface{} {
-        "id": "asdfasdg",
-        "gid": 1,
-        "nid": 10,
-        "name": "get_nic_info",
-        "args": map[string]interface{} {
-            "loglevels": []int{1, 2, 3},
-            "loglevels_db": []int{3},
-            "max_time": 20,
-        },
-    }
-
-    // restart := map[string]interface{} {
-    //     "id": "asdfasdg",
-    //     "gid": 1,
-    //     "nid": 10,
-    //     "name": "restart",
-    //     "args": map[string]interface{} {
-    //         // "loglevels": []int{1, 2, 3},
-    //         // "loglevels_db": []int{3},
-    //         // "max_time": 20,
-    //     },
-    // }
-
-    jscmd := map[string]interface{} {
-        "id": "JS-job-id",
-        "gid": 1,
-        "nid": 10,
-        "name": "execute_js_py",
-        "args": map[string]interface{} {
+    //example command.
+    scmd := `
+    {
+        "id": "job-id",
+        "gid": 0,
+        "nid": 1,
+        "cmd": "execute_js_py",
+        "args": {
             "name": "test.py",
-            "loglevels": []int{3},
-            //"loglevels_db": []int{3},
-            "max_time": 5,
-            "recurring_period": 4,
-            "max_restart": 2,
-        },
-        "data": "",
+            "loglevels": [3],
+            "loglevels_db": [3],
+            "max_time": 5
+        }
+    }
+    `
+
+    cmd, err := pm.LoadCmd([]byte(scmd))
+    if err != nil {
+        log.Fatal(err)
     }
 
-    // jscmd2 := map[string]interface{} {
-    //     "id": "recurring",
-    //     "gid": 1,
-    //     "nid": 10,
-    //     "name": "execute_js_py",
-    //     "args": map[string]interface{} {
-    //         "name": "recurring.py",
-    //         "loglevels": []int{3},
-    //         // "loglevels_db": []int{3},
-    //         "max_time": 5,
-    //         "recurring_period": 2,
-    //     },
-    //     "data": "",
-    // }
-
-    // killall := map[string]interface{} {
-    //     "id": "kill",
-    //     "gid": 1,
-    //     "nid": 10,
-    //     "name": "killall",
-    //     "args": map[string]interface{} {
-
-    //     },
-    // }
-
-    mgr.NewMapCmd(mem)
-    mgr.NewMapCmd(jscmd)
+    mgr.RunCmd(cmd)
     for {
         select {
         case <- time.After(10 * time.Second):

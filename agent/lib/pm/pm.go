@@ -1,6 +1,7 @@
 package pm
 
 import (
+    "encoding/json"
     "io/ioutil"
     "time"
     "log"
@@ -17,9 +18,38 @@ type Cmd struct {
     Id string `json:"id"`
     Gid int `json:"gid"`
     Nid int `json:"nid"`
-    Name string `json:"name"`
+    Name string `json:"cmd"`
     Args Args `json:"args"`
     Data string `json:"data"`
+}
+
+//Builds a cmd from a map.
+func NewMapCmd(data map[string]interface{}) *Cmd {
+    stdin, ok := data["data"]
+    if !ok {
+        stdin = ""
+    }
+    cmd := &Cmd {
+        Gid: data["gid"].(int),
+        Nid: data["nid"].(int),
+        Id: data["id"].(string),
+        Name: data["name"].(string),
+        Data: stdin.(string),
+        Args: NewMapArgs(data["args"].(map[string]interface{})),
+    }
+
+    return cmd
+}
+
+//loads cmd from json string.
+func LoadCmd(str []byte) (*Cmd, error) {
+    cmd := Cmd{Args: NewMapArgs(map[string]interface{}{})}
+    err := json.Unmarshal(str, &cmd)
+    if err != nil {
+        return nil, err
+    }
+
+    return &cmd, err
 }
 
 func (cmd *Cmd) String() string {
@@ -75,34 +105,7 @@ func saveMid(midfile string, mid uint32) {
     ioutil.WriteFile(midfile, []byte(fmt.Sprintf("%d", mid)), 0644)
 }
 
-func (pm *PM) NewCmd(gid int, nid int, id string,
-                     name string, args Args, data string) {
-    cmd := &Cmd {
-        Gid: gid,
-        Nid: nid,
-        Id: id,
-        Name: name,
-        Args: args,
-        Data: data,
-    }
-
-    pm.cmds <- cmd
-}
-
-func (pm *PM) NewMapCmd(data map[string]interface{}) {
-    stdin, ok := data["data"]
-    if !ok {
-        stdin = ""
-    }
-    cmd := &Cmd {
-        Gid: data["gid"].(int),
-        Nid: data["nid"].(int),
-        Id: data["id"].(string),
-        Name: data["name"].(string),
-        Data: stdin.(string),
-        Args: NewMapArgs(data["args"].(map[string]interface{})),
-    }
-
+func (pm *PM) RunCmd(cmd *Cmd) {
     pm.cmds <- cmd
 }
 
