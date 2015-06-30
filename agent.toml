@@ -2,11 +2,16 @@
 Gid = 1
 Nid = 10
 MessageIdFile = "./.mid"
-AgentControllers = ["http://localhost:8080/"]
+AgentControllers = ["http://localhost/"]
 
-[pm]
-PyScriptsDir = "./python"
-LuaScriptsDir = "./lua"
+[cmds]
+    [cmds.execute_js_py]
+    Binary = "python2.7"
+    Path = "./python"
+
+    [cmds.execute_js_lua]
+    Binary = "lua"
+    Path = "./lua"
 
 [channel]
 Cmds = [0] # long polling from agent 0

@@ -8,24 +8,12 @@ import (
 
 const (
     CMD_EXECUTE = "execute"
-    CMD_EXECUTE_JS_PY = "execute_js_py"
-    CMD_EXECUTE_JS_LUA = "execute_js_lua"
-    CMD_GET_MSGS = "get_msgs"
-    CMD_PING = "ping"
-    CMD_RESTART = "restart"
-
 )
 
 type ProcessConstructor func (cmd *Cmd) Process
 
 var CMD_MAP = map[string]ProcessConstructor {
     CMD_EXECUTE: NewExtProcess,
-    CMD_EXECUTE_JS_PY: extScript("python2.7", "./python", ""),
-    CMD_EXECUTE_JS_LUA: extScript("lua", "./lua", ""),
-    // CMD_GET_MSGS: extScript("python2.7", "./builtin", "get_msgs.py"),
-    // CMD_PING: internalScript(ping),
-    // CMD_RESTART: internalScript(restart),
-    // CMD_KILLALL: internalScript(killall),
 }
 
 
@@ -110,3 +98,13 @@ func (ps *JsScriptProcess) Kill() {
     ps.extps.Kill()
 }
 
+
+//registers a command to the process manager.
+//cmd: Command name
+//exe: executing binary
+//workdir: working directory
+//script: script name
+//if script == "", then script name will be used from cmd.Args.
+func RegisterCmd(cmd string, exe string, workdir string, script string) {
+    CMD_MAP[cmd] = extScript(exe, workdir, script)
+}

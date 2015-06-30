@@ -17,6 +17,7 @@ import (
     "bytes"
     "flag"
     "os"
+    "io/ioutil"
 )
 
 func main() {
@@ -133,24 +134,6 @@ func main() {
         }
     }
 
-    mgr.AddResultHandler(func (result *pm.JobResult) {
-        //send result to AC.
-        res, _ := json.Marshal(result)
-        log.Println(string(res))
-        url := buildUrl(
-            settings.Main.AgentControllers[result.Args.GetTag()],
-            "result")
-
-        reader := bytes.NewBuffer(res)
-        resp, err := http.Post(url, "application/json", reader)
-        if err != nil {
-            log.Println("Failed to send job result to AC", url, err)
-            return
-        }
-        defer resp.Body.Close()
-    })
-
-
     mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
         //monitor and feed statsd
 
@@ -171,64 +154,87 @@ func main() {
         }
     })
 
+    //build list with ACs that we will poll from.
+    var controllers []string
+    if len(settings.Channel.Cmds) > 0 {
+        controllers = make([]string, len(settings.Channel.Cmds))
+        for i := 0; i < len(settings.Channel.Cmds); i++ {
+            controllers[i] = settings.Main.AgentControllers[settings.Channel.Cmds[i]]
+        }
+    } else {
+        controllers = settings.Main.AgentControllers
+    }
+
+    //start pollers goroutines
+    for aci, ac := range controllers {
+        go func() {
+            lastfail := time.Now().Unix()
+            for {
+                response, err := http.Get(buildUrl(ac, "cmd"))
+                if err != nil {
+                    log.Println("Failed to retrieve new commands from", ac, err)
+                    if time.Now().Unix() - lastfail < 4 {
+                        time.Sleep(4 * time.Second)
+                    }
+                    lastfail = time.Now().Unix()
+
+                    continue
+                }
+
+                defer response.Body.Close()
+                body, err := ioutil.ReadAll(response.Body)
+                if err != nil {
+                    log.Println("Failed to load response content", err)
+                    continue
+                }
+
+                cmd, err := pm.LoadCmd(body)
+                if err != nil {
+                    log.Println("Failed to load cmd", err)
+                    continue
+                }
+
+                //set command defaults
+                //1 - stats_interval
+                meterInt := cmd.Args.GetInt("stats_interval")
+                if meterInt == 0 {
+                    cmd.Args.Set("stats_interval", settings.Monitor.Interval)
+                }
+
+                //tag command for routing.
+                cmd.Args.SetTag(aci)
+                mgr.RunCmd(cmd)
+            }
+        } ()
+    }
+
+    //handle process results
+    mgr.AddResultHandler(func (result *pm.JobResult) {
+        //send result to AC.
+        res, _ := json.Marshal(result)
+        log.Println(string(res))
+        url := buildUrl(
+            controllers[result.Args.GetTag()],
+            "result")
+
+        reader := bytes.NewBuffer(res)
+        resp, err := http.Post(url, "application/json", reader)
+        if err != nil {
+            log.Println("Failed to send job result to AC", url, err)
+            return
+        }
+        defer resp.Body.Close()
+    })
+
+    //register the execute commands
+    for cmdKey, cmdCfg := range settings.Cmds {
+        pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Path, cmdCfg.Script)
+    }
+
     //start process mgr.
     mgr.Run()
 
-    //example command.
-    // scmd := `
-    // {
-    //     "id": "job-id",
-    //     "gid": 0,
-    //     "nid": 1,
-    //     "cmd": "execute_js_py",
-    //     "args": {
-    //         "name": "test.py",
-    //         "loglevels": [3],
-    //         "loglevels_db": [3],
-    //         "max_time": 5
-    //     }
-    // }
-    // `
-
-    // ncmd := `
-    // {
-    //     "id": "nginx",
-    //     "gid": 0,
-    //     "nid": 1,
-    //     "cmd": "execute",
-    //     "args": {
-    //         "name": "sudo",
-    //         "args": ["nginx", "-c", "/etc/nginx/nginx.fg.conf"],
-    //         "loglevels_db": [2]
-    //     }
-    // }
-    // `
-    hcmd := `
-    {
-        "id": "heavy-process",
-        "gid": 0,
-        "nid": 1,
-        "cmd": "execute",
-        "args": {
-            "name": "zsh",
-            "domain": "js",
-            "args": ["-c", "while (true) {sleep 0.01}"],
-            "loglevels_db": [2]
-        }
-    }
-    `
-    cmd, err := pm.LoadCmd([]byte(hcmd))
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    meterInt := cmd.Args.GetInt("stats_interval")
-
-    if meterInt == 0 {
-        cmd.Args.Set("stats_interval", settings.Monitor.Interval)
-    }
-
-    mgr.RunCmd(cmd)
+    //heart beat
     for {
         select {
         case <- time.After(10 * time.Second):
