@@ -86,6 +86,10 @@ func (ps *JsScriptProcess) Run(cfg RunCfg) {
         ResultHandler: func(result *JobResult) {
             result.Args = ps.cmd.Args
             result.Cmd = ps.cmd.Name
+            result.Id = ps.cmd.Id
+            result.Gid = ps.cmd.Gid
+            result.Nid = ps.cmd.Nid
+
             cfg.ResultHandler(result)
             },
         Signal: cfg.Signal,

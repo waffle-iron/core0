@@ -270,6 +270,8 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
     jobresult := &JobResult{
         Id: ps.cmd.Id,
+        Gid: ps.cmd.Gid,
+        Nid: ps.cmd.Nid,
         Cmd: ps.cmd.Name,
         Args: ps.cmd.Args,
         State: state,

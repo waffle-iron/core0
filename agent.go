@@ -212,7 +212,6 @@ func main() {
     mgr.AddResultHandler(func (result *pm.JobResult) {
         //send result to AC.
         res, _ := json.Marshal(result)
-        log.Println(string(res))
         url := buildUrl(
             controllers[result.Args.GetTag()],
             "result")

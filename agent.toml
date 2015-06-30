@@ -2,7 +2,7 @@
 Gid = 1
 Nid = 10
 MessageIdFile = "./.mid"
-AgentControllers = ["http://localhost/"]
+AgentControllers = ["http://localhost:8080/"]
 
 [cmds]
     [cmds.execute_js_py]
