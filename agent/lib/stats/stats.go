@@ -2,6 +2,7 @@ package stats
 
 import (
     "time"
+    "fmt"
 )
 
 
@@ -18,14 +19,16 @@ type Stats struct {
 }
 
 type Statsd struct {
+    prefix string
     flushInt time.Duration
     onflush FlushHandler
     buffer map[string][]float64
     queue chan msg
 }
 
-func NewStatsd(flush time.Duration, onflush FlushHandler) *Statsd {
+func NewStatsd(prefix string, flush time.Duration, onflush FlushHandler) *Statsd {
     return &Statsd{
+        prefix: prefix,
         flushInt: flush,
         onflush: onflush,
         buffer: make(map[string][]float64, 128),
@@ -54,6 +57,8 @@ func (statsd *Statsd) flush() {
 
     i := 0
     for key, values := range statsd.buffer {
+        key = fmt.Sprintf("%s.%s", statsd.prefix, key)
+
         var avg float64
         for _, v := range values {
             avg += v

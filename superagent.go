@@ -113,20 +113,16 @@ func main() {
         //You can here collect all the data you want abou the process and feed
         //statsd.
 
-        //TODO: Make sure this is the correct Base, key.
-        base := fmt.Sprintf("%d.%d.%s.%s", cmd.Gid, cmd.Nid,
-            cmd.Args.GetString("domain"), cmd.Args.GetString("name"))
-
         cpu, err := ps.CPUPercent(0)
         if err == nil {
-            statsd.Avg(fmt.Sprintf("%s.cpu", base), cpu)
+            statsd.Avg("cpu", cpu)
         }
 
         mem, err := ps.MemoryInfo()
         if err == nil {
-            statsd.Avg(fmt.Sprintf("%s.rss", base), float64(mem.RSS))
-            statsd.Avg(fmt.Sprintf("%s.vms", base), float64(mem.VMS))
-            statsd.Avg(fmt.Sprintf("%s.swap", base), float64(mem.Swap))
+            statsd.Avg("rss", float64(mem.RSS))
+            statsd.Avg("vms", float64(mem.VMS))
+            statsd.Avg("swap", float64(mem.Swap))
         }
     })
 

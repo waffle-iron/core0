@@ -11,9 +11,10 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/Jumpscale/jsagent/agent/lib/stats"
     "github.com/shirou/gopsutil/process"
+    "strings"
 )
 
-var RESULT_MESSAGE_LEVELS []int = []int{20, 21, 22, 23, 30}
+var STATSD_MESSAGES []int = []int{L_STATSD_AVG, L_STATSD_MAX, L_STATSD_MIN}
 
 type Cmd struct {
     Id string `json:"id"`
@@ -157,7 +158,11 @@ func (pm *PM) Run() {
 
             statsInterval := cmd.Args.GetInt("stats_interval")
 
+            prefix := fmt.Sprintf("%d.%d.%s.%s", cmd.Gid, cmd.Nid,
+                cmd.Args.GetString("domain"), cmd.Args.GetString("name"))
+
             statsd := stats.NewStatsd(
+                prefix,
                 time.Duration(statsInterval) * time.Second,
                 pm.statsFlushCallback)
 
@@ -193,13 +198,45 @@ func (pm *PM) Killall() {
 }
 
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
-    statsd := pm.statsdes[cmd.Id]
+    statsd, ok := pm.statsdes[cmd.Id]
+    if !ok {
+        return
+    }
+
     for _, handler := range pm.statsdMeterHandlers {
         handler(statsd, cmd, ps)
     }
 }
 
+func (pm *PM) handlStatsdMsgs(msg *Message) {
+    statsd, ok := pm.statsdes[msg.Cmd.Id]
+    if !ok {
+        // there is no statsd configured for this process!! we shouldn't
+        // be here but just in case
+        return
+    }
+    parts := strings.Split(msg.Message, " ")
+    if len(parts) != 2 {
+        log.Println("Invalid statsd message", msg.Message)
+        return
+    }
+    key := parts[0]
+    value, err := strconv.ParseFloat(parts[1], 64)
+    if err != nil {
+        log.Println("Invalid float", parts[1], "in statsd message", msg.Message)
+        return
+    }
+
+    switch msg.Level{
+    case L_STATSD_AVG:
+        statsd.Avg(key, value)
+    }
+}
 func (pm *PM) msgCallback(msg *Message) {
+    if utils.In(STATSD_MESSAGES, msg.Level) {
+        pm.handlStatsdMsgs(msg)
+    }
+
     levels := msg.Cmd.Args.GetIntArray("loglevels")
     if len(levels) > 0 && !utils.In(levels, msg.Level) {
         return
