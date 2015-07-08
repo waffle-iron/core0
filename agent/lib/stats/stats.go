@@ -76,9 +76,14 @@ func (statsd *Statsd) flush() {
 func (statsd *Statsd) Run() {
     go func () {
         var tick <- chan time.Time = time.After(statsd.flushInt)
+        loop:
         for {
             select {
-            case msg := <-statsd.queue:
+            case msg, valid := <-statsd.queue:
+                if !valid {
+                    //closed queue.
+                    break loop
+                }
                 values, ok := statsd.buffer[msg.key]
                 if !ok {
                     values = make([]float64, 0, 10)
@@ -93,3 +98,10 @@ func (statsd *Statsd) Run() {
         }
     }()
 }
+
+func (statsd *Statsd) Stop() {
+    close(statsd.queue)
+    //last flush
+    statsd.flush()
+}
+

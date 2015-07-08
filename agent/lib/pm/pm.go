@@ -9,6 +9,7 @@ import (
     "sync"
     "strconv"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
+    "github.com/Jumpscale/jsagent/agent/lib/stats"
     "github.com/shirou/gopsutil/process"
 )
 
@@ -57,9 +58,10 @@ func (cmd *Cmd) String() string {
 }
 
 type MeterHandler func (cmd *Cmd, p *process.Process)
+type StatsdMeterHandler func (statsd *stats.Statsd, cmd *Cmd, p *process.Process)
 type MessageHandler func (msg *Message)
 type ResultHandler func(result *JobResult)
-
+type StatsFlushHandler func(stats *stats.Stats)
 
 type PM struct {
     mid uint32
@@ -67,9 +69,12 @@ type PM struct {
     midMux *sync.Mutex
     cmds chan *Cmd
     processes map[string]Process
-    meterHandlers []MeterHandler
+    statsdes map[string]*stats.Statsd
+
+    statsdMeterHandlers []StatsdMeterHandler
     msgHandlers []MessageHandler
     resultHandlers []ResultHandler
+    statsFlushHandlers []StatsFlushHandler
 }
 
 
@@ -80,9 +85,12 @@ func NewPM(midfile string) *PM {
         mid: loadMid(midfile),
         midMux: &sync.Mutex{},
         processes: make(map[string]Process),
-        meterHandlers: make([]MeterHandler, 0, 3),
+        statsdes: make(map[string]*stats.Statsd),
+
+        statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
         msgHandlers: make([]MessageHandler, 0, 3),
         resultHandlers: make([]ResultHandler, 0, 3),
+        statsFlushHandlers: make([]StatsFlushHandler, 0, 3),
     }
     return pm
 }
@@ -117,8 +125,8 @@ func (pm *PM) getNextMsgID() uint32 {
     return pm.mid
 }
 
-func (pm *PM) AddMeterHandler(handler MeterHandler) {
-    pm.meterHandlers = append(pm.meterHandlers, handler)
+func (pm *PM) AddStatsdMeterHandler(handler StatsdMeterHandler) {
+    pm.statsdMeterHandlers = append(pm.statsdMeterHandlers, handler)
 }
 
 func (pm *PM) AddMessageHandler(handler MessageHandler) {
@@ -127,6 +135,10 @@ func (pm *PM) AddMessageHandler(handler MessageHandler) {
 
 func (pm *PM) AddResultHandler(handler ResultHandler) {
     pm.resultHandlers = append(pm.resultHandlers, handler)
+}
+
+func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
+    pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
 func (pm *PM) Run() {
@@ -142,13 +154,25 @@ func (pm *PM) Run() {
             }
 
             pm.processes[cmd.Id] = process
+
+            statsInterval := cmd.Args.GetInt("stats_interval")
+
+            statsd := stats.NewStatsd(
+                time.Duration(statsInterval) * time.Second,
+                pm.statsFlushCallback)
+
+            statsd.Run()
+            pm.statsdes[cmd.Id] = statsd
+
             // A process must signal it's termination (that it's not going
             // to restart) for the process manager to clean up it's reference
             signal := make(chan int)
             go func () {
                 <- signal
                 close(signal)
+                statsd.Stop()
                 delete(pm.processes, cmd.Id)
+                delete(pm.statsdes, cmd.Id)
             } ()
 
             go process.Run(RunCfg{
@@ -158,7 +182,6 @@ func (pm *PM) Run() {
                 ResultHandler: pm.resultCallback,
                 Signal: signal,
             })
-
         }
     }()
 }
@@ -170,8 +193,9 @@ func (pm *PM) Killall() {
 }
 
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
-    for _, handler := range pm.meterHandlers {
-        handler(cmd, ps)
+    statsd := pm.statsdes[cmd.Id]
+    for _, handler := range pm.statsdMeterHandlers {
+        handler(statsd, cmd, ps)
     }
 }
 
@@ -193,5 +217,11 @@ func (pm *PM) msgCallback(msg *Message) {
 func (pm *PM) resultCallback(result *JobResult) {
     for _, handler := range pm.resultHandlers {
         handler(result)
+    }
+}
+
+func (pm *PM) statsFlushCallback(stats *stats.Stats) {
+    for _, handler := range pm.statsFlushHandlers {
+        handler(stats)
     }
 }

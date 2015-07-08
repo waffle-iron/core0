@@ -57,32 +57,6 @@ func main() {
 
     mgr := pm.NewPM(settings.Main.MessageIdFile)
 
-    if settings.Stats.Interval == 0 {
-        //set default flush interval of 5 min
-        settings.Stats.Interval = 300
-    }
-
-    statsd := stats.NewStatsd(time.Duration(settings.Stats.Interval) * time.Second,
-        func (stats *stats.Stats) {
-
-        res, _ := json.Marshal(stats)
-        log.Println(string(res))
-        for _, base := range settings.Main.AgentControllers {
-            url := buildUrl(base, "stats")
-
-            reader := bytes.NewBuffer(res)
-            resp, err := http.Post(url, "application/json", reader)
-            if err != nil {
-                log.Println("Failed to send stats result to AC", url, err)
-                return
-            }
-            defer resp.Body.Close()
-        }
-    })
-
-    //start statsd aggregation
-    statsd.Run()
-
     //apply logging handlers.
     for _, logcfg := range settings.Logging {
         switch strings.ToLower(logcfg.Type) {
@@ -134,8 +108,10 @@ func main() {
         }
     }
 
-    mgr.AddMeterHandler(func (cmd *pm.Cmd, ps *process.Process) {
-        //monitor and feed statsd
+    mgr.AddStatsdMeterHandler(func (statsd *stats.Statsd, cmd *pm.Cmd, ps *process.Process) {
+        //for each long running external process this will be called every 2 sec
+        //You can here collect all the data you want abou the process and feed
+        //statsd.
 
         //TODO: Make sure this is the correct Base, key.
         base := fmt.Sprintf("%d.%d.%s.%s", cmd.Gid, cmd.Nid,
@@ -151,6 +127,24 @@ func main() {
             statsd.Avg(fmt.Sprintf("%s.rss", base), float64(mem.RSS))
             statsd.Avg(fmt.Sprintf("%s.vms", base), float64(mem.VMS))
             statsd.Avg(fmt.Sprintf("%s.swap", base), float64(mem.Swap))
+        }
+    })
+
+    mgr.AddStatsFlushHandler(func (stats *stats.Stats) {
+        //This will be called per process per stats_interval seconds. with
+        //all the aggregated stats for that process.
+        res, _ := json.Marshal(stats)
+        log.Println(string(res))
+        for _, base := range settings.Main.AgentControllers {
+            url := buildUrl(base, "stats")
+
+            reader := bytes.NewBuffer(res)
+            resp, err := http.Post(url, "application/json", reader)
+            if err != nil {
+                log.Println("Failed to send stats result to AC", url, err)
+                return
+            }
+            defer resp.Body.Close()
         }
     })
 
@@ -198,7 +192,7 @@ func main() {
                 //1 - stats_interval
                 meterInt := cmd.Args.GetInt("stats_interval")
                 if meterInt == 0 {
-                    cmd.Args.Set("stats_interval", settings.Monitor.Interval)
+                    cmd.Args.Set("stats_interval", settings.Stats.Interval)
                 }
 
                 //tag command for routing.

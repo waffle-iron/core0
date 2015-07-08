@@ -33,11 +33,6 @@ Cmds = [0] # long polling from agent 0
     Type = "console"
     Levels = [2, 4, 7, 8, 9]
 
-[monitor]
-# for correct results.
-# the monitor.Interval must be less than the stats.Interval
-Interval = 10 # seconds
-
 [stats]
 Interval = 60 # seconds
 AgentControllers = []

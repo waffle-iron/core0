@@ -183,11 +183,6 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         timeout = time.After(time.Duration(args.GetInt("max_time")) * time.Second)
     }
 
-    statsInterval := args.GetInt("stats_interval")
-    if statsInterval == 0 {
-        statsInterval = 30 //TODO, use value from configurations.
-    }
-
     var success bool
     var timedout bool
     var killed bool
@@ -218,7 +213,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
                 ps.runs = 0
                 break loop
             }
-        case <- time.After(time.Duration(statsInterval) * time.Second):
+        case <- time.After(2 * time.Second):
             //monitor.
             cfg.MeterHandler(ps.cmd, psProcess)
         }
@@ -306,3 +301,4 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 func (ps *ExtProcess) Kill() {
     ps.ctrl <- 1
 }
+
