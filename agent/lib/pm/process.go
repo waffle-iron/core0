@@ -225,6 +225,14 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     }
 
     endtime := time.Now().Unix()
+
+    if endtime - starttime < 300 {
+        //if process lived for more than 5 min before it dies, reset the runs
+        //this means that only the max_restart count will be reached if the
+        //process kept failing under the 5 min limit.
+        ps.runs = 0
+    }
+
     //process exited.
     log.Println("Exit status: ", success)
     restarting := false
