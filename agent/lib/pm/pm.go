@@ -230,6 +230,10 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
     switch msg.Level{
     case L_STATSD_AVG:
         statsd.Avg(key, value)
+    case L_STATSD_MAX:
+        statsd.Max(key, value)
+    case L_STATSD_MIN:
+        statsd.Min(key, value)
     }
 }
 func (pm *PM) msgCallback(msg *Message) {
