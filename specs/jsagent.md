@@ -60,7 +60,9 @@ Logging Messages
     -   7: warning message
     -   8: ops error
     -   9: critical error
-    -   10: statsd message(s)
+    -   10: statsd message(s) [AVG]
+    -   11: statsd message(s) [MAX]
+    -   12: statsd message(s) [MIN]
     -   20: result message, json
     -   21: result message, yaml
     -   22: result message, toml
