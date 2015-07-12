@@ -16,7 +16,7 @@ Defs
 -   Send message to L using a Queue in the golang agent
 -   L will parse the raw message ( is textual coming from e.g. subprocess)
 -   L will see what to do with message
-    -   Log in mysql
+    -   Log in sqlite
     -   Batch & send to AC
 
 ### ProcessManager (PM)
