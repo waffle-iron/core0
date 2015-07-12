@@ -21,12 +21,11 @@ Defs
 
 ### ProcessManager (PM)
 -   Coroutine in agent which manages & launches all subprocesses
--   A subprocess can be a lua or python script or it can be a daemon alike subprocess (cmdline)
+-   A subprocess can be a lua or python script or it can be a daemon alike subprocess (cmdline) or an internal method.
 -   Process manager monitors the behavior of the subprocess & will kill/restart if required.
 
 Agent process manager
 ---------------------
-
 -   Each jumpscript or long running daemon gets launched managed by the agent in a subprocess.
 -   Each of the processes is monitored per 30 sec
     -   for cpu usage, mem usage, network?, …
@@ -38,7 +37,7 @@ Stats
 -   send all as statsd format on level 10 (see below)
 -   aggregated in memory by embedded statsd aggregator
 -   statsd aggregated values are send to central agentcontroller batched over rest
--   batching done for max 1000 values and max once per X sec (see config)  (so whatever is reached first will trigger forwarding to AC)
+-   Aggregation is done once per X sec (see config) and aggregated values are sent to AC.
 
 Logging Messages
 ----------------
@@ -95,25 +94,8 @@ identification
 
 agent config
 ------------
-TOML format:
 
-```
-#we have 2 agentcontrollers configured
-agentcontroller:[‘192.168.1.1’,’212.3.246.27:3400’]
-#when $:$ then is ipaddr:port
-logging.1:
-    forward:[0] # this would refer to first configured agentcontroller (pos 0 in list agentcontroller)
-    retention:600 #nr of hours messages are kept
-logging.2:
-    forward:[0,1]
-    retention:600
-
-channel.in.cmds:[0] #means longpolling for commands will only happen on agentcontroller 0
-
-channel.in.socket:[0]
-
-stats.interval:5 #means gather stats per process every 5 seconds
-```
+[Agent Configuration](https://github.com/Jumpscale/jsagent/wiki/agent-configuration)
 
 Processes
 ---------
@@ -145,12 +127,12 @@ Agent connects to AC using long polling over rest
     -   cmd:$name of command
     -   args:$dict with arguments for cmd
     -   data:return data
-    -   state: OK, ERROR, TIMEOUT
-    -   time:time it took in msec
-    -   starttime: when job started on agent
+    -   state: OK, ERROR, TIMEOUT, KILLED
+    -   time: time it took in msec
+    -   starttime: when job started on agent (msec)
 
 ### Cmds
--   execute_js_lua
+-   execute_js_lua (implemented)
     -   args
         -   maxtime: in seconds how long maximum script can run (0 is forever, means it’s a longrunning one)
         -   restart:True,False if it dies and restart is on then PM will restart
@@ -167,9 +149,9 @@ Agent connects to AC using long polling over rest
     -   data:
         -   is data passed to jumpscript over stdin when starting, can be empty
         -   if data is required then done as json by default
--   execute_js_py
+-   execute_js_py (implemented)
     -   see execute_js_lua
--   execute
+-   execute (implemented)
     -   execute a cmd
     -   see execute_js_lua
     -   additional arguments
@@ -177,40 +159,41 @@ Agent connects to AC using long polling over rest
             -   $agentroot, $root, $tmp are template vars which will be replaced by PM
         -   workingdir: working dir for cmd to execute in
 
--   get_msgs
+-   get_msgs (not implemented)
     - Only return the first 1000 match.
     - data:
         -   jobid (optional)
         -   timefrom,timeto (optional)
         -   levels (2 or 1,2,3 or 1-6, or *)
 
--   del_msgs
+-   del_msgs (not implemented)
     -   same as get_msgs but to delete them
 
--   restart
+-   restart (implemented)
     -   restart agent
+> restart will just force the agent to exit. A deamon manager should be responsible for bringing it up again.
 
--   killall
+-   killall (implemented)
     -   killall processes managed by agent
         -   the recurring ones are remembered & will be scheduled again
         -   the long running ones are also remembered and will be restarted
--   get_process_stats
+-   get_process_stats (not implemneted)
     -   args
         -   domain
         -   name
     -   gets cpu, mem, … from processes known to PM running at this point
--   get_nic_info
+-   get_nic_info (implemented)
     -   gets basic info about nics, macaddresses, ip addresses
     -   in a nice structured obj (check what has been done in current agent)
--   get_mem_info
--   get_disk_info
+-   get_mem_info (implemented)
+-   get_disk_info (implemented)
     -   disks & partitions found
     -   need to work on windows & linux (try to be generic)
--   get_hw_info
+-   get_cpu_info (implemented)
     -   cpu/cores
     -   need to work on windows & linux (try to be generic)
     -   ?
--   get_os_info
+-   get_os_info (implemented)
     -   hostname
     -   ostype
     -   need to work on windows & linux (try to be generic)
