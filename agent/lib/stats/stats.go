@@ -163,6 +163,11 @@ func (statsd *Statsd) Min(key string, value float64) {
 
 func (statsd *Statsd) flush() {
     //compute averages.
+    if len(statsd.buffer) == 0 {
+        //no data to flush
+        return
+    }
+
     flushSeconds := int64(statsd.flushInt / time.Second)
     timestamp := (time.Now().Unix() / flushSeconds) * flushSeconds
 
