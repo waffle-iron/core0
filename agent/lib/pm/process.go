@@ -129,7 +129,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         log.Println("Failed to open process stdin", err)
     }
 
-    starttime := time.Now().Unix()
+    starttime := time.Duration(time.Now().UnixNano()) / time.Millisecond // start time in msec
 
     err = cmd.Start()
     if err != nil {
@@ -218,15 +218,15 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
                 ps.runs = 0
                 break loop
             }
-        case <- time.After(2 * time.Second):
+        case <- time.After(30 * time.Second):
             //monitor.
             cfg.MeterHandler(ps.cmd, psProcess)
         }
     }
 
-    endtime := time.Now().Unix()
+    endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
 
-    if endtime - starttime < 300 {
+    if endtime - starttime < 300 * time.Millisecond {
         //if process lived for more than 5 min before it dies, reset the runs
         //this means that only the max_restart count will be reached if the
         //process kept failing under the 5 min limit.
@@ -283,8 +283,8 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         Cmd: ps.cmd.Name,
         Args: ps.cmd.Args,
         State: state,
-        StartTime: starttime,
-        Time: endtime - starttime,
+        StartTime: int64(starttime),
+        Time: int64(endtime - starttime),
     }
 
     if result != nil {
