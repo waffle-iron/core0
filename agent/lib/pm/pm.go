@@ -14,8 +14,6 @@ import (
     "strings"
 )
 
-var STATSD_MESSAGES []int = []int{L_STATSD_AVG, L_STATSD_MAX, L_STATSD_MIN}
-
 type Cmd struct {
     Id string `json:"id"`
     Gid int `json:"gid"`
@@ -219,7 +217,7 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
     statsd.Feed(strings.Trim(msg.Message, " "))
 }
 func (pm *PM) msgCallback(msg *Message) {
-    if utils.In(STATSD_MESSAGES, msg.Level) {
+    if msg.Level == L_STATSD {
         pm.handlStatsdMsgs(msg)
     }
 

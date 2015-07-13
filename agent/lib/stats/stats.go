@@ -10,10 +10,6 @@ import (
 
 
 const (
-    OP_AVG = 1
-    OP_MAX = 2
-    OP_MIN = 3
-
     TYPE_KEYVALUE = "kv"
     TYPE_GAUAGE = "g"
     TYPE_TIMER = "ms"
