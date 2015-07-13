@@ -215,26 +215,8 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
         // be here but just in case
         return
     }
-    parts := strings.Split(msg.Message, " ")
-    if len(parts) != 2 {
-        log.Println("Invalid statsd message", msg.Message)
-        return
-    }
-    key := parts[0]
-    value, err := strconv.ParseFloat(parts[1], 64)
-    if err != nil {
-        log.Println("Invalid float", parts[1], "in statsd message", msg.Message)
-        return
-    }
 
-    switch msg.Level{
-    case L_STATSD_AVG:
-        statsd.Avg(key, value)
-    case L_STATSD_MAX:
-        statsd.Max(key, value)
-    case L_STATSD_MIN:
-        statsd.Min(key, value)
-    }
+    statsd.Feed(strings.Trim(msg.Message, " "))
 }
 func (pm *PM) msgCallback(msg *Message) {
     if utils.In(STATSD_MESSAGES, msg.Level) {

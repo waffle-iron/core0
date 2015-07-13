@@ -115,14 +115,14 @@ func main() {
 
         cpu, err := ps.CPUPercent(0)
         if err == nil {
-            statsd.Avg("cpu", cpu)
+            statsd.Gauage("cpu", fmt.Sprintf("%f", cpu))
         }
 
         mem, err := ps.MemoryInfo()
         if err == nil {
-            statsd.Avg("rss", float64(mem.RSS))
-            statsd.Avg("vms", float64(mem.VMS))
-            statsd.Avg("swap", float64(mem.Swap))
+            statsd.Gauage("rss", fmt.Sprintf("%d", mem.RSS))
+            statsd.Gauage("vms", fmt.Sprintf("%d", mem.VMS))
+            statsd.Gauage("swap", fmt.Sprintf("%d", mem.Swap))
         }
     })
 
@@ -193,6 +193,8 @@ func main() {
 
                 //tag command for routing.
                 cmd.Args.SetTag(aci)
+                log.Println("Starting command", cmd)
+
                 mgr.RunCmd(cmd)
             }
         } ()
@@ -223,11 +225,6 @@ func main() {
     //start process mgr.
     mgr.Run()
 
-    //heart beat
-    for {
-        select {
-        case <- time.After(10 * time.Second):
-            log.Println("_/\\_ beep") // heart beat
-        }
-    }
+    //wait
+    select {}
 }
