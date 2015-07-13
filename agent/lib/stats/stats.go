@@ -82,7 +82,7 @@ func (statsd *Statsd) Feed(str string) error {
         return errors.New("Invalid statsd data, expecting key:value")
     }
 
-    key := data[0]
+    key := strings.Trim(data[0], " ")
     value := data[1]
 
     statsd.op(optype, key, value, flag)
