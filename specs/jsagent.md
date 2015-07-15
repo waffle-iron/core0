@@ -59,9 +59,7 @@ Logging Messages
     -   7: warning message
     -   8: ops error
     -   9: critical error
-    -   10: statsd message(s) [AVG]
-    -   11: statsd message(s) [MAX]
-    -   12: statsd message(s) [MIN]
+    -   10: statsd message(s)
     -   20: result message, json
     -   21: result message, yaml
     -   22: result message, toml
@@ -134,9 +132,8 @@ Agent connects to AC using long polling over rest
 ### Cmds
 -   execute_js_lua (implemented)
     -   args
-        -   maxtime: in seconds how long maximum script can run (0 is forever, means it’s a longrunning one)
-        -   restart:True,False if it dies and restart is on then PM will restart
-        -   maxrestart: max time that PM will try to restart (if fails < 5 min we count times started, if max reaced send critical alert)
+        -   max_time: in seconds how long maximum script can run (-1 for long runing processes -will be remembered during restart- 0 means can take as long as it needs, will not be remembered and otherwise it's the timeout value)
+        -   max_restart: max time that PM will try to restart (if fails < 5 min we count times started, if max reaced send critical alert)
         -   domain: domain of jumpscript (to do categorization)
         -   name: name of jumpscript or cmd to execute (will give all a name)
         -   loglevels: * or 1,2,3 or 1 or 1-5 #defines which msglevels are processed (rest is ignored)
