@@ -34,6 +34,7 @@ type Settings struct {
         Nid int
         AgentControllers []string
         MessageIdFile string
+        HistoryFile string
     }
 
     Cmds map[string]Cmd

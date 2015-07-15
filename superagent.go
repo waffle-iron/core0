@@ -47,6 +47,32 @@ func main() {
 
     utils.LoadTomlFile(cfg, &settings)
 
+    //loading command history file
+    //history file is used to remember long running jobs during reboots.
+    var history []string
+    hisstr, err := ioutil.ReadFile(settings.Main.HistoryFile)
+
+    if err == nil {
+        err = json.Unmarshal(hisstr, &history)
+        if err != nil {
+            log.Println("Failed to load history file, invalid syntax ", err)
+            history = make([]string, 0)
+        }
+    } else {
+        log.Println("Couldn't read history file")
+        history = make([]string, 0)
+    }
+
+    //dump hisory file
+    dumpHistory := func() {
+        data, err := json.Marshal(history)
+        if err != nil {
+            log.Fatal("Failed to write history file")
+        }
+
+        ioutil.WriteFile(settings.Main.HistoryFile, data, 0644)
+    }
+
     buildUrl := func (base string, endpoint string) string {
         base = strings.TrimRight(base, "/")
         return fmt.Sprintf("%s/%d/%d/%s", base,
@@ -195,6 +221,12 @@ func main() {
                 cmd.Args.SetTag(aci)
                 log.Println("Starting command", cmd)
 
+                if cmd.Args.GetInt("max_time") == -1 {
+                    //that's a long running process.
+                    history = append(history, string(body))
+                    dumpHistory()
+                }
+
                 mgr.RunCmd(cmd)
             }
         } ()
@@ -224,6 +256,16 @@ func main() {
 
     //start process mgr.
     mgr.Run()
+
+    //rerun history
+    for i := 0; i < len(history); i ++ {
+        cmd, err := pm.LoadCmd([]byte(history[i]))
+        if err != nil {
+            log.Println("Failed to load history command", history[i])
+        }
+
+        mgr.RunCmd(cmd)
+    }
 
     //wait
     select {}

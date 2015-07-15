@@ -2,6 +2,7 @@
 Gid = 1
 Nid = 10
 MessageIdFile = "./.mid"
+HistoryFile = "./.history"
 AgentControllers = ["http://localhost:8966/"]
 
 [cmds]
