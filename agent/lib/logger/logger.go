@@ -19,6 +19,9 @@ type DBLogger struct {
     defaults []int
 }
 
+//Creates a new Database logger, it stores the logged message in database
+//factory: is the DB connection factory
+//defaults: default log levels to store in db if is not specificed by the logged message.
 func NewDBLogger(factory DBFactory, defaults []int) Logger {
     return &DBLogger{
         factory: factory,
@@ -26,6 +29,7 @@ func NewDBLogger(factory DBFactory, defaults []int) Logger {
     }
 }
 
+//Log message
 func (logger *DBLogger) Log(msg *pm.Message) {
     levels := logger.defaults
     msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
@@ -59,6 +63,12 @@ type ACLogger struct {
     defaults []int
 }
 
+//Create a new AC logger. AC logger buffers log messages into bulks and batch send it to the given end points over HTTP (POST)
+//endpoints: list of URLs that the AC logger will post the batches to
+//bufsize: Max number of messages to keep before sending the data to the end points
+//flushInt: Max time to wait before sending data to the end points. So either a full buffer or flushInt can force flushing
+//   the messages
+//defaults: default log levels to store in db if is not specificed by the logged message.
 func NewACLogger(endpoints []string, bufsize int, flushInt time.Duration, defaults []int) Logger {
     logger := &ACLogger {
         endpoints: endpoints,
@@ -89,6 +99,7 @@ func NewACLogger(endpoints []string, bufsize int, flushInt time.Duration, defaul
     return logger
 }
 
+//Log message
 func (logger *ACLogger) Log(msg *pm.Message) {
     levels := logger.defaults
     msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
@@ -140,6 +151,7 @@ type ConsoleLogger struct {
     defaults []int
 }
 
+//Simple console logger that prints log messages to Console.
 func NewConsoleLogger(defaults []int) Logger {
     return &ConsoleLogger{
         defaults: defaults,

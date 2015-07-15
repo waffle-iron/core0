@@ -5,9 +5,6 @@ import (
     "io/ioutil"
     "os"
 )
-func Expand(litral string, min int, max int) []int {
-    return []int{1, 2, 3}
-}
 
 //Checks if x is in l
 func In(l []int, x int) bool {

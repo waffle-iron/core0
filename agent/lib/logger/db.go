@@ -25,6 +25,7 @@ type SqliteDBFactory struct {
     getcount int
 }
 
+//Creates a new Sqlite DB Factory
 func NewSqliteFactory(dir string) DBFactory {
     err := os.MkdirAll(dir, os.ModeDir | 0755)
     if err != nil {
