@@ -177,7 +177,6 @@ func TestStats_Timer(t *testing.T) {
 }
 
 
-
 func TestStats_Mixed(t *testing.T) {
     signal := make(chan *Stats)
     statsd := NewStatsd("prefix", 2 * time.Second,
@@ -234,5 +233,38 @@ func TestStats_Mixed(t *testing.T) {
     case <- time.After(5 * time.Second):
         t.Error("Timedout")
     }
-}
 
+    //wait for the next flush, values should be reset according to
+    //value type
+
+    values = map[string]float64 {
+        "prefix.gauage": 4.,
+        "prefix.counter": 0.,
+        "prefix.timer": 0.,
+        "prefix.set": 0.,
+        "prefix.kv": 0.,
+    }
+
+    select {
+    case stats := <- signal:
+        if len(values) != len(stats.Series) {
+            t.Error("Invalid number of stats", len(stats.Series))
+        }
+
+        for i := 0; i < len(stats.Series); i ++ {
+            key := stats.Series[i][0].(string)
+            value := stats.Series[i][1].(float64)
+
+            expectedValue, ok := values[key]
+            if !ok {
+                t.Error("Got unexpected stats", key)
+            }
+
+            if expectedValue != value  {
+                t.Error("Got invalid value", value, "for key", key)
+            }
+        }
+    case <- time.After(5 * time.Second):
+        t.Error("Timedout")
+    }
+}
