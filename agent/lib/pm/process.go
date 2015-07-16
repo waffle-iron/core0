@@ -55,7 +55,7 @@ type JobResult struct {
     Gid int `json:"gid"`
     Nid int `json:"nid"`
     Cmd string `json:"cmd"`
-    Args Args `json:"args"`
+    Args *MapArgs `json:"args"`
     Data string `json:"data"`
     Level int `json:"level"`
     State string `json:"state"`

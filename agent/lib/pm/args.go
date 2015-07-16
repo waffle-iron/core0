@@ -4,26 +4,26 @@ import (
     "encoding/json"
 )
 
-type Args interface {
-    GetInt(key string) int
-    GetString(key string) string
-    GetFloat(key string) float64
-    GetMap(key string) map[string]interface{}
-    GetArray(key string) []interface{}
-    GetStringArray(key string) []string
-    GetIntArray(key string) []int
-    Set(key string, value interface{})
-    SetTag(tag int)
-    GetTag() int
-    Clone(deep bool) Args
-}
+// type Args interface {
+//     GetInt(key string) int
+//     GetString(key string) string
+//     GetFloat(key string) float64
+//     GetMap(key string) map[string]interface{}
+//     GetArray(key string) []interface{}
+//     GetStringArray(key string) []string
+//     GetIntArray(key string) []int
+//     Set(key string, value interface{})
+//     SetTag(tag int)
+//     GetTag() int
+//     Clone(deep bool) Args
+// }
 
 type MapArgs struct {
     tag int
     data map[string]interface{}
 }
 
-func NewMapArgs(data map[string]interface{}) Args{
+func NewMapArgs(data map[string]interface{}) *MapArgs {
     return &MapArgs{
         data: data,
     }
@@ -135,7 +135,7 @@ func (args *MapArgs) Set(key string, value interface{}) {
     args.data[key] = value
 }
 
-func (args *MapArgs) Clone(deep bool) Args {
+func (args *MapArgs) Clone(deep bool) *MapArgs {
     data := make(map[string]interface{})
     for k, v := range args.data {
         if deep {

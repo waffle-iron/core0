@@ -49,18 +49,18 @@ func main() {
 
     //loading command history file
     //history file is used to remember long running jobs during reboots.
-    var history []string
+    var history []*pm.Cmd
     hisstr, err := ioutil.ReadFile(settings.Main.HistoryFile)
 
     if err == nil {
         err = json.Unmarshal(hisstr, &history)
         if err != nil {
             log.Println("Failed to load history file, invalid syntax ", err)
-            history = make([]string, 0)
+            history = make([]*pm.Cmd, 0)
         }
     } else {
         log.Println("Couldn't read history file")
-        history = make([]string, 0)
+        history = make([]*pm.Cmd, 0)
     }
 
     //dump hisory file
@@ -223,7 +223,7 @@ func main() {
 
                 if cmd.Args.GetInt("max_time") == -1 {
                     //that's a long running process.
-                    history = append(history, string(body))
+                    history = append(history, cmd)
                     dumpHistory()
                 }
 
@@ -259,7 +259,7 @@ func main() {
 
     //rerun history
     for i := 0; i < len(history); i ++ {
-        cmd, err := pm.LoadCmd([]byte(history[i]))
+        cmd := history[i]
         if err != nil {
             log.Println("Failed to load history command", history[i])
         }

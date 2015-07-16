@@ -19,7 +19,7 @@ type Cmd struct {
     Gid int `json:"gid"`
     Nid int `json:"nid"`
     Name string `json:"cmd"`
-    Args Args `json:"args"`
+    Args *MapArgs `json:"args"`
     Data string `json:"data"`
 }
 
@@ -43,13 +43,13 @@ func NewMapCmd(data map[string]interface{}) *Cmd {
 
 //loads cmd from json string.
 func LoadCmd(str []byte) (*Cmd, error) {
-    cmd := Cmd{Args: NewMapArgs(map[string]interface{}{})}
-    err := json.Unmarshal(str, &cmd)
+    cmd := new(Cmd)
+    err := json.Unmarshal(str, cmd)
     if err != nil {
         return nil, err
     }
 
-    return &cmd, err
+    return cmd, err
 }
 
 func (cmd *Cmd) String() string {
