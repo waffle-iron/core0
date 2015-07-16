@@ -192,6 +192,10 @@ func (pm *PM) Run() {
     }()
 }
 
+func (pm *PM) Processes() map[string]Process {
+    return pm.processes
+}
+
 func (pm *PM) Killall() {
     for _, v := range pm.processes {
         go v.Kill()

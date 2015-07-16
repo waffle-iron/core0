@@ -13,7 +13,7 @@ func init() {
     pm.CMD_MAP[CMD_PING] = InternalProcessFactory(ping)
 }
 
-func ping(cmd *pm.Cmd, cfg pm.RunCfg) {
+func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     result := &pm.JobResult {
         Id: cmd.Id,
         Gid: cmd.Gid,
@@ -26,5 +26,5 @@ func ping(cmd *pm.Cmd, cfg pm.RunCfg) {
         Data: `"pong"`,
     }
 
-    cfg.ResultHandler(result)
+    return result
 }

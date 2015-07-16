@@ -4,7 +4,7 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/pm"
 )
 
-type Runable func (*pm.Cmd, pm.RunCfg)
+type Runable func (*pm.Cmd, pm.RunCfg) *pm.JobResult
 
 type InternalProcess struct {
     runable Runable
@@ -31,9 +31,25 @@ func (ps *InternalProcess) Run(cfg pm.RunCfg) {
         cfg.Signal <- 1
     }()
 
-    ps.runable(ps.cmd, cfg)
+    result := ps.runable(ps.cmd, cfg)
+    if result != nil {
+        cfg.ResultHandler(result)
+    }
 }
 
-func (ps *InternalProcess) Kill (){
+func (ps *InternalProcess) Kill() {
     //you can't kill an internal process.
+}
+
+func (ps *InternalProcess) GetStats() *pm.ProcessStats {
+    //can't provide values for the internal process, but
+    //we have to return the correct data struct for interface completenss
+    //also indication of running internal commands.
+    return &pm.ProcessStats {
+        Cmd: ps.cmd,
+        CPU: 0,
+        RSS: 0,
+        VMS: 0,
+        Swap: 0,
+    }
 }

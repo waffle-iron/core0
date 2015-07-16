@@ -15,7 +15,7 @@ func init() {
     pm.CMD_MAP[CMD_GET_MEM_INFO] = InternalProcessFactory(getMemInfo)
 }
 
-func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) {
+func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     result := &pm.JobResult {
         Id: cmd.Id,
         Gid: cmd.Gid,
@@ -35,14 +35,12 @@ func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) {
         result.State = pm.S_ERROR
         m, _ := json.Marshal(err)
         result.Data = string(m)
+    } else {
+        result.State = pm.S_SUCCESS
+        m, _ := json.Marshal(info)
 
-        return
+        result.Data = string(m)
     }
 
-    result.State = pm.S_SUCCESS
-    m, _ := json.Marshal(info)
-
-    result.Data = string(m)
-
-    cfg.ResultHandler(result)
+    return result
 }

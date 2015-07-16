@@ -105,6 +105,9 @@ func (ps *JsScriptProcess) Kill() {
     ps.extps.Kill()
 }
 
+func (ps *JsScriptProcess) GetStats() *ProcessStats {
+    return ps.extps.GetStats()
+}
 
 //registers a command to the process manager.
 //cmd: Command name

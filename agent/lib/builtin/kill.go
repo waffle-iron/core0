@@ -18,7 +18,7 @@ type KillData struct {
     Id string `json:id`
 }
 
-func kill(cmd *pm.Cmd, cfg pm.RunCfg) {
+func kill(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     result := pm.NewBasicJobResult(cmd)
 
     //load data
@@ -33,5 +33,5 @@ func kill(cmd *pm.Cmd, cfg pm.RunCfg) {
         result.State = pm.S_SUCCESS
     }
 
-    cfg.ResultHandler(result)
+    return result
 }

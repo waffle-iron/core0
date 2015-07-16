@@ -13,6 +13,7 @@ func init() {
     pm.CMD_MAP[CMD_RESTART] = InternalProcessFactory(restart)
 }
 
-func restart(cmd *pm.Cmd, cfg pm.RunCfg) {
+func restart(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     os.Exit(0)
+    return nil
 }

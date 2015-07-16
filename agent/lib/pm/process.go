@@ -39,10 +39,19 @@ const (
 var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
     L_RESULT_YAML, L_RESULT_TOML, L_RESULT_HRD, L_RESULT_JOB}
 
+type ProcessStats struct {
+    Cmd *Cmd `json:"cmd"`
+    CPU float64 `json:"cpu"`
+    RSS uint64 `json:"rss"`
+    VMS uint64 `json:"vms"`
+    Swap uint64 `json:"swap"`
+}
+
 type Process interface{
     Cmd() *Cmd
     Run(RunCfg)
     Kill()
+    GetStats() *ProcessStats
 }
 
 type RunCfg struct {
@@ -106,6 +115,7 @@ type ExtProcess struct {
     ctrl chan int
     pid int
     runs int
+    process *process.Process
 }
 
 func NewExtProcess(cmd *Cmd) Process {
@@ -152,6 +162,9 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     }
 
     ps.pid = cmd.Process.Pid
+    psProcess, _ := process.NewProcess(int32(ps.pid))
+    ps.process = psProcess
+
     var result *Message = nil
 
     msgInterceptor := func (msg *Message) {
@@ -206,8 +219,6 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     var timedout bool
     var killed bool
 
-    psProcess, _ := process.NewProcess(int32(cmd.Process.Pid))
-
     loop:
     for {
         select {
@@ -227,7 +238,6 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
                 //kill signal
                 log.Println("killing process", ps.cmd.Id, cmd.Process.Pid)
                 syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
-                cmd.Wait()
                 success = false
                 killed = true
                 ps.runs = 0
@@ -317,3 +327,22 @@ func (ps *ExtProcess) Kill() {
     ps.ctrl <- 1
 }
 
+
+func (ps *ExtProcess) GetStats() *ProcessStats {
+    stats := new(ProcessStats)
+    stats.Cmd = ps.cmd
+
+    cpu, err := ps.process.CPUPercent(0)
+    if err == nil {
+        stats.CPU = cpu
+    }
+
+    mem, err := ps.process.MemoryInfo()
+    if err == nil {
+        stats.RSS = mem.RSS
+        stats.VMS = mem.VMS
+        stats.Swap = mem.Swap
+    }
+
+    return stats
+}

@@ -13,7 +13,7 @@ func init() {
     pm.CMD_MAP[CMD_KILLALL] = InternalProcessFactory(killall)
 }
 
-func killall(cmd *pm.Cmd, cfg pm.RunCfg) {
+func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     result := pm.NewBasicJobResult(cmd)
     result.StartTime = time.Now().Unix()
 
@@ -21,5 +21,5 @@ func killall(cmd *pm.Cmd, cfg pm.RunCfg) {
 
     result.State = pm.S_SUCCESS
 
-    cfg.ResultHandler(result)
+    return result
 }
