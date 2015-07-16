@@ -22,6 +22,10 @@ func InternalProcessFactory (runable Runable) pm.ProcessConstructor {
     return constructor
 }
 
+func (ps *InternalProcess) Cmd() * pm.Cmd {
+    return ps.cmd
+}
+
 func (ps *InternalProcess) Run(cfg pm.RunCfg) {
     defer func() {
         cfg.Signal <- 1

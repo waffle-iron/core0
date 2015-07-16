@@ -40,6 +40,7 @@ var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
     L_RESULT_YAML, L_RESULT_TOML, L_RESULT_HRD, L_RESULT_JOB}
 
 type Process interface{
+    Cmd() *Cmd
     Run(RunCfg)
     Kill()
 }
@@ -114,6 +115,9 @@ func NewExtProcess(cmd *Cmd) Process {
     }
 }
 
+func (ps *ExtProcess) Cmd() *Cmd {
+    return ps.cmd
+}
 
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.

@@ -198,6 +198,14 @@ func (pm *PM) Killall() {
     }
 }
 
+func (pm *PM) Kill(cmdId string) {
+    for _, v := range pm.processes {
+        if v.Cmd().Id == cmdId{
+            go v.Kill()
+        }
+    }
+}
+
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
     statsd, ok := pm.statsdes[cmd.Id]
     if !ok {

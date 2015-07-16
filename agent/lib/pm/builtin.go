@@ -70,6 +70,9 @@ func extScript(exe string, workdir string, name string) ProcessConstructor {
     return constructor
 }
 
+func (ps *JsScriptProcess) Cmd() *Cmd {
+    return ps.cmd
+}
 
 func (ps *JsScriptProcess) Run(cfg RunCfg) {
     //intercept all the messages from the 'execute' command and
