@@ -149,6 +149,9 @@ func (pm *PM) Run() {
 
             if process == nil {
                 log.Println("Unknow command", cmd.Name)
+                errResult := NewBasicJobResult(cmd)
+                errResult.State = "UNKNOWN_CMD"
+                pm.resultCallback(errResult)
                 continue
             }
 

@@ -260,6 +260,11 @@ func main() {
     //rerun history
     for i := 0; i < len(history); i ++ {
         cmd := history[i]
+        meterInt := cmd.Args.GetInt("stats_interval")
+        if meterInt == 0 {
+            cmd.Args.Set("stats_interval", settings.Stats.Interval)
+        }
+
         if err != nil {
             log.Println("Failed to load history command", history[i])
         }

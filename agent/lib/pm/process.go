@@ -63,6 +63,16 @@ type JobResult struct {
     Time int64 `json:"time"`
 }
 
+func NewBasicJobResult(cmd *Cmd) *JobResult {
+    return &JobResult{
+        Id: cmd.Id,
+        Gid: cmd.Gid,
+        Nid: cmd.Nid,
+        Cmd: cmd.Name,
+        Args: cmd.Args,
+    }
+}
+
 type Message struct {
     Id uint32
     Cmd *Cmd
@@ -274,16 +284,11 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         state = S_ERROR
     }
 
-    jobresult := &JobResult{
-        Id: ps.cmd.Id,
-        Gid: ps.cmd.Gid,
-        Nid: ps.cmd.Nid,
-        Cmd: ps.cmd.Name,
-        Args: ps.cmd.Args,
-        State: state,
-        StartTime: int64(starttime),
-        Time: int64(endtime - starttime),
-    }
+    jobresult := NewBasicJobResult(ps.cmd)
+
+    jobresult.State = state
+    jobresult.StartTime = int64(starttime)
+    jobresult.Time = int64(endtime - starttime)
 
     if result != nil {
         jobresult.Data = result.Message
