@@ -174,11 +174,19 @@ Agent connects to AC using long polling over rest
     -   killall processes managed by agent
         -   the recurring ones are remembered & will be scheduled again
         -   the long running ones are also remembered and will be restarted
--   get_process_stats (not implemneted)
-    -   args
-        -   domain
-        -   name
+-   kill (implemented)
+    -   kill a process managed by agent (with cmd-id)
+    -   data:
+        -   id
+-   get_processes_stats (implemneted)
+    -   data
+        -   domain (optional)
+        -   name (optional)
     -   gets cpu, mem, … from processes known to PM running at this point
+-   get_process_stats (implemneted)
+    -   data
+        -   id (mandatory)
+    -   gets cpu, mem, … from process with cmd-id
 -   get_nic_info (implemented)
     -   gets basic info about nics, macaddresses, ip addresses
     -   in a nice structured obj (check what has been done in current agent)
