@@ -9,6 +9,7 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/shirou/gopsutil/process"
     "encoding/json"
+    "syscall"
 )
 
 const (
@@ -32,6 +33,7 @@ const (
     S_ERROR = "ERROR"
     S_TIMEOUT = "TIMEOUT"
     S_KILLED = "KILLED"
+    S_UNKNOWN_CMD = "UNKNOWN_CMD"
 )
 
 var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
@@ -212,15 +214,16 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         case <- timeout:
             //process timed out.
             log.Println("process timed out")
-            cmd.Process.Kill()
+            syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
             success = false
             timedout = true
             break loop
         case s := <- ps.ctrl:
             if s == 1 {
                 //kill signal
-                log.Println("killing process")
-                cmd.Process.Kill()
+                log.Println("killing process", ps.cmd.Id, cmd.Process.Pid)
+                syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
+                cmd.Wait()
                 success = false
                 killed = true
                 ps.runs = 0
