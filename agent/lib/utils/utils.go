@@ -3,8 +3,79 @@ package utils
 import (
     "github.com/naoina/toml"
     "io/ioutil"
+    "strings"
+    "strconv"
+    "sort"
     "os"
 )
+
+var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 22, 23, 30}
+
+
+func Expand(s string) ([]int, error) {
+    levels := make(map[int]bool)
+
+    for _, part := range strings.Split(s, ",") {
+        part := strings.Trim(part, " ")
+
+        boundries := strings.Split(part, "-")
+        lower := strings.Trim(boundries[0], " ")
+        lower_value := 0
+        upper_value := 0
+        has_upper := false
+
+        if len(boundries) > 1 {
+
+            upper_value_64, err := strconv.ParseInt(strings.Trim(boundries[1], " "), 10, 32)
+            if err != nil {
+                return nil, err
+            }
+
+            has_upper = true
+            upper_value = int(upper_value_64)
+        }
+
+        if lower == "*" {
+            for _, l := range valid_levels {
+                levels[l] = true
+            }
+            continue
+        }
+
+        lower_value_64, err := strconv.ParseInt(lower, 10, 32)
+        if err != nil {
+            return nil, err
+        }
+
+        lower_value = int(lower_value_64)
+
+        if !has_upper {
+            if In(valid_levels, lower_value) {
+                levels[lower_value] = true
+            }
+
+            continue
+        }
+
+        if upper_value > 30 {
+            upper_value = 30
+        }
+
+        for i := lower_value ; i <= upper_value; i++ {
+            if In(valid_levels, i) {
+                levels[i] = true
+            }
+        }
+    }
+
+    result := make([]int, 0, len(levels))
+    for key, _ := range levels {
+        result = append(result, key)
+    }
+
+    sort.Ints(result)
+    return result, nil
+}
 
 //Checks if x is in l
 func In(l []int, x int) bool {
