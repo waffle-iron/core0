@@ -13,6 +13,10 @@ import (
     _ "github.com/mattn/go-sqlite3"
 )
 
+const (
+    MAX_RESULT_COUNT = 1000
+)
+
 var FILE_REGEXP *regexp.Regexp = regexp.MustCompile("^(\\d+)\\.db$")
 
 type MsgQuery interface {
@@ -30,26 +34,32 @@ func NewDBMsgQuery(path string) MsgQuery {
 }
 
 type Query struct {
-    JobID string
-    TimeFrom int64
-    TimeTo int64
-    Levels interface{}
+    JobID string `json:"jobid"`
+    TimeFrom int64 `json:"timefrom"`
+    TimeTo int64 `json:"timeto"`
+    Levels interface{} `json:"levels"`
+    Limit int `json:"limit"`
 }
 
 type Result struct {
-    Id int
-    JobID string
-    Domain string
-    Name string
-    Epoch int
-    Level int
-    Data string
+    Id int `json:"id"`
+    JobID string `json:"jobid"`
+    Domain string `json:"domain"`
+    Name string `json:"name"`
+    Epoch int `json:"epoch"`
+    Level int `json:"level"`
+    Data string `json:"data"`
 }
 
 func (self *dbMsgQuery) Query(query Query) (<- chan Result, error) {
     filesinfos, err := ioutil.ReadDir(self.path)
     if err != nil {
         return nil, err
+    }
+
+    limit := MAX_RESULT_COUNT
+    if query.Limit > 0 && query.Limit < MAX_RESULT_COUNT {
+        limit = query.Limit
     }
 
     files := make([]string, 0, 10)
@@ -161,7 +171,8 @@ func (self *dbMsgQuery) Query(query Query) (<- chan Result, error) {
             if len(where) > 0 {
                 query += " where " + strings.Join(where, " and ")
             }
-            query += " order by id desc limit 1000;"
+
+            query += fmt.Sprintf(" order by id desc limit %d;", limit)
 
             rows, err := db.Query(query, params...)
 
@@ -198,7 +209,7 @@ func (self *dbMsgQuery) Query(query Query) (<- chan Result, error) {
                 }
 
                 count += 1
-                if count >= 1000 {
+                if count >= limit {
                     break allquery
                 }
             }

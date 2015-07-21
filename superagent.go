@@ -6,7 +6,7 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/logger"
     "github.com/Jumpscale/jsagent/agent/lib/stats"
     "github.com/Jumpscale/jsagent/agent/lib/utils"
-    _ "github.com/Jumpscale/jsagent/agent/lib/builtin"
+    "github.com/Jumpscale/jsagent/agent/lib/builtin"
     "github.com/shirou/gopsutil/process"
     "time"
     "encoding/json"
@@ -19,6 +19,72 @@ import (
     "os"
     "io/ioutil"
 )
+
+const (
+    CMD_GET_MSGS = "get_msgs"
+)
+
+/*
+This function will register a handler to the get_msgs function
+This one is done here and NOT in the 'buildin' library because
+
+1- we need to know where to find the db files, this will not be availble until
+   the time we are registering the DB logger. If the db logger is not configured
+   in the first place, then the get_msgs will not be possible.
+2- Moving this register function to the build-in will cause cyclic dependencies.
+*/
+
+func registGetMsgsFunction(path string) {
+    querier := logger.NewDBMsgQuery(path)
+
+    get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+        result := pm.NewBasicJobResult(cmd)
+        result.StartTime = int64(time.Duration(time.Now().UnixNano()) / time.Millisecond)
+
+        defer func() {
+            endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
+            result.Time = int64(endtime) - result.StartTime
+        }()
+
+        query := logger.Query{}
+
+        err := json.Unmarshal([]byte(cmd.Data), &query)
+        if err != nil {
+            log.Println("Failed to parse get_msgs query", err)
+        }
+
+        //we still can continue the query even if we have unmarshal errors.
+
+        result_chn, err := querier.Query(query)
+
+        if err != nil {
+            result.State = pm.S_ERROR
+            result.Data = fmt.Sprintf("%v", err)
+
+            return result
+        }
+
+        records := make([]logger.Result, 0, 1000)
+        for record := range result_chn {
+            records = append(records, record)
+        }
+
+        data, err := json.Marshal(records)
+        if err != nil {
+            result.State = pm.S_ERROR
+            result.Data = fmt.Sprintf("%v", err)
+
+            return result
+        }
+
+        result.State = pm.S_SUCCESS
+        result.Data = string(data)
+
+        return result
+    }
+
+    pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
+}
 
 func main() {
     settings := agent.Settings{}
@@ -84,12 +150,19 @@ func main() {
     mgr := pm.NewPM(settings.Main.MessageIdFile)
 
     //apply logging handlers.
+    dbLoggerConfigured := false
     for _, logcfg := range settings.Logging {
         switch strings.ToLower(logcfg.Type) {
             case "db":
+                if dbLoggerConfigured {
+                    log.Fatal("Only one db logger can be configured")
+                }
                 sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
                 handler := logger.NewDBLogger(sqlFactory, logcfg.Levels)
                 mgr.AddMessageHandler(handler.Log)
+                registGetMsgsFunction(logcfg.LogDir)
+
+                dbLoggerConfigured = true
             case "ac":
                 var endpoints []string
 
