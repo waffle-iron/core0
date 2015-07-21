@@ -44,11 +44,11 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
     db := logger.factory.GetDBCon()
     stmnt := `
-        insert into logs (id, domain, name, epoch, level, data)
-        values (?, ?, ?, ?, ?, ?)
+        insert into logs (id, jobid, domain, name, epoch, level, data)
+        values (?, ?, ?, ?, ?, ?, ?)
     `
     args := msg.Cmd.Args
-    _, err := db.Exec(stmnt, msg.Id, args.GetString("domain"), args.GetString("name"),
+    _, err := db.Exec(stmnt, msg.Id, msg.Cmd.Id, args.GetString("domain"), args.GetString("name"),
                       msg.Epoch, msg.Level, msg.Message)
     if err != nil {
         log.Fatal(err)

@@ -84,6 +84,7 @@ func (slite *SqliteDBFactory) initDB() *sql.DB {
     _, err = db.Exec(`
         create table logs (
             id integer not null,
+            jobid text,
             domain text,
             name text,
             epoch integer,
