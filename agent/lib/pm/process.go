@@ -137,6 +137,11 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     cmd := exec.Command(args.GetString("name"),
                         args.GetStringArray("args")...)
     cmd.Dir = args.GetString("working_dir")
+    env := args.GetStringArray("env")
+
+    if len(env) > 0 {
+        cmd.Env = env
+    }
 
     stdout, err := cmd.StdoutPipe()
     if err != nil {
@@ -158,6 +163,10 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     err = cmd.Start()
     if err != nil {
         log.Println("Failed to start process", err)
+        jobresult := NewBasicJobResult(ps.cmd)
+        jobresult.State = S_ERROR
+        jobresult.Data = fmt.Sprintf("%v", err)
+        cfg.ResultHandler(jobresult)
         return
     }
 

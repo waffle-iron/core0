@@ -4,6 +4,7 @@ package pm
 
 import (
     "github.com/shirou/gopsutil/process"
+    "github.com/Jumpscale/jsagent/agent/lib/utils"
 )
 
 const (
@@ -35,21 +36,25 @@ type JsScriptProcess struct {
 //Create a constructor for external process to execute an external script
 //exe: name of executor, (python, lua, bash)
 //workdir: working directory of script
-//name: if name != "", execute that specific script, otherwise use args[name]
-func extScript(exe string, workdir string, name string) ProcessConstructor {
+//scriptname: if scriptname != "", execute that specific script, otherwise use args[name]
+//  scriptname can have {<arg-key>} pattern that will be replaced with the value before execution
+func extScript(exe string, workdir string, scriptname string, env []string) ProcessConstructor {
     //create a new execute process with python2.7 or lua as executors.
     constructor := func(cmd *Cmd) Process {
         args := cmd.Args.Clone(false)
         var script string
 
-        if name != "" {
-            script = name
+        if scriptname != "" {
+            script = utils.Format(scriptname, cmd.Args.Data())
         } else {
             script = cmd.Args.GetString("name")
         }
 
         args.Set("name", exe)
         args.Set("args", []string{script})
+        if len(env) > 0 {
+            args.Set("env", env)
+        }
         args.Set("working_dir", workdir)
 
         extcmd := &Cmd {
@@ -115,6 +120,6 @@ func (ps *JsScriptProcess) GetStats() *ProcessStats {
 //workdir: working directory
 //script: script name
 //if script == "", then script name will be used from cmd.Args.
-func RegisterCmd(cmd string, exe string, workdir string, script string) {
-    CMD_MAP[cmd] = extScript(exe, workdir, script)
+func RegisterCmd(cmd string, exe string, workdir string, script string, env []string) {
+    CMD_MAP[cmd] = extScript(exe, workdir, script, env)
 }

@@ -4,8 +4,10 @@ import (
     "github.com/naoina/toml"
     "io/ioutil"
     "strings"
+    "regexp"
     "strconv"
     "sort"
+    "fmt"
     "os"
 )
 
@@ -75,6 +77,16 @@ func Expand(s string) ([]int, error) {
 
     sort.Ints(result)
     return result, nil
+}
+
+var formatPattern *regexp.Regexp = regexp.MustCompile("{[^}]+}")
+
+
+func Format(pattern string, values map[string]interface{}) string {
+    return formatPattern.ReplaceAllStringFunc(pattern, func (m string) string {
+        key := strings.TrimRight(strings.TrimLeft(m, "{"), "}")
+        return fmt.Sprintf("%v", values[key])
+    })
 }
 
 //Checks if x is in l

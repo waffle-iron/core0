@@ -51,7 +51,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
     _, err := db.Exec(stmnt, msg.Id, msg.Cmd.Id, args.GetString("domain"), args.GetString("name"),
                       msg.Epoch, msg.Level, msg.Message)
     if err != nil {
-        log.Fatal(err)
+        log.Println(err)
     }
 }
 

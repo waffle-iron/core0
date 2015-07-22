@@ -25,6 +25,8 @@ type Cmd struct {
     Path string
     //(optional) if set, overrides the cmd.Args['name']
     Script string
+    //(optional) Env variables
+    Env []string
 }
 
 //main agent settings

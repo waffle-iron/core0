@@ -37,6 +37,10 @@ func (args *MapArgs) UnmarshalJSON(data []byte) error {
     return json.Unmarshal(data, &args.data)
 }
 
+func (args *MapArgs) Data() map[string]interface{} {
+    return args.data
+}
+
 func (args *MapArgs) ensureInt(value interface{}) int {
     switch v := value.(type) {
     case int:
