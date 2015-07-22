@@ -9,10 +9,13 @@ AgentControllers = ["http://localhost:8966/"]
     [cmds.execute_js_py]
     Binary = "python2.7"
     Path = "./python"
+    Script = "{name}.py"
 
-    [cmds.execute_js_lua]
-    Binary = "lua"
-    Path = "./lua"
+    [cmds.sync]
+    Binary = "python2.7"
+    Path = "./python/sync"
+    Script = "{name}.py"
+    Env = ["PYTHONPATH=../"] # so scripts can load utils.py
 
 [channel]
 Cmds = [0] # long polling from agent 0
@@ -21,14 +24,14 @@ Cmds = [0] # long polling from agent 0
     [logging.db]
     Type = "DB"
     LogDir = "./logs"
-    Levels = []  # empty for all
+    Levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
 
     [logging.ac]
     Type = "AC"
     FlushInt = 300 # seconds (5min)
     BatchSize = 1000 # max batch size, force flush if reached this count.
     AgentControllers = [] # to all agents
-    Levels = [2]
+    Levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
 
     [logging.console]
     Type = "console"
