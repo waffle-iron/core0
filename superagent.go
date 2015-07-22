@@ -324,7 +324,7 @@ func main() {
 
     //register the execute commands
     for cmdKey, cmdCfg := range settings.Cmds {
-        pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Path, cmdCfg.Script, cmdCfg.Env)
+        pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, cmdCfg.Env)
     }
 
     //start process mgr.

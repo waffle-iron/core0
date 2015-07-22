@@ -1,43 +1,43 @@
 [main]
-Gid = 1
-Nid = 10
-MessageIdFile = "./.mid"
-HistoryFile = "./.history"
-AgentControllers = ["http://localhost:8966/"]
+gid = 1
+nid = 10
+message_id_file = "./.mid"
+history_file = "./.history"
+agent_controllers = ["http://localhost:8966/"]
 
 [cmds]
     [cmds.execute_js_py]
-    Binary = "python2.7"
-    Path = "./python"
-    Script = "{name}.py"
+    binary = "python2.7"
+    cwd = "./python"
+    script = "{name}.py"
 
     [cmds.sync]
-    Binary = "python2.7"
-    Path = "./python/sync"
-    Script = "{name}.py"
-    Env = ["PYTHONPATH=../"] # so scripts can load utils.py
+    binary = "python2.7"
+    cwd = "./python/sync"
+    script = "{name}.py"
+    env = ["PYTHONPATH=../"] # so scripts can load utils.py
 
 [channel]
-Cmds = [0] # long polling from agent 0
+cmds = [0] # long polling from agent 0
 
 [logging]
     [logging.db]
-    Type = "DB"
-    LogDir = "./logs"
-    Levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
+    type = "DB"
+    log_dir = "./logs"
+    levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
 
     [logging.ac]
-    Type = "AC"
-    FlushInt = 300 # seconds (5min)
-    BatchSize = 1000 # max batch size, force flush if reached this count.
-    AgentControllers = [] # to all agents
-    Levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
+    type = "AC"
+    flush_int = 300 # seconds (5min)
+    batch_size = 1000 # max batch size, force flush if reached this count.
+    agent_controllers = [] # to all agents
+    levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
 
     [logging.console]
-    Type = "console"
-    Levels = [2, 4, 7, 8, 9]
+    type = "console"
+    levels = [2, 4, 7, 8, 9]
 
 [stats]
-Interval = 60 # seconds
-AgentControllers = []
+interval = 60 # seconds
+agent_controllers = []
 
