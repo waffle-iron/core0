@@ -69,6 +69,8 @@ type PM struct {
     cmds chan *Cmd
     processes map[string]Process
     statsdes map[string]*stats.Statsd
+    maxJobs int
+    jobsCond *sync.Cond
 
     statsdMeterHandlers []StatsdMeterHandler
     msgHandlers []MessageHandler
@@ -77,7 +79,7 @@ type PM struct {
 }
 
 
-func NewPM(midfile string) *PM {
+func NewPM(midfile string, maxJobs int) *PM {
     pm := &PM{
         cmds: make(chan *Cmd),
         midfile: midfile,
@@ -85,6 +87,8 @@ func NewPM(midfile string) *PM {
         midMux: &sync.Mutex{},
         processes: make(map[string]Process),
         statsdes: make(map[string]*stats.Statsd),
+        maxJobs: maxJobs,
+        jobsCond: sync.NewCond(&sync.Mutex{}),
 
         statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
         msgHandlers: make([]MessageHandler, 0, 3),
@@ -144,6 +148,13 @@ func (pm *PM) Run() {
     //process and start all commands according to args.
     go func() {
         for {
+            pm.jobsCond.L.Lock()
+
+            for len(pm.processes) >= pm.maxJobs {
+                pm.jobsCond.Wait()
+            }
+            pm.jobsCond.L.Unlock()
+
             cmd := <- pm.cmds
             process := NewProcess(cmd)
 
@@ -179,6 +190,8 @@ func (pm *PM) Run() {
                 statsd.Stop()
                 delete(pm.processes, cmd.Id)
                 delete(pm.statsdes, cmd.Id)
+
+                pm.jobsCond.Broadcast()
             } ()
 
             go process.Run(RunCfg{
@@ -261,3 +274,4 @@ func (pm *PM) statsFlushCallback(stats *stats.Stats) {
         handler(stats)
     }
 }
+

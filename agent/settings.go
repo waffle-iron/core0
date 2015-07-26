@@ -34,6 +34,7 @@ type Settings struct {
     Main struct {
         Gid int
         Nid int
+        MaxJobs int
         AgentControllers []string
         MessageIdFile string
         HistoryFile string

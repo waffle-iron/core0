@@ -147,7 +147,7 @@ func main() {
             endpoint)
     }
 
-    mgr := pm.NewPM(settings.Main.MessageIdFile)
+    mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
     //apply logging handlers.
     dbLoggerConfigured := false
