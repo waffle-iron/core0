@@ -1,6 +1,7 @@
 package pm
 
 import (
+    "fmt"
     "encoding/json"
 )
 
@@ -107,7 +108,7 @@ func (args *MapArgs) GetStringArray(key string) []string {
     case []interface{}:
         values := make([]string, len(t))
         for i, v := range t {
-            values[i] = v.(string)
+            values[i] = fmt.Sprintf("%v", v)
         }
         return values
     }
