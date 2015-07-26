@@ -1,16 +1,11 @@
 import utils
 import requests
 
-import sync
-
-ENDPOINT = '/rest/system/status'
+import _sync as sync
 
 
 def get_id(data):
-    url = '{host}/{endpoint}'.format(
-        host=sync.settings['host'].rstrip('/'),
-        endpoint=ENDPOINT
-    )
+    url = sync.get_url(sync.ENDPOINT_STATUS)
 
     response = requests.get(url)
     if not response.ok:
@@ -20,5 +15,5 @@ def get_id(data):
 
     return result['myID']
 
-
-utils.run(get_id)
+if __name__ == '__main__':
+    utils.run(get_id)
