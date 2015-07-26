@@ -345,6 +345,25 @@ func main() {
         mgr.RunCmd(cmd)
     }
 
+    event, _ := json.Marshal(map[string]string{
+        "name": "startup",
+    })
+
+
+    // send startup event to all agent controllers
+    for _, ac := range controllers {
+        reader := bytes.NewBuffer(event)
+
+        url := buildUrl(ac, "event")
+
+        resp, err := http.Post(url, "application/json", reader)
+        if err != nil {
+            log.Println("Failed to send startup event to AC", url, err)
+            return
+        }
+        defer resp.Body.Close()
+    }
+
     //wait
     select {}
 }
