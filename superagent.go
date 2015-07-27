@@ -324,7 +324,15 @@ func main() {
 
     //register the execute commands
     for cmdKey, cmdCfg := range settings.Cmds {
-        pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, cmdCfg.Env)
+        var env []string
+        if len(cmdCfg.Env) > 0 {
+            env = make([]string, 0, len(cmdCfg.Env))
+            for ek, ev := range(cmdCfg.Env) {
+                env = append(env, fmt.Sprintf("%v=%v", ek, ev))
+            }
+        }
+
+        pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, env)
     }
 
     //start process mgr.
@@ -359,7 +367,7 @@ func main() {
         resp, err := http.Post(url, "application/json", reader)
         if err != nil {
             log.Println("Failed to send startup event to AC", url, err)
-            return
+            continue
         }
         defer resp.Body.Close()
     }

@@ -17,7 +17,10 @@ agent_controllers = ["http://localhost:8966/"]
     binary = "python2.7"
     cwd = "./extensions/sync"
     script = "{name}.py"
-    env = ["PYTHONPATH=../", "JUMPSCRIPTS_HOME=../../jumpscripts"] # so scripts can load utils.py
+        [cmds.sync.env]
+        PYTHONPATH = "../"
+        JUMPSCRIPTS_HOME = "../../jumpscripts"
+        SYNCTHING_URL = "http://localhost:8384"
 
 [channel]
 cmds = [0] # long polling from agent 0

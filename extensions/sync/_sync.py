@@ -1,7 +1,7 @@
 import os
 
 settings = {
-    'syncthing': 'http://localhost:8384',
+    'syncthing': os.environ.get('SYNCTHING_URL', 'http://localhost:8384'),
     'jumpscripts-path': os.path.abspath(os.environ['JUMPSCRIPTS_HOME'])
 }
 
