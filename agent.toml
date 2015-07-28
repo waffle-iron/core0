@@ -33,6 +33,14 @@ agent_controllers = ["http://localhost:8966/"]
         JUMPSCRIPTS_HOME = "../../jumpscripts"
         SYNCTHING_URL = "http://localhost:8384"
 
+
+    [cmds.legacy]
+    binary = "python2.7"
+    cwd = "./extensions/legacy"
+    script = "wrapper.py"
+        [cmds.legacy.env]
+        PYTHONPATH = "../:/opt/jumpscale7/lib"
+
 [channel]
 cmds = [0] # long polling from agent 0
 
