@@ -166,6 +166,15 @@ func (pm *PM) Run() {
                 continue
             }
 
+            _, exists := pm.processes[cmd.Id]
+            if exists {
+                errResult := NewBasicJobResult(cmd)
+                errResult.State = S_DUPILCATE_ID
+                errResult.Data = "A job exists with the same ID"
+                pm.resultCallback(errResult)
+                continue
+            }
+
             pm.processes[cmd.Id] = process
 
             statsInterval := cmd.Args.GetInt("stats_interval")

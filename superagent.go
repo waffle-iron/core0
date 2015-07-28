@@ -332,6 +332,11 @@ func main() {
                     continue
                 }
 
+                if len(body) == 0 {
+                    //no data, can be a long poll timeout
+                    continue
+                }
+
                 cmd, err := pm.LoadCmd(body)
                 if err != nil {
                     log.Println("Failed to load cmd", err, string(body))
