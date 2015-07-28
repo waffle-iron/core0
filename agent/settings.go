@@ -52,4 +52,10 @@ type Settings struct {
     Channel struct {
         Cmds []int
     }
+
+    Security struct {
+        CertificateAuthority string
+        ClientCertificate string
+        ClientCertificateKey string
+    }
 }

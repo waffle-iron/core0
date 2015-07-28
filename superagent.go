@@ -18,12 +18,55 @@ import (
     "flag"
     "os"
     "io/ioutil"
+    "crypto/tls"
+    "crypto/x509"
 )
 
 const (
     CMD_GET_MSGS = "get_msgs"
 )
 
+
+func getHttpClient(settings *agent.Settings) *http.Client {
+    var tlsConfig tls.Config
+
+    if settings.Security.CertificateAuthority != "" {
+        pem, err := ioutil.ReadFile(settings.Security.CertificateAuthority)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        tlsConfig.RootCAs = x509.NewCertPool()
+        tlsConfig.RootCAs.AppendCertsFromPEM(pem)
+    }
+
+    if settings.Security.ClientCertificate != "" {
+        if settings.Security.ClientCertificateKey == "" {
+            log.Fatal("Missing certificate key file")
+        }
+        // pem, err := ioutil.ReadFile(settings.Security.ClientCertificate)
+        // if err != nil {
+        //     log.Fatal(err)
+        // }
+
+        cert, err := tls.LoadX509KeyPair(settings.Security.ClientCertificate,
+            settings.Security.ClientCertificateKey)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        tlsConfig.Certificates = []tls.Certificate{cert}
+    }
+
+    return &http.Client{
+        Timeout: 60 * time.Second,
+        Transport: &http.Transport{
+            Proxy: http.ProxyFromEnvironment,
+            TLSHandshakeTimeout: 10 * time.Second,
+            TLSClientConfig: &tlsConfig,
+        },
+    }
+}
 /*
 This function will register a handler to the get_msgs function
 This one is done here and NOT in the 'buildin' library because
@@ -149,6 +192,8 @@ func main() {
 
     mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
+    httpClient := getHttpClient(&settings)
+
     //apply logging handlers.
     dbLoggerConfigured := false
     for _, logcfg := range settings.Logging {
@@ -194,6 +239,7 @@ func main() {
                 }
 
                 handler := logger.NewACLogger(
+                    httpClient,
                     endpoints,
                     batchsize,
                     time.Duration(flushint) * time.Second,
@@ -234,7 +280,7 @@ func main() {
             url := buildUrl(base, "stats")
 
             reader := bytes.NewBuffer(res)
-            resp, err := http.Post(url, "application/json", reader)
+            resp, err := httpClient.Post(url, "application/json", reader)
             if err != nil {
                 log.Println("Failed to send stats result to AC", url, err)
                 return
@@ -259,9 +305,10 @@ func main() {
         go func() {
             lastfail := time.Now().Unix()
             for {
-                response, err := http.Get(buildUrl(ac, "cmd"))
+                response, err := httpClient.Get(buildUrl(ac, "cmd"))
                 if err != nil {
-                    log.Println("Failed to retrieve new commands from", ac, err)
+                    //log.Println("Failed to retrieve new commands from", ac, err)
+                    //HTTP Timeout
                     if time.Now().Unix() - lastfail < 4 {
                         time.Sleep(4 * time.Second)
                     }
@@ -271,15 +318,22 @@ func main() {
                 }
 
                 defer response.Body.Close()
+
                 body, err := ioutil.ReadAll(response.Body)
                 if err != nil {
                     log.Println("Failed to load response content", err)
                     continue
                 }
 
+                if response.StatusCode != 200 {
+                    log.Println("Failed to retrieve jobs", response.Status, string(body))
+                    time.Sleep(2 * time.Second)
+                    continue
+                }
+
                 cmd, err := pm.LoadCmd(body)
                 if err != nil {
-                    log.Println("Failed to load cmd", err)
+                    log.Println("Failed to load cmd", err, string(body))
                     continue
                 }
 
@@ -314,7 +368,7 @@ func main() {
             "result")
 
         reader := bytes.NewBuffer(res)
-        resp, err := http.Post(url, "application/json", reader)
+        resp, err := httpClient.Post(url, "application/json", reader)
         if err != nil {
             log.Println("Failed to send job result to AC", url, err)
             return
@@ -364,7 +418,7 @@ func main() {
 
         url := buildUrl(ac, "event")
 
-        resp, err := http.Post(url, "application/json", reader)
+        resp, err := httpClient.Post(url, "application/json", reader)
         if err != nil {
             log.Println("Failed to send startup event to AC", url, err)
             continue

@@ -6,6 +6,17 @@ message_id_file = "./.mid"
 history_file = "./.history"
 agent_controllers = ["http://localhost:8966/"]
 
+[security]
+# UNCOMMENT THE FOLLOWING LINES TO USE SSL
+
+#client_certificate = "client-test.crt"
+#client_certificate_key = "client-test.key"
+
+#defines an extra CA to trust (used in case of server self-signed certs)
+#should be empty string otherwise.
+
+#certificate_authority = "server.crt"
+
 [cmds]
     [cmds.execute_js_py]
     binary = "python2.7"
