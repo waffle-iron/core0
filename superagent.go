@@ -61,6 +61,7 @@ func getHttpClient(settings *agent.Settings) *http.Client {
     return &http.Client{
         Timeout: 60 * time.Second,
         Transport: &http.Transport{
+            DisableKeepAlives: true,
             Proxy: http.ProxyFromEnvironment,
             TLSHandshakeTimeout: 10 * time.Second,
             TLSClientConfig: &tlsConfig,
@@ -307,7 +308,7 @@ func main() {
             for {
                 response, err := httpClient.Get(buildUrl(ac, "cmd"))
                 if err != nil {
-                    //log.Println("Failed to retrieve new commands from", ac, err)
+                    log.Println("No new commands, retrying ...", ac, err)
                     //HTTP Timeout
                     if time.Now().Unix() - lastfail < 4 {
                         time.Sleep(4 * time.Second)
