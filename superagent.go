@@ -27,11 +27,16 @@ const (
 )
 
 
-func getHttpClient(settings *agent.Settings) *http.Client {
+type Controller struct {
+    URL string
+    Client *http.Client
+}
+
+func getHttpClient(security *agent.Security) *http.Client {
     var tlsConfig tls.Config
 
-    if settings.Security.CertificateAuthority != "" {
-        pem, err := ioutil.ReadFile(settings.Security.CertificateAuthority)
+    if security.CertificateAuthority != "" {
+        pem, err := ioutil.ReadFile(security.CertificateAuthority)
         if err != nil {
             log.Fatal(err)
         }
@@ -40,17 +45,17 @@ func getHttpClient(settings *agent.Settings) *http.Client {
         tlsConfig.RootCAs.AppendCertsFromPEM(pem)
     }
 
-    if settings.Security.ClientCertificate != "" {
-        if settings.Security.ClientCertificateKey == "" {
+    if security.ClientCertificate != "" {
+        if security.ClientCertificateKey == "" {
             log.Fatal("Missing certificate key file")
         }
-        // pem, err := ioutil.ReadFile(settings.Security.ClientCertificate)
+        // pem, err := ioutil.ReadFile(security.ClientCertificate)
         // if err != nil {
         //     log.Fatal(err)
         // }
 
-        cert, err := tls.LoadX509KeyPair(settings.Security.ClientCertificate,
-            settings.Security.ClientCertificateKey)
+        cert, err := tls.LoadX509KeyPair(security.ClientCertificate,
+            security.ClientCertificateKey)
         if err != nil {
             log.Fatal(err)
         }
@@ -191,9 +196,16 @@ func main() {
             endpoint)
     }
 
-    mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
+    //build list with ACs that we will poll from.
+    controllers := make(map[string]Controller)
+    for key, controllerCfg := range settings.Controllers {
+        controllers[key] = Controller{
+            URL: controllerCfg.URL,
+            Client: getHttpClient(&controllerCfg.Security),
+        }
+    }
 
-    httpClient := getHttpClient(&settings)
+    mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
     //apply logging handlers.
     dbLoggerConfigured := false
@@ -210,23 +222,23 @@ func main() {
 
                 dbLoggerConfigured = true
             case "ac":
-                var endpoints []string
+                endpoints := make(map[string]*http.Client)
 
                 if len(logcfg.AgentControllers) > 0 {
                     //specific ones.
-                    endpoints = make([]string, 0, len(logcfg.AgentControllers))
-                    for _, aci := range logcfg.AgentControllers {
-                        endpoints = append(
-                            endpoints,
-                            buildUrl(settings.Main.AgentControllers[aci], "log"))
+                    for _, key := range logcfg.AgentControllers {
+                        controller, ok := controllers[key]
+                        if !ok {
+                            log.Panicf("Controller %s not configured", key)
+                        }
+                        url := buildUrl(controller.URL, "log")
+                        endpoints[url] = controller.Client
                     }
                 } else {
                     //all ACs
-                    endpoints = make([]string, 0, len(settings.Main.AgentControllers))
-                    for _, ac := range settings.Main.AgentControllers {
-                        endpoints = append(
-                            endpoints,
-                            buildUrl(ac, "log"))
+                    for _, controller := range controllers {
+                        url := buildUrl(controller.URL, "log")
+                        endpoints[url] = controller.Client
                     }
                 }
 
@@ -240,7 +252,6 @@ func main() {
                 }
 
                 handler := logger.NewACLogger(
-                    httpClient,
                     endpoints,
                     batchsize,
                     time.Duration(flushint) * time.Second,
@@ -277,11 +288,10 @@ func main() {
         //all the aggregated stats for that process.
         res, _ := json.Marshal(stats)
         log.Println(string(res))
-        for _, base := range settings.Main.AgentControllers {
-            url := buildUrl(base, "stats")
-
+        for _, controller := range controllers {
+            url := buildUrl(controller.URL, "stats")
             reader := bytes.NewBuffer(res)
-            resp, err := httpClient.Post(url, "application/json", reader)
+            resp, err := controller.Client.Post(url, "application/json", reader)
             if err != nil {
                 log.Println("Failed to send stats result to AC", url, err)
                 return
@@ -290,25 +300,22 @@ func main() {
         }
     })
 
-    //build list with ACs that we will poll from.
-    var controllers []string
-    if len(settings.Channel.Cmds) > 0 {
-        controllers = make([]string, len(settings.Channel.Cmds))
-        for i := 0; i < len(settings.Channel.Cmds); i++ {
-            controllers[i] = settings.Main.AgentControllers[settings.Channel.Cmds[i]]
-        }
-    } else {
-        controllers = settings.Main.AgentControllers
-    }
-
     //start pollers goroutines
-    for aci, ac := range controllers {
+    for _, key := range settings.Channel.Cmds {
         go func() {
             lastfail := time.Now().Unix()
+            controller, ok := controllers[key]
+            if !ok {
+                log.Panic("Invalid controller name")
+                return
+            }
+
+            client := controller.Client
+
             for {
-                response, err := httpClient.Get(buildUrl(ac, "cmd"))
+                response, err := client.Get(buildUrl(controller.URL, "cmd"))
                 if err != nil {
-                    log.Println("No new commands, retrying ...", ac, err)
+                    log.Println("No new commands, retrying ...", controller.URL, err)
                     //HTTP Timeout
                     if time.Now().Unix() - lastfail < 4 {
                         time.Sleep(4 * time.Second)
@@ -351,7 +358,7 @@ func main() {
                 }
 
                 //tag command for routing.
-                cmd.Args.SetTag(aci)
+                cmd.Args.SetTag(key)
                 log.Println("Starting command", cmd)
 
                 if cmd.Args.GetInt("max_time") == -1 {
@@ -369,12 +376,12 @@ func main() {
     mgr.AddResultHandler(func (result *pm.JobResult) {
         //send result to AC.
         res, _ := json.Marshal(result)
-        url := buildUrl(
-            controllers[result.Args.GetTag()],
-            "result")
+        controller := controllers[result.Args.GetTag()]
+
+        url := buildUrl(controller.URL, "result")
 
         reader := bytes.NewBuffer(res)
-        resp, err := httpClient.Post(url, "application/json", reader)
+        resp, err := controller.Client.Post(url, "application/json", reader)
         if err != nil {
             log.Println("Failed to send job result to AC", url, err)
             return
@@ -419,12 +426,12 @@ func main() {
 
 
     // send startup event to all agent controllers
-    for _, ac := range controllers {
+    for _, controller := range controllers {
         reader := bytes.NewBuffer(event)
 
-        url := buildUrl(ac, "event")
+        url := buildUrl(controller.URL, "event")
 
-        resp, err := httpClient.Post(url, "application/json", reader)
+        resp, err := controller.Client.Post(url, "application/json", reader)
         if err != nil {
             log.Println("Failed to send startup event to AC", url, err)
             continue

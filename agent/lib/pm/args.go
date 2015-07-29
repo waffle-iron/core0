@@ -20,7 +20,7 @@ import (
 // }
 
 type MapArgs struct {
-    tag int
+    tag string
     data map[string]interface{}
 }
 
@@ -165,10 +165,10 @@ func (args *MapArgs) Clone(deep bool) *MapArgs {
     }
 }
 
-func (args *MapArgs) SetTag(tag int) {
+func (args *MapArgs) SetTag(tag string) {
     args.tag = tag
 }
 
-func (args *MapArgs) GetTag() int {
+func (args *MapArgs) GetTag() string {
     return args.tag
 }

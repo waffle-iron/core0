@@ -4,18 +4,22 @@ nid = 10
 max_jobs = 100
 message_id_file = "./.mid"
 history_file = "./.history"
-agent_controllers = ["http://localhost:8966/"]
 
-[security]
-# UNCOMMENT THE FOLLOWING LINES TO USE SSL
+[controllers]
+    [controllers.main]
+    url = "http://localhost:8966/"
+        [controllers.main.security]
+        # UNCOMMENT THE FOLLOWING LINES TO USE SSL
+        client_certificate = "/home/azmy/work/certs/client.crt"
+        client_certificate_key = "/home/azmy/work/certs/client.key"
 
-#client_certificate = "client-test.crt"
-#client_certificate_key = "client-test.key"
+        #defines an extra CA to trust (used in case of server self-signed certs)
+        #should be empty string otherwise.
 
-#defines an extra CA to trust (used in case of server self-signed certs)
-#should be empty string otherwise.
+        certificate_authority = "/home/azmy/work/certs/server.crt"
 
-#certificate_authority = "server.crt"
+[channel]
+cmds = ["main"] # long polling from agent 0
 
 [cmds]
     [cmds.execute_js_py]
@@ -40,9 +44,6 @@ agent_controllers = ["http://localhost:8966/"]
     script = "wrapper.py"
         [cmds.legacy.env]
         PYTHONPATH = "../:/opt/jumpscale7/lib"
-
-[channel]
-cmds = [0] # long polling from agent 0
 
 [logging]
     [logging.db]

@@ -57,8 +57,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
 
 type ACLogger struct {
-    client *http.Client
-    endpoints []string
+    endpoints map[string]*http.Client
     buffer []*pm.Message
     queue chan *pm.Message
     defaults []int
@@ -70,9 +69,8 @@ type ACLogger struct {
 //flushInt: Max time to wait before sending data to the end points. So either a full buffer or flushInt can force flushing
 //   the messages
 //defaults: default log levels to store in db if is not specificed by the logged message.
-func NewACLogger(client *http.Client, endpoints []string, bufsize int, flushInt time.Duration, defaults []int) Logger {
+func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.Duration, defaults []int) Logger {
     logger := &ACLogger {
-        client: client,
         endpoints: endpoints,
         buffer: make([]*pm.Message, 0, bufsize),
         queue: make(chan *pm.Message),
@@ -139,8 +137,8 @@ func (logger *ACLogger) send(buffer []*pm.Message) {
     }
 
     reader := bytes.NewReader(msgs)
-    for _, endpoint := range logger.endpoints {
-        resp, err := logger.client.Post(endpoint, "application/json", reader)
+    for endpoint, client := range logger.endpoints {
+        resp, err := client.Post(endpoint, "application/json", reader)
         if err != nil {
             log.Println("Failed to send log batch to AC", endpoint, err)
             continue

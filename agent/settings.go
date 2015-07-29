@@ -5,7 +5,7 @@ type Logger struct {
     //logger type, now only 'db' and 'ac' are supported
     Type string
     //list of controlles base URLs
-    AgentControllers []int
+    AgentControllers []string
     //Process which levels
     Levels []int
 
@@ -29,16 +29,30 @@ type Cmd struct {
     Env map[string]string
 }
 
+
+type Security struct {
+    CertificateAuthority string
+    ClientCertificate string
+    ClientCertificateKey string
+}
+
+
+type Controller struct {
+    URL string
+    Security Security
+}
+
 //main agent settings
 type Settings struct {
     Main struct {
         Gid int
         Nid int
         MaxJobs int
-        AgentControllers []string
         MessageIdFile string
         HistoryFile string
     }
+
+    Controllers map[string]Controller
 
     Cmds map[string]Cmd
 
@@ -46,16 +60,11 @@ type Settings struct {
 
     Stats struct {
         Interval int
-        AgentControllers []int
+        AgentControllers []string
     }
 
     Channel struct {
-        Cmds []int
+        Cmds []string
     }
 
-    Security struct {
-        CertificateAuthority string
-        ClientCertificate string
-        ClientCertificateKey string
-    }
 }
