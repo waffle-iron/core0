@@ -10,13 +10,13 @@ history_file = "./.history"
     url = "http://localhost:8966"
         [controllers.main.security]
         # UNCOMMENT THE FOLLOWING LINES TO USE SSL
-        #client_certificate = "/home/azmy/work/certs/client.crt"
-        #client_certificate_key = "/home/azmy/work/certs/client.key"
+        #client_certificate = "/path/to/client-test.crt"
+        #client_certificate_key = "/path/to/client-test.key"
 
         # defines an extra CA to trust (used in case of server self-signed certs)
         # should be empty string otherwise.
 
-        #certificate_authority = "/home/azmy/work/certs/server.crt"
+        #certificate_authority = "/path/to/server.crt"
 
 [channel]
 cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
