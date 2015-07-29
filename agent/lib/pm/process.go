@@ -160,6 +160,14 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
     starttime := time.Duration(time.Now().UnixNano()) / time.Millisecond // start time in msec
 
+    restarting := false
+    defer func() {
+        if !restarting {
+            close(ps.ctrl)
+            cfg.Signal <- 1 // forces the PM to clean up
+        }
+    }()
+
     err = cmd.Start()
     if err != nil {
         log.Println("Failed to start process", err)
@@ -203,7 +211,6 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
     stdin.Close()
 
     psexit := make(chan bool)
-
 
     go func() {
         //make sure all outputs are closed before waiting for the process
@@ -265,13 +272,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
     //process exited.
     log.Println("Exit status: ", success)
-    restarting := false
-    defer func() {
-        if !restarting {
-            close(ps.ctrl)
-            cfg.Signal <- 1 // forces the PM to clean up
-        }
-    }()
+
 
     if !success && args.GetInt("max_restart") > 0 {
         ps.runs += 1
