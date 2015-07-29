@@ -9,7 +9,6 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/shirou/gopsutil/process"
     "encoding/json"
-    "syscall"
 )
 
 const (
@@ -239,19 +238,15 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
         case <- timeout:
             //process timed out.
             log.Println("process timed out")
-            syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
-            success = false
+            cmd.Process.Kill()
             timedout = true
-            break loop
         case s := <- ps.ctrl:
             if s == 1 {
                 //kill signal
                 log.Println("killing process", ps.cmd.Id, cmd.Process.Pid)
-                syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
-                success = false
+                cmd.Process.Kill()
                 killed = true
                 ps.runs = 0
-                break loop
             }
         case <- time.After(30 * time.Second):
             //monitor.
