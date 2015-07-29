@@ -135,6 +135,15 @@ func registGetMsgsFunction(path string) {
     pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
 }
 
+func getKeys(m map[string]Controller) []string {
+    keys := make([]string, 0,len(m))
+    for key, _ := range m {
+        keys = append(keys, key)
+    }
+
+    return keys
+}
+
 func main() {
     settings := agent.Settings{}
     var cfg string
@@ -224,12 +233,12 @@ func main() {
             case "ac":
                 endpoints := make(map[string]*http.Client)
 
-                if len(logcfg.AgentControllers) > 0 {
+                if len(logcfg.Controllers) > 0 {
                     //specific ones.
-                    for _, key := range logcfg.AgentControllers {
+                    for _, key := range logcfg.Controllers {
                         controller, ok := controllers[key]
                         if !ok {
-                            log.Panicf("Controller %s not configured", key)
+                            log.Panicf("Unknow controller '%s'", key)
                         }
                         url := buildUrl(controller.URL, "log")
                         endpoints[url] = controller.Client
@@ -261,7 +270,7 @@ func main() {
                 handler := logger.NewConsoleLogger(logcfg.Levels)
                 mgr.AddMessageHandler(handler.Log)
             default:
-                panic(fmt.Sprintf("Unsupported logger type: %s", logcfg.Type))
+                log.Panicf("Unsupported logger type: %s", logcfg.Type)
         }
     }
 
@@ -283,12 +292,24 @@ func main() {
         }
     })
 
+    var statsKeys []string
+    if len(settings.Stats.Controllers) > 0 {
+        statsKeys = settings.Stats.Controllers
+    } else {
+        statsKeys = getKeys(controllers)
+    }
+
     mgr.AddStatsFlushHandler(func (stats *stats.Stats) {
         //This will be called per process per stats_interval seconds. with
         //all the aggregated stats for that process.
         res, _ := json.Marshal(stats)
-        log.Println(string(res))
-        for _, controller := range controllers {
+        for _, key := range statsKeys {
+            controller, ok := controllers[key]
+            if !ok {
+                log.Printf("Stats: Unknow controller '%s'\n", key)
+                continue
+            }
+
             url := buildUrl(controller.URL, "stats")
             reader := bytes.NewBuffer(res)
             resp, err := controller.Client.Post(url, "application/json", reader)
@@ -300,14 +321,20 @@ func main() {
         }
     })
 
+    var pollKeys []string
+    if len(settings.Channel.Cmds) > 0 {
+        pollKeys = settings.Channel.Cmds
+    } else {
+        pollKeys = getKeys(controllers)
+    }
+
     //start pollers goroutines
-    for _, key := range settings.Channel.Cmds {
+    for _, key := range pollKeys {
         go func() {
             lastfail := time.Now().Unix()
             controller, ok := controllers[key]
             if !ok {
-                log.Panic("Invalid controller name")
-                return
+                log.Panicf("Channel: Unknow controller '%s'", key)
             }
 
             client := controller.Client

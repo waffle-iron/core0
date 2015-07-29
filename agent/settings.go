@@ -5,7 +5,7 @@ type Logger struct {
     //logger type, now only 'db' and 'ac' are supported
     Type string
     //list of controlles base URLs
-    AgentControllers []string
+    Controllers []string
     //Process which levels
     Levels []int
 
@@ -60,7 +60,7 @@ type Settings struct {
 
     Stats struct {
         Interval int
-        AgentControllers []string
+        Controllers []string
     }
 
     Channel struct {

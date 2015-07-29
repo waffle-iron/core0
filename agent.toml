@@ -7,19 +7,19 @@ history_file = "./.history"
 
 [controllers]
     [controllers.main]
-    url = "http://localhost:8966/"
+    url = "http://localhost:8966"
         [controllers.main.security]
         # UNCOMMENT THE FOLLOWING LINES TO USE SSL
-        client_certificate = "/home/azmy/work/certs/client.crt"
-        client_certificate_key = "/home/azmy/work/certs/client.key"
+        #client_certificate = "/home/azmy/work/certs/client.crt"
+        #client_certificate_key = "/home/azmy/work/certs/client.key"
 
-        #defines an extra CA to trust (used in case of server self-signed certs)
-        #should be empty string otherwise.
+        # defines an extra CA to trust (used in case of server self-signed certs)
+        # should be empty string otherwise.
 
-        certificate_authority = "/home/azmy/work/certs/server.crt"
+        #certificate_authority = "/home/azmy/work/certs/server.crt"
 
 [channel]
-cmds = ["main"] # long polling from agent 0
+cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
 
 [cmds]
     [cmds.execute_js_py]
@@ -55,7 +55,7 @@ cmds = ["main"] # long polling from agent 0
     type = "AC"
     flush_int = 300 # seconds (5min)
     batch_size = 1000 # max batch size, force flush if reached this count.
-    agent_controllers = [] # to all agents
+    controllers = [] # empty for all controllers, or controllers keys
     levels = [2, 4, 7, 8, 9]  # (all error messages) empty for all
 
     [logging.console]
@@ -64,5 +64,5 @@ cmds = ["main"] # long polling from agent 0
 
 [stats]
 interval = 60 # seconds
-agent_controllers = []
+controllers = [] # empty for all controllers, or controllers keys
 
