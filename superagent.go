@@ -317,7 +317,7 @@ func main() {
                 log.Println("Failed to send stats result to AC", url, err)
                 return
             }
-            defer resp.Body.Close()
+            resp.Body.Close()
         }
     })
 
@@ -352,7 +352,6 @@ func main() {
                     continue
                 }
 
-                defer response.Body.Close()
 
                 body, err := ioutil.ReadAll(response.Body)
                 if err != nil {
@@ -360,6 +359,7 @@ func main() {
                     continue
                 }
 
+                response.Body.Close()
                 if response.StatusCode != 200 {
                     log.Println("Failed to retrieve jobs", response.Status, string(body))
                     time.Sleep(2 * time.Second)
@@ -413,7 +413,7 @@ func main() {
             log.Println("Failed to send job result to AC", url, err)
             return
         }
-        defer resp.Body.Close()
+        resp.Body.Close()
     })
 
     //register the execute commands
@@ -463,7 +463,7 @@ func main() {
             log.Println("Failed to send startup event to AC", url, err)
             continue
         }
-        defer resp.Body.Close()
+        resp.Body.Close()
     }
 
     //wait
