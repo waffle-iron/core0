@@ -76,6 +76,7 @@ type PM struct {
     msgHandlers []MessageHandler
     resultHandlers []ResultHandler
     statsFlushHandlers []StatsFlushHandler
+    queueMgr *CmdQueueManager
 }
 
 
@@ -94,6 +95,7 @@ func NewPM(midfile string, maxJobs int) *PM {
         msgHandlers: make([]MessageHandler, 0, 3),
         resultHandlers: make([]ResultHandler, 0, 3),
         statsFlushHandlers: make([]StatsFlushHandler, 0, 3),
+        queueMgr: NewCmdQueueManager(),
     }
     return pm
 }
@@ -118,6 +120,16 @@ func saveMid(midfile string, mid uint32) {
 
 func (pm *PM) RunCmd(cmd *Cmd) {
     pm.cmds <- cmd
+}
+
+/**
+Same as RunCmd put will queue the command for later execution when there are no
+other commands runs on the same queue.
+
+The queue name is retrieved from cmd.Args[queue]
+*/
+func (pm *PM) RunCmdQueued(cmd *Cmd) {
+    pm.queueMgr.Push(cmd)
 }
 
 func (pm *PM) getNextMsgID() uint32 {
@@ -155,7 +167,16 @@ func (pm *PM) Run() {
             }
             pm.jobsCond.L.Unlock()
 
-            cmd := <- pm.cmds
+            var cmd *Cmd
+
+            //we have 2 possible sources of cmds.
+            //1- cmds that doesn't require waiting on a queue, those can run immediately
+            //2- cmds that were waiting on a queue (so they must execute serially)
+            select {
+            case cmd = <- pm.cmds:
+            case cmd = <- pm.queueMgr.Producer():
+            }
+
             process := NewProcess(cmd)
 
             if process == nil {
@@ -200,6 +221,11 @@ func (pm *PM) Run() {
                 delete(pm.processes, cmd.Id)
                 delete(pm.statsdes, cmd.Id)
 
+                //tell the queue that this command has finished so it prepares a
+                //new command to execute
+                pm.queueMgr.Notify(cmd)
+
+                //tell manager that there is a process slot ready.
                 pm.jobsCond.Broadcast()
             } ()
 

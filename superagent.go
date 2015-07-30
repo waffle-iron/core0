@@ -394,7 +394,11 @@ func main() {
                     dumpHistory()
                 }
 
-                mgr.RunCmd(cmd)
+                if cmd.Args.GetString("queue") == "" {
+                    mgr.RunCmd(cmd)
+                } else {
+                    mgr.RunCmdQueued(cmd)
+                }
             }
         } ()
     }
