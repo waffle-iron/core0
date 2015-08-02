@@ -66,3 +66,5 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 interval = 60 # seconds
 controllers = [] # empty for all controllers, or controllers keys
 
+[hubble]
+controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name

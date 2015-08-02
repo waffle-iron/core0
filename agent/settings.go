@@ -67,4 +67,7 @@ type Settings struct {
         Cmds []string
     }
 
+    Hubble struct {
+        Controllers []string
+    }
 }

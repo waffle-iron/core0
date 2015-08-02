@@ -8,9 +8,12 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/Jumpscale/jsagent/agent/lib/builtin"
     "github.com/shirou/gopsutil/process"
+    hubble "git.aydo.com/0-complexity/hubble/agent"
     "time"
     "encoding/json"
+    "net"
     "net/http"
+    "net/url"
     "log"
     "fmt"
     "strings"
@@ -24,6 +27,8 @@ import (
 
 const (
     CMD_GET_MSGS = "get_msgs"
+    CMD_OPEN_TUNNEL = "hubble_open_tunnel"
+    CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
 )
 
 
@@ -83,7 +88,7 @@ This one is done here and NOT in the 'buildin' library because
 2- Moving this register function to the build-in will cause cyclic dependencies.
 */
 
-func registGetMsgsFunction(path string) {
+func registerGetMsgsFunction(path string) {
     querier := logger.NewDBMsgQuery(path)
 
     get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
@@ -135,6 +140,97 @@ func registGetMsgsFunction(path string) {
     pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
 }
 
+
+func registerHubbleFunctions(controllers map[string]Controller, settings *agent.Settings) {
+    var proxisKeys []string
+    if len(settings.Hubble.Controllers) == 0 {
+        proxisKeys = getKeys(controllers)
+    } else {
+        proxisKeys = settings.Hubble.Controllers
+    }
+
+    agents := make(map[string]hubble.Agent)
+
+    //first of all... start all agents for controllers that are configured.
+    for _, proxyKey := range proxisKeys {
+        controller, ok := controllers[proxyKey]
+        if !ok {
+            log.Fatalf("Unknown controller '%s'", proxyKey)
+        }
+
+        //start agent for that controller.
+        baseUrl := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "hubble")
+        parsedUrl, err := url.Parse(baseUrl)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        if parsedUrl.Scheme == "http" {
+            parsedUrl.Scheme = "ws"
+        } else if parsedUrl.Scheme == "https" {
+            parsedUrl.Scheme = "wss"
+        } else {
+            log.Fatalf("Unknown scheme '%s'", parsedUrl.Scheme)
+        }
+
+        name := fmt.Sprintf("%d.%d", settings.Main.Gid, settings.Main.Nid)
+        agent := hubble.NewAgent(parsedUrl.String(), name, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
+
+        agents[proxyKey] = agent
+
+        err = agent.Start(nil)
+        if err != nil {
+            //Should we die if proxy connection failed.
+            //Long polling doesn't die, so why would hubble do.
+            //may be hubble should support retyring.
+            log.Fatal(err)
+        }
+    }
+
+    type TunnelData struct {
+        Local uint16 `json:"local"`
+        Gateway string `json:"gateway"`
+        IP net.IP `json:"ip"`
+        Remote uint16 `json:"remote"`
+    }
+
+    openTunnle := func (cmd *pm.Cmd, cfg pm.RunCfg) * pm.JobResult{
+        //
+        result := pm.NewBasicJobResult(cmd)
+        result.State = pm.S_ERROR
+
+        var tunnelData TunnelData
+        err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
+        if err != nil {
+            result.Data = fmt.Sprintf("%v", err)
+
+            return result
+        }
+
+        tag := cmd.Args.GetTag()
+        agent, ok := agents[tag]
+
+        if !ok {
+            result.Data = "Controller is not allowed to request for tunnels"
+            return result
+        }
+
+        tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, tunnelData.IP, tunnelData.Remote)
+        agent.AddTunnel(tunnel)
+
+        if err != nil {
+            result.Data = fmt.Sprintf("%v", err)
+            return result
+        }
+
+        result.State = pm.S_SUCCESS
+
+        return result
+    }
+
+    pm.CMD_MAP[CMD_OPEN_TUNNEL] = builtin.InternalProcessFactory(openTunnle)
+}
+
 func getKeys(m map[string]Controller) []string {
     keys := make([]string, 0,len(m))
     for key, _ := range m {
@@ -164,7 +260,7 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
                 sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
                 handler := logger.NewDBLogger(sqlFactory, logcfg.Levels)
                 mgr.AddMessageHandler(handler.Log)
-                registGetMsgsFunction(logcfg.LogDir)
+                registerGetMsgsFunction(logcfg.LogDir)
 
                 dbLoggerConfigured = true
             case "ac":
@@ -175,7 +271,7 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
                     for _, key := range logcfg.Controllers {
                         controller, ok := controllers[key]
                         if !ok {
-                            log.Panicf("Unknow controller '%s'", key)
+                            log.Fatalf("Unknow controller '%s'", key)
                         }
                         url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "log")
                         endpoints[url] = controller.Client
@@ -207,10 +303,11 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
                 handler := logger.NewConsoleLogger(logcfg.Levels)
                 mgr.AddMessageHandler(handler.Log)
             default:
-                log.Panicf("Unsupported logger type: %s", logcfg.Type)
+                log.Fatalf("Unsupported logger type: %s", logcfg.Type)
         }
     }
 }
+
 
 func main() {
     settings := agent.Settings{}
@@ -264,8 +361,6 @@ func main() {
 
         ioutil.WriteFile(settings.Main.HistoryFile, data, 0644)
     }
-
-
 
     //build list with ACs that we will poll from.
     controllers := make(map[string]Controller)
@@ -344,7 +439,7 @@ func main() {
             lastfail := time.Now().Unix()
             controller, ok := controllers[key]
             if !ok {
-                log.Panicf("Channel: Unknow controller '%s'", key)
+                log.Fatalf("Channel: Unknow controller '%s'", key)
             }
 
             client := controller.Client
@@ -443,6 +538,7 @@ func main() {
         pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, env)
     }
 
+    registerHubbleFunctions(controllers, &settings)
     //start process mgr.
     mgr.Run()
     //System is ready to receive commands.
