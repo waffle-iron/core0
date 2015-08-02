@@ -195,7 +195,6 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
     }
 
     openTunnle := func (cmd *pm.Cmd, cfg pm.RunCfg) * pm.JobResult{
-        //
         result := pm.NewBasicJobResult(cmd)
         result.State = pm.S_ERROR
 
@@ -233,7 +232,36 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
         return result
     }
 
+    closeTunnel := func (cmd *pm.Cmd, cfg pm.RunCfg) * pm.JobResult{
+        result := pm.NewBasicJobResult(cmd)
+        result.State = pm.S_ERROR
+
+        var tunnelData TunnelData
+        err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
+        if err != nil {
+            result.Data = fmt.Sprintf("%v", err)
+
+            return result
+        }
+
+        tag := cmd.Args.GetTag()
+        agent, ok := agents[tag]
+
+        if !ok {
+            result.Data = "Controller is not allowed to request for tunnels"
+            return result
+        }
+
+        tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, tunnelData.IP, tunnelData.Remote)
+        agent.RemoveTunnel(tunnel)
+
+        result.State = pm.S_SUCCESS
+
+        return result
+    }
+
     pm.CMD_MAP[CMD_OPEN_TUNNEL] = builtin.InternalProcessFactory(openTunnle)
+    pm.CMD_MAP[CMD_CLOSE_TUNNEL] = builtin.InternalProcessFactory(closeTunnel)
 }
 
 func getKeys(m map[string]Controller) []string {
