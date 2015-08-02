@@ -144,6 +144,74 @@ func getKeys(m map[string]Controller) []string {
     return keys
 }
 
+func buildUrl(gid int, nid int, base string, endpoint string) string {
+    base = strings.TrimRight(base, "/")
+    return fmt.Sprintf("%s/%d/%d/%s", base,
+        gid,
+        nid,
+        endpoint)
+}
+
+func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *agent.Settings) {
+    //apply logging handlers.
+    dbLoggerConfigured := false
+    for _, logcfg := range settings.Logging {
+        switch strings.ToLower(logcfg.Type) {
+            case "db":
+                if dbLoggerConfigured {
+                    log.Fatal("Only one db logger can be configured")
+                }
+                sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
+                handler := logger.NewDBLogger(sqlFactory, logcfg.Levels)
+                mgr.AddMessageHandler(handler.Log)
+                registGetMsgsFunction(logcfg.LogDir)
+
+                dbLoggerConfigured = true
+            case "ac":
+                endpoints := make(map[string]*http.Client)
+
+                if len(logcfg.Controllers) > 0 {
+                    //specific ones.
+                    for _, key := range logcfg.Controllers {
+                        controller, ok := controllers[key]
+                        if !ok {
+                            log.Panicf("Unknow controller '%s'", key)
+                        }
+                        url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "log")
+                        endpoints[url] = controller.Client
+                    }
+                } else {
+                    //all ACs
+                    for _, controller := range controllers {
+                        url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "log")
+                        endpoints[url] = controller.Client
+                    }
+                }
+
+                batchsize := 1000 // default
+                flushint := 120 // default (in seconds)
+                if logcfg.BatchSize != 0 {
+                    batchsize = logcfg.BatchSize
+                }
+                if logcfg.FlushInt != 0 {
+                    flushint = logcfg.FlushInt
+                }
+
+                handler := logger.NewACLogger(
+                    endpoints,
+                    batchsize,
+                    time.Duration(flushint) * time.Second,
+                    logcfg.Levels)
+                mgr.AddMessageHandler(handler.Log)
+            case "console":
+                handler := logger.NewConsoleLogger(logcfg.Levels)
+                mgr.AddMessageHandler(handler.Log)
+            default:
+                log.Panicf("Unsupported logger type: %s", logcfg.Type)
+        }
+    }
+}
+
 func main() {
     settings := agent.Settings{}
     var cfg string
@@ -197,13 +265,7 @@ func main() {
         ioutil.WriteFile(settings.Main.HistoryFile, data, 0644)
     }
 
-    buildUrl := func (base string, endpoint string) string {
-        base = strings.TrimRight(base, "/")
-        return fmt.Sprintf("%s/%d/%d/%s", base,
-            settings.Main.Gid,
-            settings.Main.Nid,
-            endpoint)
-    }
+
 
     //build list with ACs that we will poll from.
     controllers := make(map[string]Controller)
@@ -216,64 +278,10 @@ func main() {
 
     mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
-    //apply logging handlers.
-    dbLoggerConfigured := false
-    for _, logcfg := range settings.Logging {
-        switch strings.ToLower(logcfg.Type) {
-            case "db":
-                if dbLoggerConfigured {
-                    log.Fatal("Only one db logger can be configured")
-                }
-                sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-                handler := logger.NewDBLogger(sqlFactory, logcfg.Levels)
-                mgr.AddMessageHandler(handler.Log)
-                registGetMsgsFunction(logcfg.LogDir)
+    configureLogging(mgr, controllers, &settings)
 
-                dbLoggerConfigured = true
-            case "ac":
-                endpoints := make(map[string]*http.Client)
-
-                if len(logcfg.Controllers) > 0 {
-                    //specific ones.
-                    for _, key := range logcfg.Controllers {
-                        controller, ok := controllers[key]
-                        if !ok {
-                            log.Panicf("Unknow controller '%s'", key)
-                        }
-                        url := buildUrl(controller.URL, "log")
-                        endpoints[url] = controller.Client
-                    }
-                } else {
-                    //all ACs
-                    for _, controller := range controllers {
-                        url := buildUrl(controller.URL, "log")
-                        endpoints[url] = controller.Client
-                    }
-                }
-
-                batchsize := 1000 // default
-                flushint := 120 // default (in seconds)
-                if logcfg.BatchSize != 0 {
-                    batchsize = logcfg.BatchSize
-                }
-                if logcfg.FlushInt != 0 {
-                    flushint = logcfg.FlushInt
-                }
-
-                handler := logger.NewACLogger(
-                    endpoints,
-                    batchsize,
-                    time.Duration(flushint) * time.Second,
-                    logcfg.Levels)
-                mgr.AddMessageHandler(handler.Log)
-            case "console":
-                handler := logger.NewConsoleLogger(logcfg.Levels)
-                mgr.AddMessageHandler(handler.Log)
-            default:
-                log.Panicf("Unsupported logger type: %s", logcfg.Type)
-        }
-    }
-
+    //This handler is called every 30 sec. It should collect and report all
+    //metered values needed for an external process.
     mgr.AddStatsdMeterHandler(func (statsd *stats.Statsd, cmd *pm.Cmd, ps *process.Process) {
         //for each long running external process this will be called every 2 sec
         //You can here collect all the data you want abou the process and feed
@@ -299,6 +307,8 @@ func main() {
         statsKeys = getKeys(controllers)
     }
 
+    //register handler for stats flush. Simplest impl is to send the values
+    //immediately to the all ACs.
     mgr.AddStatsFlushHandler(func (stats *stats.Stats) {
         //This will be called per process per stats_interval seconds. with
         //all the aggregated stats for that process.
@@ -310,7 +320,7 @@ func main() {
                 continue
             }
 
-            url := buildUrl(controller.URL, "stats")
+            url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "stats")
             reader := bytes.NewBuffer(res)
             resp, err := controller.Client.Post(url, "application/json", reader)
             if err != nil {
@@ -340,7 +350,7 @@ func main() {
             client := controller.Client
 
             for {
-                response, err := client.Get(buildUrl(controller.URL, "cmd"))
+                response, err := client.Get(buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "cmd"))
                 if err != nil {
                     log.Println("No new commands, retrying ...", controller.URL, err)
                     //HTTP Timeout
@@ -409,7 +419,7 @@ func main() {
         res, _ := json.Marshal(result)
         controller := controllers[result.Args.GetTag()]
 
-        url := buildUrl(controller.URL, "result")
+        url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "result")
 
         reader := bytes.NewBuffer(res)
         resp, err := controller.Client.Post(url, "application/json", reader)
@@ -435,8 +445,9 @@ func main() {
 
     //start process mgr.
     mgr.Run()
+    //System is ready to receive commands.
 
-    //rerun history
+    //rerun history (rerun persisted processes)
     for i := 0; i < len(history); i ++ {
         cmd := history[i]
         meterInt := cmd.Args.GetInt("stats_interval")
@@ -451,16 +462,15 @@ func main() {
         mgr.RunCmd(cmd)
     }
 
+    // send startup event to all agent controllers
     event, _ := json.Marshal(map[string]string{
         "name": "startup",
     })
 
-
-    // send startup event to all agent controllers
     for _, controller := range controllers {
         reader := bytes.NewBuffer(event)
 
-        url := buildUrl(controller.URL, "event")
+        url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "event")
 
         resp, err := controller.Client.Post(url, "application/json", reader)
         if err != nil {
