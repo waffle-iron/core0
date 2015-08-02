@@ -216,13 +216,18 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
         }
 
         tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, tunnelData.IP, tunnelData.Remote)
-        agent.AddTunnel(tunnel)
+        err = agent.AddTunnel(tunnel)
 
         if err != nil {
             result.Data = fmt.Sprintf("%v", err)
             return result
         }
 
+        tunnelData.Local = tunnel.Local()
+        data, _ := json.Marshal(tunnelData)
+
+        result.Data = string(data)
+        result.Level = 20
         result.State = pm.S_SUCCESS
 
         return result
