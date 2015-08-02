@@ -26,6 +26,7 @@ import (
 )
 
 const (
+    RECONNECT_SLEEP = 4
     CMD_GET_MSGS = "get_msgs"
     CMD_OPEN_TUNNEL = "hubble_open_tunnel"
     CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
@@ -179,13 +180,17 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 
         agents[proxyKey] = agent
 
-        err = agent.Start(nil)
-        if err != nil {
-            //Should we die if proxy connection failed.
-            //Long polling doesn't die, so why would hubble do.
-            //may be hubble should support retyring.
-            log.Fatal(err)
+        var onExit func (agent hubble.Agent, err error)
+        onExit = func (agent hubble.Agent, err error) {
+            if err != nil {
+                go func(){
+                    time.Sleep(RECONNECT_SLEEP * time.Second)
+                    agent.Start(onExit)
+                }()
+            }
         }
+
+        agent.Start(onExit)
     }
 
     type TunnelData struct {
@@ -515,8 +520,8 @@ func main() {
                 if err != nil {
                     log.Println("No new commands, retrying ...", controller.URL, err)
                     //HTTP Timeout
-                    if time.Now().Unix() - lastfail < 4 {
-                        time.Sleep(4 * time.Second)
+                    if time.Now().Unix() - lastfail < RECONNECT_SLEEP {
+                        time.Sleep(RECONNECT_SLEEP * time.Second)
                     }
                     lastfail = time.Now().Unix()
 
