@@ -2,6 +2,7 @@ package builtin
 
 import (
     "github.com/Jumpscale/jsagent/agent/lib/pm"
+    "time"
 )
 
 type Runable func (*pm.Cmd, pm.RunCfg) *pm.JobResult
@@ -31,8 +32,13 @@ func (ps *InternalProcess) Run(cfg pm.RunCfg) {
         cfg.Signal <- 1
     }()
 
+    starttime := time.Duration(time.Now().UnixNano()) / time.Millisecond // start time in msec
     result := ps.runable(ps.cmd, cfg)
+
     if result != nil {
+        result.StartTime = int64(starttime)
+        endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
+        result.Time = int64(endtime - starttime)
         cfg.ResultHandler(result)
     }
 }

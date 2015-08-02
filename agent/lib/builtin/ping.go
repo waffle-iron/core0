@@ -1,7 +1,6 @@
 package builtin
 
 import (
-    "time"
     "github.com/Jumpscale/jsagent/agent/lib/pm"
 )
 
@@ -19,8 +18,6 @@ func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
         Gid: cmd.Gid,
         Nid: cmd.Nid,
         Args: cmd.Args,
-        StartTime: time.Now().Unix(),
-        Time: 0,
         State: "SUCCESS",
         Level: pm.L_RESULT_JSON,
         Data: `"pong"`,

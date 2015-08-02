@@ -1,7 +1,6 @@
 package builtin
 
 import (
-    "time"
     "github.com/Jumpscale/jsagent/agent/lib/pm"
 )
 
@@ -15,7 +14,6 @@ func init() {
 
 func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
     result := pm.NewBasicJobResult(cmd)
-    result.StartTime = time.Now().Unix()
 
     cfg.ProcessManager.Killall()
 
