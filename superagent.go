@@ -29,6 +29,7 @@ const (
     CMD_GET_MSGS = "get_msgs"
     CMD_OPEN_TUNNEL = "hubble_open_tunnel"
     CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
+    CMD_LIST_TUNNELS = "hubble_list_tunnels"
 )
 
 
@@ -260,8 +261,40 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
         return result
     }
 
+    listTunnels := func (cmd *pm.Cmd, cfg pm.RunCfg) * pm.JobResult{
+        result := pm.NewBasicJobResult(cmd)
+        result.State = pm.S_ERROR
+
+        tag := cmd.Args.GetTag()
+        agent, ok := agents[tag]
+
+        if !ok {
+            result.Data = "Controller is not allowed to request for tunnels"
+            return result
+        }
+
+        tunnels := agent.Tunnels()
+        tunnelsInfos := make([]TunnelData, 0, len(tunnels))
+        for _, t := range tunnels {
+            tunnelsInfos = append(tunnelsInfos, TunnelData{
+                Local: t.Local(),
+                IP: t.IP(),
+                Gateway: t.Gateway(),
+                Remote: t.Remote(),
+            })
+        }
+
+        data, _ := json.Marshal(tunnelsInfos)
+        result.Data = string(data)
+        result.Level = 20
+        result.State = pm.S_SUCCESS
+
+        return result
+    }
+
     pm.CMD_MAP[CMD_OPEN_TUNNEL] = builtin.InternalProcessFactory(openTunnle)
     pm.CMD_MAP[CMD_CLOSE_TUNNEL] = builtin.InternalProcessFactory(closeTunnel)
+    pm.CMD_MAP[CMD_LIST_TUNNELS] = builtin.InternalProcessFactory(listTunnels)
 }
 
 func getKeys(m map[string]Controller) []string {
