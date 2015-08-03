@@ -153,6 +153,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 
     agents := make(map[string]hubble.Agent)
 
+    localName := fmt.Sprintf("%d.%d", settings.Main.Gid, settings.Main.Nid)
     //first of all... start all agents for controllers that are configured.
     for _, proxyKey := range proxisKeys {
         controller, ok := controllers[proxyKey]
@@ -175,8 +176,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
             log.Fatalf("Unknown scheme '%s'", parsedUrl.Scheme)
         }
 
-        name := fmt.Sprintf("%d.%d", settings.Main.Gid, settings.Main.Nid)
-        agent := hubble.NewAgent(parsedUrl.String(), name, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
+        agent := hubble.NewAgent(parsedUrl.String(), localName, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
 
         agents[proxyKey] = agent
 
@@ -209,6 +209,11 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
         if err != nil {
             result.Data = fmt.Sprintf("%v", err)
 
+            return result
+        }
+
+        if tunnelData.Gateway == localName {
+            result.Data = "Can't open a tunnel to self"
             return result
         }
 
