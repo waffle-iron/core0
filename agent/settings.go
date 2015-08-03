@@ -50,6 +50,7 @@ type Settings struct {
         MaxJobs int
         MessageIdFile string
         HistoryFile string
+        Roles []string
     }
 
     Controllers map[string]Controller

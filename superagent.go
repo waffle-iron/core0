@@ -509,6 +509,12 @@ func main() {
         pollKeys = getKeys(controllers)
     }
 
+    pollQuery := make(url.Values)
+
+    for _, role := range settings.Main.Roles {
+        pollQuery.Add("role", role)
+    }
+
     //start pollers goroutines
     for _, key := range pollKeys {
         go func() {
@@ -521,7 +527,10 @@ func main() {
             client := controller.Client
 
             for {
-                response, err := client.Get(buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "cmd"))
+                url := fmt.Sprintf("%s?%s", buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "cmd"),
+                                    pollQuery.Encode())
+
+                response, err := client.Get(url)
                 if err != nil {
                     log.Println("No new commands, retrying ...", controller.URL, err)
                     //HTTP Timeout

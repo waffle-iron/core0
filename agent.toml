@@ -4,6 +4,7 @@ nid = 10
 max_jobs = 100
 message_id_file = "./.mid"
 history_file = "./.history"
+roles = []
 
 [controllers]
     [controllers.main]
