@@ -1,66 +1,65 @@
 package logger
 
 import (
-    "log"
-    "time"
-    "encoding/json"
-    "bytes"
-    "net/http"
-    "github.com/Jumpscale/jsagent/agent/lib/pm"
-    "github.com/Jumpscale/jsagent/agent/lib/utils"
+	"bytes"
+	"encoding/json"
+	"github.com/Jumpscale/jsagent/agent/lib/pm"
+	"github.com/Jumpscale/jsagent/agent/lib/utils"
+	"log"
+	"net/http"
+	"time"
 )
 
 type Logger interface {
-    Log(msg *pm.Message)
+	Log(msg *pm.Message)
 }
 
 type DBLogger struct {
-    factory DBFactory
-    defaults []int
+	factory  DBFactory
+	defaults []int
 }
 
 //Creates a new Database logger, it stores the logged message in database
 //factory: is the DB connection factory
 //defaults: default log levels to store in db if is not specificed by the logged message.
 func NewDBLogger(factory DBFactory, defaults []int) Logger {
-    return &DBLogger{
-        factory: factory,
-        defaults: defaults,
-    }
+	return &DBLogger{
+		factory:  factory,
+		defaults: defaults,
+	}
 }
 
 //Log message
 func (logger *DBLogger) Log(msg *pm.Message) {
-    levels := logger.defaults
-    msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+	levels := logger.defaults
+	msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
 
-    if len(msgLevels) > 0 {
-        levels = msgLevels
-    }
+	if len(msgLevels) > 0 {
+		levels = msgLevels
+	}
 
-    if len(levels) > 0 && !utils.In(levels, msg.Level) {
-        return
-    }
+	if len(levels) > 0 && !utils.In(levels, msg.Level) {
+		return
+	}
 
-    db := logger.factory.GetDBCon()
-    stmnt := `
+	db := logger.factory.GetDBCon()
+	stmnt := `
         insert into logs (id, jobid, domain, name, epoch, level, data)
         values (?, ?, ?, ?, ?, ?, ?)
     `
-    args := msg.Cmd.Args
-    _, err := db.Exec(stmnt, msg.Id, msg.Cmd.Id, args.GetString("domain"), args.GetString("name"),
-                      msg.Epoch, msg.Level, msg.Message)
-    if err != nil {
-        log.Println(err)
-    }
+	args := msg.Cmd.Args
+	_, err := db.Exec(stmnt, msg.Id, msg.Cmd.Id, args.GetString("domain"), args.GetString("name"),
+		msg.Epoch, msg.Level, msg.Message)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
-
 type ACLogger struct {
-    endpoints map[string]*http.Client
-    buffer []*pm.Message
-    queue chan *pm.Message
-    defaults []int
+	endpoints map[string]*http.Client
+	buffer    []*pm.Message
+	queue     chan *pm.Message
+	defaults  []int
 }
 
 //Create a new AC logger. AC logger buffers log messages into bulks and batch send it to the given end points over HTTP (POST)
@@ -70,98 +69,98 @@ type ACLogger struct {
 //   the messages
 //defaults: default log levels to store in db if is not specificed by the logged message.
 func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.Duration, defaults []int) Logger {
-    logger := &ACLogger {
-        endpoints: endpoints,
-        buffer: make([]*pm.Message, 0, bufsize),
-        queue: make(chan *pm.Message),
-        defaults: defaults,
-    }
+	logger := &ACLogger{
+		endpoints: endpoints,
+		buffer:    make([]*pm.Message, 0, bufsize),
+		queue:     make(chan *pm.Message),
+		defaults:  defaults,
+	}
 
-    go func() {
-        //autostart logger flusher.
-        for {
-            select {
-            case msg := <- logger.queue:
-                if len(logger.buffer) < cap(logger.buffer) {
-                    logger.buffer = append(logger.buffer, msg)
-                }
+	go func() {
+		//autostart logger flusher.
+		for {
+			select {
+			case msg := <-logger.queue:
+				if len(logger.buffer) < cap(logger.buffer) {
+					logger.buffer = append(logger.buffer, msg)
+				}
 
-                if len(logger.buffer) == cap(logger.buffer) {
-                    //no more buffer space.
-                    logger.flush()
-                }
-            case <- time.After(flushInt):
-                logger.flush()
-            }
-        }
-    } ()
+				if len(logger.buffer) == cap(logger.buffer) {
+					//no more buffer space.
+					logger.flush()
+				}
+			case <-time.After(flushInt):
+				logger.flush()
+			}
+		}
+	}()
 
-    return logger
+	return logger
 }
 
 //Log message
 func (logger *ACLogger) Log(msg *pm.Message) {
-    levels := logger.defaults
-    msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+	levels := logger.defaults
+	msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
 
-    if len(msgLevels) > 0 {
-        levels = msgLevels
-    }
+	if len(msgLevels) > 0 {
+		levels = msgLevels
+	}
 
-    if len(levels) > 0 && !utils.In(levels, msg.Level) {
-        return
-    }
+	if len(levels) > 0 && !utils.In(levels, msg.Level) {
+		return
+	}
 
-    logger.queue <- msg
+	logger.queue <- msg
 }
 
 func (logger *ACLogger) flush() {
-    basket := make([]*pm.Message, len(logger.buffer))
-    copy(basket, logger.buffer)
-    go logger.send(basket)
+	basket := make([]*pm.Message, len(logger.buffer))
+	copy(basket, logger.buffer)
+	go logger.send(basket)
 
-    logger.buffer = logger.buffer[0:0]
+	logger.buffer = logger.buffer[0:0]
 }
 
 func (logger *ACLogger) send(buffer []*pm.Message) {
-    if len(buffer) == 0 {
-        //buffer can be of length zero, when flushed on timer while
-        //no messages are ready.
-        return
-    }
+	if len(buffer) == 0 {
+		//buffer can be of length zero, when flushed on timer while
+		//no messages are ready.
+		return
+	}
 
-    msgs, err := json.Marshal(buffer)
-    if err != nil {
-        log.Println("Failed to serialize the logs")
-        return
-    }
+	msgs, err := json.Marshal(buffer)
+	if err != nil {
+		log.Println("Failed to serialize the logs")
+		return
+	}
 
-    reader := bytes.NewReader(msgs)
-    for endpoint, client := range logger.endpoints {
-        resp, err := client.Post(endpoint, "application/json", reader)
-        if err != nil {
-            log.Println("Failed to send log batch to AC", endpoint, err)
-            continue
-        }
-        defer resp.Body.Close()
-    }
+	reader := bytes.NewReader(msgs)
+	for endpoint, client := range logger.endpoints {
+		resp, err := client.Post(endpoint, "application/json", reader)
+		if err != nil {
+			log.Println("Failed to send log batch to AC", endpoint, err)
+			continue
+		}
+		defer resp.Body.Close()
+	}
 }
 
 type ConsoleLogger struct {
-    defaults []int
+	defaults []int
 }
 
 //Simple console logger that prints log messages to Console.
 func NewConsoleLogger(defaults []int) Logger {
-    return &ConsoleLogger{
-        defaults: defaults,
-    }
+	return &ConsoleLogger{
+		defaults: defaults,
+	}
 }
 
 func (logger *ConsoleLogger) Log(msg *pm.Message) {
-    if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
-        return
-    }
+	if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
+		return
+	}
 
-    log.Println(msg)
+	log.Println(msg)
 }
