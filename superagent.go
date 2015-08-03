@@ -8,7 +8,7 @@ import (
     "github.com/Jumpscale/jsagent/agent/lib/utils"
     "github.com/Jumpscale/jsagent/agent/lib/builtin"
     "github.com/shirou/gopsutil/process"
-    hubble "git.aydo.com/0-complexity/hubble/agent"
+    hubble "github.com/Jumpscale/hubble/agent"
     "time"
     "encoding/json"
     "net"
