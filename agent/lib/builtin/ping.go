@@ -13,15 +13,10 @@ func init() {
 }
 
 func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := &pm.JobResult{
-		Id:    cmd.Id,
-		Gid:   cmd.Gid,
-		Nid:   cmd.Nid,
-		Args:  cmd.Args,
-		State: "SUCCESS",
-		Level: pm.L_RESULT_JSON,
-		Data:  `"pong"`,
-	}
+	result := pm.NewBasicJobResult(cmd)
+	result.Level = pm.L_RESULT_JSON
+	result.State = pm.S_SUCCESS
+	result.Data = `"pong"`
 
 	return result
 }
