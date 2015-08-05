@@ -49,6 +49,9 @@ func LoadCmd(str []byte) (*Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cmd.Args == nil || cmd.Args.data == nil {
+		cmd.Args = NewMapArgs(map[string]interface{}{})
+	}
 
 	return cmd, err
 }

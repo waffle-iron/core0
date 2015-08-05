@@ -593,6 +593,10 @@ func main() {
 	//handle process results
 	mgr.AddResultHandler(func(result *pm.JobResult) {
 		//send result to AC.
+		//NOTE: we always force the real gid and nid on the result.
+		result.Gid = settings.Main.Gid
+		result.Nid = settings.Main.Nid
+
 		res, _ := json.Marshal(result)
 		controller := controllers[result.Args.GetTag()]
 
