@@ -224,7 +224,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 			return result
 		}
 
-		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, tunnelData.IP, tunnelData.Remote)
+		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
 		err = agent.AddTunnel(tunnel)
 
 		if err != nil {
@@ -262,7 +262,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 			return result
 		}
 
-		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, tunnelData.IP, tunnelData.Remote)
+		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
 		agent.RemoveTunnel(tunnel)
 
 		result.State = pm.S_SUCCESS
