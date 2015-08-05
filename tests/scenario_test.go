@@ -69,13 +69,12 @@ func TestMain(m *testing.M) {
 	agentPath := path.Join(goPath, "bin", "jsagent")
 	controllerPath := path.Join(goPath, "bin", "jsagentcontroller")
 
-	log.Println(controllerPath)
 	{
 		//build controller
 		log.Println("Building agent controller")
 		cmd := exec.Command("go", "install", "github.com/Jumpscale/jsagentcontroller")
 		if err := cmd.Run(); err != nil {
-			log.Println(err)
+			log.Fatal("Failed to buld controller", err)
 		}
 	}
 
@@ -84,7 +83,7 @@ func TestMain(m *testing.M) {
 		log.Println("Building agent")
 		cmd := exec.Command("go", "install", "github.com/Jumpscale/jsagent")
 		if err := cmd.Run(); err != nil {
-			log.Println(err)
+			log.Fatal("Failed to build agent", err)
 		}
 	}
 
