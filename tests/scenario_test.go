@@ -440,3 +440,73 @@ func TestRolesDistributedSingleGrid(t *testing.T) {
 	}
 
 }
+
+func TestPortForwarding(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+
+	gid := 1
+	cmd := &client.Command{
+		Id:   "max-time",
+		Gid:  gid,
+		Nid:  1,
+		Cmd:  "hubble_open_tunnel",
+		Data: `{"local": 9979, "gateway": "2.1", "ip": "127.0.0.1", "remote": 6379}`,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := ref.Result(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.State != "SUCCESS" {
+		t.Fatal("Failed to open tunnel", result.Data)
+	}
+
+	//create test clt on new open port
+	tunnel_clt := client.New("localhost:9979", "")
+
+	ping := &client.Command{
+		Id:   "tunnel-ping",
+		Cmd:  "ping",
+		Role: "cpu",
+	}
+
+	pref, err := tunnel_clt.Run(ping)
+	if err != nil {
+		t.Fatal("Failed to send command over tunneled connection")
+	}
+
+	pong, err := pref.Result(10)
+	if err != nil {
+		t.Fatal("Failed to retrieve result over tunneled connection")
+	}
+
+	if pong.State != "SUCCESS" {
+		t.Fatal("Failed to ping/pong over tunneled connection")
+	}
+
+	//Closing the tunnel
+	cmd = &client.Command{
+		Id:   "max-time",
+		Gid:  gid,
+		Nid:  1,
+		Cmd:  "hubble_close_tunnel",
+		Data: `{"local": 9979, "gateway": "2.1", "ip": "127.0.0.1", "remote": 6379}`,
+	}
+
+	_, err = clt.Run(cmd)
+	if err != nil {
+		t.Fatal("Failed to close the tunnel")
+	}
+
+	//try using the tunnel clt
+	_, err = tunnel_clt.Run(ping)
+	if err == nil {
+		t.Fatal("Expected an error, instead got success")
+	}
+}
