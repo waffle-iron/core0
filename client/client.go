@@ -102,9 +102,6 @@ func (args RunArgs) Args() []string {
 	return args[ARG_CMD_ARGS].([]string)
 }
 
-
-
-
 func (args RunArgs) Queue() string {
 	return args[ARG_QUEUE].(string)
 }
