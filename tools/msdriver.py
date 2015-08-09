@@ -1,3 +1,12 @@
+# This test drivee script will do the following:
+# 1- Create a master machine on ms1 with jumpscale and use this machine to build both
+#    jsagent and jsagentcontroller and run the go tests
+# 2- If passed, first step it will run an agent-controller on the master machine
+# 3- It will create 3 more machines on ms1 and install the jsagent (using ays) on the
+#    3 machines, giving them Node-Ids from 1, to 3
+# 4- Run a simply get_os_info querey on the 3 agents, and make sure that the 3 of them are
+#    alive and responding with the corrent data
+
 from JumpScale import j
 
 from fabric.context_managers import shell_env
@@ -109,3 +118,23 @@ for i in range(3):
     agent = j.atyourservice.new(name='superagent', parent=vmAgent, args=data)
     agent.consume('node', vmAgent.instance)
     agent.install(deps=True)
+
+# get ssh client to the VM
+cl = vmMaster.actions._getSSHClient(vmMaster)
+
+# test setup.
+script = """
+from JumpScale import j
+import json
+
+client = j.clients.ac.get(port=6379)
+
+for i in range(3):
+    nid = i + 1
+
+    osinfo = client.get_os_info(1, nid)
+    assert osinfo['hostname'] == 'superagent-%s' % nid, 'Invalid os response from agent'
+"""
+
+cl.file_write('/root/test.py', script)
+cl.run('jspython /root/test.py')
