@@ -445,7 +445,7 @@ func TestPortForwarding(t *testing.T) {
 
 	gid := 1
 	cmd := &client.Command{
-		Id:   "max-time",
+		Id:   "port-forward-open",
 		Gid:  gid,
 		Nid:  1,
 		Cmd:  "hubble_open_tunnel",
@@ -491,7 +491,7 @@ func TestPortForwarding(t *testing.T) {
 
 	//Closing the tunnel
 	cmd = &client.Command{
-		Id:   "max-time",
+		Id:   "port-forward-close",
 		Gid:  gid,
 		Nid:  1,
 		Cmd:  "hubble_close_tunnel",
