@@ -498,14 +498,15 @@ func TestPortForwarding(t *testing.T) {
 		Data: `{"local": 9979, "gateway": "2.1", "ip": "127.0.0.1", "remote": 6379}`,
 	}
 
-	_, err = clt.Run(cmd)
-	if err != nil {
+	if ref, err := clt.Run(cmd); err == nil {
+		ref.Result(10)
+	} else {
 		t.Fatal("Failed to close the tunnel")
 	}
 
 	//try using the tunnel clt
-	_, err = tunnel_clt.Run(ping)
-	if err == nil {
+	if ref, err := tunnel_clt.Run(ping); err == nil {
+		ref.Result(10)
 		t.Fatal("Expected an error, instead got success")
 	}
 }
