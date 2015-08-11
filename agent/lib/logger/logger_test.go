@@ -215,8 +215,9 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 	//wait until proxy is ready before starting agents.
 	wg.Wait()
 
-	logger := NewACLogger([]string{"http://localhost:1234/logs"}, 2,
-		60*time.Minute, []int{1, 2})
+	logger := NewACLogger(map[string]*http.Client{
+		"http://localhost:1234/logs": &http.Client{},
+	}, 2, 60*time.Minute, []int{1, 2})
 
 	message1 := "Hello world"
 
@@ -289,8 +290,9 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 	//wait until proxy is ready before starting agents.
 	wg.Wait()
 
-	logger := NewACLogger([]string{"http://localhost:1236/logs"}, 100,
-		5*time.Second, []int{1, 2})
+	logger := NewACLogger(map[string]*http.Client{
+		"http://localhost:1236/logs": &http.Client{},
+	}, 100, 5*time.Second, []int{1, 2})
 
 	message1 := "Hello world"
 
