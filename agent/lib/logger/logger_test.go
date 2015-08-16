@@ -2,7 +2,7 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/jsagent/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"io/ioutil"
 	"net"
 	"net/http"

@@ -3,7 +3,7 @@ package builtin
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/jsagent/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm"
 )
 
 const (

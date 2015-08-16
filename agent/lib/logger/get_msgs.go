@@ -3,7 +3,7 @@ package logger
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Jumpscale/jsagent/agent/lib/utils"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
 	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"log"

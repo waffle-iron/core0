@@ -3,7 +3,7 @@ package pm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/jsagent/agent/lib/utils"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/shirou/gopsutil/process"
 	"log"
 	"os/exec"

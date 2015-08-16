@@ -2,8 +2,8 @@ package agent
 
 import (
 	"fmt"
-	"github.com/Jumpscale/jsagent/agent/lib/utils"
-	"github.com/Jumpscale/jsagent/client"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/Jumpscale/agent2/client"
 	"io/ioutil"
 	"log"
 	"os"
@@ -66,13 +66,13 @@ var AGENT_ROLES = map[int]string{
 func TestMain(m *testing.M) {
 	//start ac, and 2 agents.
 	goPath := os.Getenv("GOPATH")
-	agentPath := path.Join(goPath, "bin", "jsagent")
-	controllerPath := path.Join(goPath, "bin", "jsagentcontroller")
+	agentPath := path.Join(goPath, "bin", "agent2")
+	controllerPath := path.Join(goPath, "bin", "agentcontroller2")
 
 	{
 		//build controller
 		log.Println("Building agent controller")
-		cmd := exec.Command("go", "install", "github.com/Jumpscale/jsagentcontroller")
+		cmd := exec.Command("go", "install", "github.com/Jumpscale/agentcontroller2")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Failed to buld controller", err)
 		}
@@ -81,7 +81,7 @@ func TestMain(m *testing.M) {
 	{
 		//build agent
 		log.Println("Building agent")
-		cmd := exec.Command("go", "install", "github.com/Jumpscale/jsagent")
+		cmd := exec.Command("go", "install", "github.com/Jumpscale/agent2")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Failed to build agent", err)
 		}
