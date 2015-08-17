@@ -1,12 +1,15 @@
 import utils
-import imp
 import os
+import imp
+
 
 def wrapper(data):
-    path = '{js_domain}/{js_name}.py'.format(**data)
-    data.pop('js_domain')
-    data.pop('js_name')
+    jspath = os.environ.get('JUMPSCRIPTS_HOME')
+    if jspath is None:
+        raise RuntimeError('Missconfigured, no jspath define')
+
+    path = os.path.join(jspath, data['domain'], '%s.py' % data['name'])
     module = imp.load_source(path, path)
-    return module.action(**data)
+    return module.action(**data['args'])
 
 utils.run(wrapper)

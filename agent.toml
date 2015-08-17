@@ -45,6 +45,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     script = "wrapper.py"
         [cmds.legacy.env]
         PYTHONPATH = "../:/opt/jumpscale7/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/legacy/"
 
 [logging]
     [logging.db]
