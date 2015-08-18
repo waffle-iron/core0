@@ -2,6 +2,8 @@ import os
 import utils
 import requests
 import json
+import time
+import logging
 
 import _sync as sync
 
@@ -23,9 +25,20 @@ def sync_folder(data):
 
     config_url = sync.get_url(sync.ENDPOINT_CONFIG)
 
-    response = sessions.get(config_url)
-    if not response.ok:
-        raise Exception('Invalid response from syncthing: %s' % response.reason)
+    _errors = 0
+    while True:
+        try:
+            response = sessions.get(config_url)
+            if not response.ok:
+                raise Exception('Invalid response from syncthing: %s' % response.reason)
+            else:
+                break
+        except:
+            _errors += 1
+            if _errors >= 3:
+                raise
+            logging.info('Error retreiving syncthing config, retrying in 3 seconds')
+            time.sleep(3)
 
     config = response.json()
 
