@@ -37,8 +37,9 @@ def sync_folder(data):
             _errors += 1
             if _errors >= 3:
                 raise
-            logging.info('Error retreiving syncthing config, retrying in 3 seconds')
-            time.sleep(3)
+            seconds = 3 * _errors
+            logging.info('Error retreiving syncthing config, retrying in %s seconds', seconds)
+            time.sleep(seconds)
 
     config = response.json()
 
