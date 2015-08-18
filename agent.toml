@@ -35,7 +35,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     script = "{name}.py"
         [cmds.sync.env]
         PYTHONPATH = "../"
-        JUMPSCRIPTS_HOME = "../../jumpscripts/"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
         SYNCTHING_URL = "http://localhost:28384"
 
 
@@ -45,7 +45,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     script = "wrapper.py"
         [cmds.legacy.env]
         PYTHONPATH = "../:/opt/jumpscale7/lib"
-        JUMPSCRIPTS_HOME = "../../legacy/"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
 
 [logging]
     [logging.db]
