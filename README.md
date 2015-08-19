@@ -1,2 +1,2 @@
 #Agent 2
-Please check the wiki for intensive documentation [wiki](https://github.com/Jumpscale/agent2/wiki)
+Please check the [wiki](https://github.com/Jumpscale/agent2/wiki) for intensive documentation.
