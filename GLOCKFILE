@@ -1,0 +1,9 @@
+code.google.com/p/go-uuid 35bc42037350
+github.com/Jumpscale/hubble 6d6110ee441de060c5fd08bfe353671c0ae82c9e
+github.com/garyburd/redigo 8b1d80a45a732e6d95e22dcc2e067312c664936c
+github.com/gorilla/websocket ecff5aabe41f13b4cdf897e3c0c9bbccbe552a29
+github.com/mattn/go-sqlite3 542ae647f8601bafd96233961b150cae198e0295
+github.com/naoina/go-stringutil 360db0db4b01d34e12a2ec042c09e7d37fece761
+github.com/naoina/toml 5667c316ee9576e9d5bca793ce4ec813a88ce7d3
+github.com/shirou/gopsutil 0921e1f1536769f17ff188a253294adcbc4e2c03
+github.com/ugorji/go 3bf34b310f3f1eef0e3981ddf6f6c79e2b907b02
