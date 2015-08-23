@@ -2,10 +2,15 @@ package client
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 )
+
+type Timeout string
+
+func (t Timeout) Error() string {
+	return "Timedout"
+}
 
 const (
 	ARG_DOMAIN           = "domain"
@@ -17,6 +22,8 @@ const (
 	ARG_CMD_ARGS         = "args"
 	ARG_QUEUE            = "queue"
 )
+
+var TIMEOUT Timeout
 
 type Result struct {
 	Id        string `json:"id"`
@@ -31,13 +38,14 @@ type Result struct {
 }
 
 type Command struct {
-	Id   string  `json:"id"`
-	Gid  int     `json:"gid"`
-	Nid  int     `json:"nid"`
-	Cmd  string  `json:"cmd"`
-	Args RunArgs `json:"args"`
-	Data string  `json:"data"`
-	Role string  `json:"role"`
+	Id     string  `json:"id"`
+	Gid    int     `json:"gid"`
+	Nid    int     `json:"nid"`
+	Cmd    string  `json:"cmd"`
+	Args   RunArgs `json:"args"`
+	Data   string  `json:"data"`
+	Role   string  `json:"role"`
+	Fanout bool    `json:"fanout"`
 }
 
 type CommandReference struct {
@@ -171,7 +179,7 @@ func (client *clientImpl) Result(ref *CommandReference, timeout int) (*Result, e
 	}
 
 	if data == nil {
-		return nil, errors.New("Timedout waiting for response")
+		return nil, TIMEOUT
 	}
 
 	payload := data.([]interface{})[1]

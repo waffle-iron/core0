@@ -237,6 +237,10 @@ func TestParallelExecution(t *testing.T) {
 }
 
 func TestSerialExecution(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
@@ -309,6 +313,10 @@ func TestWrongCmd(t *testing.T) {
 }
 
 func TestMaxTime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
@@ -438,6 +446,118 @@ func TestRolesDistributedSingleGrid(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRoleFanout(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+
+	counter := make(map[int]bool)
+
+	cmd := &client.Command{
+		Id:     "test-ping-fanout",
+		Gid:    0,
+		Nid:    0,
+		Cmd:    "ping",
+		Role:   "cpu",
+		Fanout: true,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//expecting NUM_AGENT results
+	for i := 0; i < NUM_AGENT; i++ {
+		result, err := ref.Result(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result != nil {
+			counter[result.Gid] = true
+		}
+	}
+
+	if len(counter) != 2 {
+		t.Fatal("Fanout execution didn't distribute the tasks as expected", len(counter))
+	}
+
+	log.Println("Role CPU counters", counter)
+}
+
+func TestRoleFanoutAll(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+
+	counter := make(map[int]bool)
+
+	cmd := &client.Command{
+		Id:     "test-ping-all",
+		Gid:    0,
+		Nid:    0,
+		Cmd:    "ping",
+		Role:   "*",
+		Fanout: true,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//expecting NUM_AGENT results
+	for i := 0; i < NUM_AGENT; i++ {
+		result, err := ref.Result(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result != nil {
+			counter[result.Gid] = true
+		}
+	}
+
+	if len(counter) != 2 {
+		t.Fatal("Fanout execution didn't distribute the tasks as expected", len(counter))
+	}
+
+	log.Println("Role CPU counters", counter)
+}
+
+func TestRoleFanoutSingle(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+
+	counter := make(map[int]bool)
+
+	cmd := &client.Command{
+		Id:     "test-ping-fanout-single",
+		Gid:    0,
+		Nid:    0,
+		Cmd:    "ping",
+		Role:   "storage",
+		Fanout: true,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//expecting NUM_AGENT results
+	for i := 0; i < NUM_AGENT; i++ {
+		result, err := ref.Result(1)
+		if err != nil && err != client.TIMEOUT {
+			t.Fatal(err)
+		}
+		if result != nil {
+			counter[result.Gid] = true
+		}
+
+	}
+
+	if len(counter) != 1 {
+		t.Fatal("Fanout execution didn't distribute the tasks as expected")
+	}
+
+	log.Println("Role CPU counters", counter)
 }
 
 func TestPortForwarding(t *testing.T) {
