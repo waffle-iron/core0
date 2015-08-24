@@ -3,6 +3,8 @@ package pm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"log"
 )
 
 // type Args interface {
@@ -110,6 +112,7 @@ func (args *MapArgs) GetStringArray(key string) []string {
 		for i, v := range t {
 			values[i] = fmt.Sprintf("%v", v)
 		}
+		args.data[key] = values
 		return values
 	}
 
@@ -130,6 +133,16 @@ func (args *MapArgs) GetIntArray(key string) []int {
 		for i, v := range t {
 			values[i] = args.ensureInt(v)
 		}
+		args.data[key] = values
+		return values
+	case string:
+		//requires expansion.
+		values, err := utils.Expand(t)
+		if err != nil {
+			log.Println("Invalid array string", t)
+			return []int{}
+		}
+		args.data[key] = values
 		return values
 	}
 
