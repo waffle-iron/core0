@@ -7,6 +7,7 @@ import imp
 import sys
 import logging
 import struct
+import resource
 
 
 class Connection(object):
@@ -64,6 +65,18 @@ class WrapperThread(threading.Thread):
 
 
 def daemon(unix_sock_path):
+    # socket is ready, now do the daemon forking
+    pid = os.fork()
+    if pid > 0:
+        # parent.
+        os.waitpid(pid, os.P_WAIT)
+        return
+
+    os.setsid()
+    os.umask(0)
+
+    os.closerange(0, resource.RLIMIT_NOFILE)
+
     sock = socket.socket(socket.AF_UNIX)
     try:
         os.unlink(unix_sock_path)
@@ -74,15 +87,6 @@ def daemon(unix_sock_path):
     sock.bind(unix_sock_path)
     sock.listen(10)
 
-    # socket is ready, now do the daemon forking
-    pid = os.fork()
-    if pid > 0:
-        # parent.
-        os.wait()
-        return
-
-    os.setsid()
-    os.umask(0)
     logging.basicConfig(filename='/var/log/legacy.log', level=logging.INFO)
     # double fork to avoid zombies
     logging.info('Starting executor daemon')
