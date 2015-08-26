@@ -70,4 +70,3 @@ controllers = [] # empty for all controllers, or controllers keys
 
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
-
