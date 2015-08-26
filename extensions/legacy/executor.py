@@ -1,57 +1,27 @@
 import os
 import threading
-import cPickle as pickle
-import socket
-import errno
 import imp
 import sys
 import logging
-import struct
 import resource
+import signal
+
+from multiprocessing import Process, connection
+
+LOG_FORMAT = '%(asctime)-15s [%(process)d] %(levelname)s: %(message)s'
 
 
-class Connection(object):
-    HEADER_FMT = '@i'
-    HEADER_SIZE = struct.calcsize(HEADER_FMT)
-
-    def __init__(self, sock):
-        self.sock = sock
-
-    def _recv_size(self, size):
-        data = ''
-        while len(data) < size:
-            data += self.sock.recv(size - len(data))
-
-        return data
-
-    def receive(self):
-        header = self._recv_size(self.HEADER_SIZE)
-        size = struct.unpack(self.HEADER_FMT, header)[0]
-
-        raw_data = self._recv_size(size)
-        return pickle.loads(raw_data)
-
-    def send(self, message):
-        data = pickle.dumps(message)
-        header = struct.pack(self.HEADER_FMT, len(data))
-        self.sock.sendall(header)
-        self.sock.sendall(data)
-
-    def close(self):
-        self.sock.close()
-
-
-class WrapperThread(threading.Thread):
+class WrapperThread(Process):
     def __init__(self, con):
         self.con = con
         super(WrapperThread, self).__init__()
 
     def run(self):
         try:
-            data = self.con.receive()
+            data = self.con.recv()
             jspath = os.environ.get('JUMPSCRIPTS_HOME')
             path = os.path.join(jspath, data['domain'], '%s.py' % data['name'])
-            logging.info('Executing jumpscript %s' % path)
+            logging.info('Executing jumpscript: %s' % data)
 
             module = imp.load_source(path, path)
             result = module.action(**data['args'])
@@ -72,24 +42,9 @@ def daemon(unix_sock_path):
         os.waitpid(pid, os.P_WAIT)
         return
 
+    os.closerange(0, resource.RLIMIT_NOFILE)
     os.setsid()
     os.umask(0)
-
-    os.closerange(0, resource.RLIMIT_NOFILE)
-
-    sock = socket.socket(socket.AF_UNIX)
-    try:
-        os.unlink(unix_sock_path)
-    except OSError, e:
-        if e.errno != errno.ENOENT:
-            raise
-
-    sock.bind(unix_sock_path)
-    sock.listen(10)
-
-    logging.basicConfig(filename='/var/log/legacy.log', level=logging.INFO)
-    # double fork to avoid zombies
-    logging.info('Starting executor daemon')
 
     try:
         pid = os.fork()
@@ -100,9 +55,41 @@ def daemon(unix_sock_path):
         logging.error(e)
         sys.exit(1)
 
+    logging.basicConfig(filename='/var/log/legacy.log',
+                        format=LOG_FORMAT,
+                        level=logging.INFO)
+    try:
+        os.unlink(unix_sock_path)
+    except:
+        pass
+
+    logging.info('Starting daemon')
+    try:
+        listner = connection.Listener(address=unix_sock_path)
+
+    except Exception, e:
+        logging.error('Could not start listening: %s' % e)
+
+    def exit(n, f):
+        logging.info('Stopping daemon')
+        listner.close()
+        sys.exit(1)
+
+    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
+        signal.signal(s, exit)
+
     # importing jumpscale
     from JumpScale import j # NOQA
 
     while True:
-        s = sock.accept()[0]
-        WrapperThread(Connection(s)).start()
+        try:
+            c = listner.accept()
+            p = WrapperThread(c)
+            p.start()
+            # We need this (p.join) to avoid having zombi processes
+            # But we wait in a thread for the subporcess to exit to avoid
+            # blokcing the main loop.
+            threading.Thread(target=p.join).start()
+
+        except Exception, e:
+            logging.error(e)
