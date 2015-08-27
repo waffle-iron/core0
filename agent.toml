@@ -34,7 +34,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/sync"
     script = "{name}.py"
         [cmds.sync.env]
-        PYTHONPATH = "../"
+        PYTHONPATH = "../:/opt/jumpscale7/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
         SYNCTHING_URL = "http://localhost:28384"
 
