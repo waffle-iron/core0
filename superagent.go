@@ -528,16 +528,16 @@ func main() {
 	})
 
 	//register the execute commands
-	for cmdKey, cmdCfg := range settings.Cmds {
+	for extKey, extCfg := range settings.Extensions {
 		var env []string
-		if len(cmdCfg.Env) > 0 {
-			env = make([]string, 0, len(cmdCfg.Env))
-			for ek, ev := range cmdCfg.Env {
+		if len(extCfg.Env) > 0 {
+			env = make([]string, 0, len(extCfg.Env))
+			for ek, ev := range extCfg.Env {
 				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
 			}
 		}
 
-		pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, env)
+		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Script, extCfg.Args, env)
 	}
 
 	registerHubbleFunctions(controllers, &settings)

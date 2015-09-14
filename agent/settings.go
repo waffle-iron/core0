@@ -18,7 +18,7 @@ type Logger struct {
 }
 
 //external cmd config
-type Cmd struct {
+type Extension struct {
 	//binary to execute
 	Binary string
 	//script search path
@@ -27,6 +27,8 @@ type Cmd struct {
 	Script string
 	//(optional) Env variables
 	Env map[string]string
+
+	Args []string
 }
 
 type Security struct {
@@ -59,7 +61,7 @@ type Settings struct {
 
 	Controllers map[string]Controller
 
-	Cmds map[string]Cmd
+	Extensions map[string]Extension
 
 	Logging map[string]Logger
 

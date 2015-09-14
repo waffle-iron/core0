@@ -36,20 +36,32 @@ type JsScriptProcess struct {
 //workdir: working directory of script
 //scriptname: if scriptname != "", execute that specific script, otherwise use args[name]
 //  scriptname can have {<arg-key>} pattern that will be replaced with the value before execution
-func extScript(exe string, workdir string, scriptname string, env []string) ProcessConstructor {
+func extScript(exe string, workdir string, scriptname string, cmdargs []string, env []string) ProcessConstructor {
 	//create a new execute process with python2.7 or lua as executors.
 	constructor := func(cmd *Cmd) Process {
 		args := cmd.Args.Clone(false)
 		var script string
 
 		if scriptname != "" {
-			script = utils.Format(scriptname, cmd.Args.Data())
+			script = scriptname
 		} else {
 			script = cmd.Args.GetString("name")
 		}
 
 		args.Set("name", exe)
-		args.Set("args", []string{script})
+
+		final_args := make([]string, 0, 1)
+		if script != "" {
+			final_args = append(final_args, script)
+		}
+
+		final_args = append(final_args, cmdargs...)
+
+		for i, arg := range final_args {
+			final_args[i] = utils.Format(arg, cmd.Args.Data())
+		}
+
+		args.Set("args", final_args)
 		if len(env) > 0 {
 			args.Set("env", env)
 		}
@@ -118,6 +130,6 @@ func (ps *JsScriptProcess) GetStats() *ProcessStats {
 //workdir: working directory
 //script: script name
 //if script == "", then script name will be used from cmd.Args.
-func RegisterCmd(cmd string, exe string, workdir string, script string, env []string) {
-	CMD_MAP[cmd] = extScript(exe, workdir, script, env)
+func RegisterCmd(cmd string, exe string, workdir string, script string, cmdargs []string, env []string) {
+	CMD_MAP[cmd] = extScript(exe, workdir, script, cmdargs, env)
 }

@@ -24,7 +24,7 @@ class WrapperThread(Process):
             logging.info('Executing jumpscript: %s' % data)
 
             module = imp.load_source(path, path)
-            result = module.action(**data['args'])
+            result = module.action(data['data'])
 
             self.con.send(result)
         except Exception, e:
@@ -44,7 +44,7 @@ def daemon(data):
     except:
         pass
 
-    logging.basicConfig(filename='/var/log/legacy-daemon.log',
+    logging.basicConfig(filename='/var/log/jumpscript-daemon.log',
                         format=LOG_FORMAT,
                         level=logging.INFO)
 
