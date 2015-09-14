@@ -6,6 +6,7 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/shirou/gopsutil/process"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -136,7 +137,9 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	cmd := exec.Command(args.GetString("name"),
 		args.GetStringArray("args")...)
 	cmd.Dir = args.GetString("working_dir")
-	env := args.GetStringArray("env")
+
+	env := append(args.GetStringArray("env"),
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 
 	if len(env) > 0 {
 		cmd.Env = env
@@ -262,7 +265,7 @@ loop:
 
 	endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
 
-	if endtime-starttime < 300*time.Millisecond {
+	if endtime-starttime > 300*time.Millisecond {
 		//if process lived for more than 5 min before it dies, reset the runs
 		//this means that only the max_restart count will be reached if the
 		//process kept failing under the 5 min limit.
@@ -277,6 +280,7 @@ loop:
 		if ps.runs < args.GetInt("max_restart") {
 			log.Println("Restarting ...")
 			restarting = true
+			time.Sleep(1 * time.Second)
 			go ps.Run(cfg)
 		} else {
 			log.Println("Not restarting")

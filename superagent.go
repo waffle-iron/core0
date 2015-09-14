@@ -500,6 +500,71 @@ func main() {
 		}
 	})
 
+	//handle process results
+	mgr.AddResultHandler(func(result *pm.JobResult) {
+		//send result to AC.
+		//NOTE: we always force the real gid and nid on the result.
+		result.Gid = settings.Main.Gid
+		result.Nid = settings.Main.Nid
+
+		res, _ := json.Marshal(result)
+		controller, ok := controllers[result.Args.GetTag()]
+
+		if !ok {
+			//command isn't bind to any controller. This can be a startup command.
+			log.Printf("Got orphan result: %s", res)
+			return
+		}
+
+		url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "result")
+
+		reader := bytes.NewBuffer(res)
+		resp, err := controller.Client.Post(url, "application/json", reader)
+		if err != nil {
+			log.Println("Failed to send job result to AC", url, err)
+			return
+		}
+		resp.Body.Close()
+	})
+
+	//register the execute commands
+	for cmdKey, cmdCfg := range settings.Cmds {
+		var env []string
+		if len(cmdCfg.Env) > 0 {
+			env = make([]string, 0, len(cmdCfg.Env))
+			for ek, ev := range cmdCfg.Env {
+				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
+			}
+		}
+
+		pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, env)
+	}
+
+	registerHubbleFunctions(controllers, &settings)
+	//start process mgr.
+	mgr.Run()
+	//System is ready to receive commands.
+	//before start polling on commands, lets run our startup commands
+	//from settings
+	for id, startup := range settings.Startup {
+		if startup.Args == nil {
+			startup.Args = make(map[string]interface{})
+		}
+
+		cmd := &pm.Cmd{
+			Id:   id,
+			Name: startup.Name,
+			Args: pm.NewMapArgs(startup.Args),
+		}
+
+		meterInt := cmd.Args.GetInt("stats_interval")
+		if meterInt == 0 {
+			cmd.Args.Set("stats_interval", settings.Stats.Interval)
+		}
+
+		mgr.RunCmd(cmd)
+	}
+
 	var pollKeys []string
 	if len(settings.Channel.Cmds) > 0 {
 		pollKeys = settings.Channel.Cmds
@@ -589,45 +654,6 @@ func main() {
 			}
 		}()
 	}
-
-	//handle process results
-	mgr.AddResultHandler(func(result *pm.JobResult) {
-		//send result to AC.
-		//NOTE: we always force the real gid and nid on the result.
-		result.Gid = settings.Main.Gid
-		result.Nid = settings.Main.Nid
-
-		res, _ := json.Marshal(result)
-		controller := controllers[result.Args.GetTag()]
-
-		url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "result")
-
-		reader := bytes.NewBuffer(res)
-		resp, err := controller.Client.Post(url, "application/json", reader)
-		if err != nil {
-			log.Println("Failed to send job result to AC", url, err)
-			return
-		}
-		resp.Body.Close()
-	})
-
-	//register the execute commands
-	for cmdKey, cmdCfg := range settings.Cmds {
-		var env []string
-		if len(cmdCfg.Env) > 0 {
-			env = make([]string, 0, len(cmdCfg.Env))
-			for ek, ev := range cmdCfg.Env {
-				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
-			}
-		}
-
-		pm.RegisterCmd(cmdKey, cmdCfg.Binary, cmdCfg.Cwd, cmdCfg.Script, env)
-	}
-
-	registerHubbleFunctions(controllers, &settings)
-	//start process mgr.
-	mgr.Run()
-	//System is ready to receive commands.
 
 	//rerun history (rerun persisted processes)
 	for i := 0; i < len(history); i++ {

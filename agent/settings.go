@@ -40,6 +40,12 @@ type Controller struct {
 	Security Security
 }
 
+type StartupCmd struct {
+	Name string
+	Data string
+	Args map[string]interface{}
+}
+
 //main agent settings
 type Settings struct {
 	Main struct {
@@ -69,4 +75,6 @@ type Settings struct {
 	Hubble struct {
 		Controllers []string
 	}
+
+	Startup map[string]StartupCmd
 }
