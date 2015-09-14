@@ -3,8 +3,8 @@ import threading
 import imp
 import sys
 import logging
-import resource
 import signal
+import utils
 
 from multiprocessing import Process, connection
 
@@ -34,34 +34,19 @@ class WrapperThread(Process):
             self.con.close()
 
 
-def daemon(unix_sock_path):
-    # socket is ready, now do the daemon forking
-    pid = os.fork()
-    if pid > 0:
-        # parent.
-        os.waitpid(pid, os.P_WAIT)
-        return
+def daemon(data):
+    assert 'SOCKET' in os.environ, 'SOCKET env var is not set'
+    assert 'JUMPSCRIPTS_HOME' in os.environ, 'JUMPSCRIPTS_HOME env var is not set'
 
-    os.closerange(0, resource.RLIMIT_NOFILE)
-    os.setsid()
-    os.umask(0)
-
-    try:
-        pid = os.fork()
-        if pid > 0:
-            # parent
-            sys.exit(0)
-    except OSError, e:
-        logging.error(e)
-        sys.exit(1)
-
-    logging.basicConfig(filename='/var/log/legacy.log',
-                        format=LOG_FORMAT,
-                        level=logging.INFO)
+    unix_sock_path = os.environ.get('SOCKET')
     try:
         os.unlink(unix_sock_path)
     except:
         pass
+
+    logging.basicConfig(filename='/var/log/legacy.log',
+                        format=LOG_FORMAT,
+                        level=logging.INFO)
 
     logging.info('Starting daemon')
     try:
@@ -93,3 +78,5 @@ def daemon(unix_sock_path):
 
         except Exception, e:
             logging.error(e)
+
+utils.run(daemon)

@@ -44,6 +44,18 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/legacy"
     script = "wrapper.py"
         [cmds.legacy.env]
+        SOCKET = "/tmp/legacy.sock"
+        PYTHONPATH = "../:/opt/jumpscale7/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
+
+    #Internal command for legacy. Will be called
+    #by the agent startup.
+    [cmds.__legacy_daemon]
+    binary = "python2.7"
+    cwd = "./extensions/legacy"
+    script = "executor.py"
+        [cmds.__legacy_daemon.env]
+        SOCKET = "/tmp/legacy.sock"
         PYTHONPATH = "../:/opt/jumpscale7/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
 
@@ -70,3 +82,9 @@ controllers = [] # empty for all controllers, or controllers keys
 
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
+
+[startup]
+    [startup.legacy]
+    name = "__legacy_daemon"
+    [startup.legacy.args]
+    max_restart = 10
