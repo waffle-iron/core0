@@ -578,6 +578,10 @@ func main() {
 		pollQuery.Add("role", role)
 	}
 
+	event, _ := json.Marshal(map[string]string{
+		"name": "startup",
+	})
+
 	//start pollers goroutines
 	for _, key := range pollKeys {
 		go func() {
@@ -589,7 +593,25 @@ func main() {
 
 			client := controller.Client
 
+			sendStartup := true
+
 			for {
+				if sendStartup {
+					//this happens on first loop, or if the connection to the controller was gone and then
+					//restored.
+					reader := bytes.NewBuffer(event)
+
+					url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "event")
+
+					resp, err := controller.Client.Post(url, "application/json", reader)
+					if err != nil {
+						log.Println("Failed to send startup event to AC", url, err)
+					} else {
+						resp.Body.Close()
+						sendStartup = false
+					}
+				}
+
 				url := fmt.Sprintf("%s?%s", buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "cmd"),
 					pollQuery.Encode())
 
@@ -597,6 +619,12 @@ func main() {
 				if err != nil {
 					log.Println("No new commands, retrying ...", controller.URL, err)
 					//HTTP Timeout
+					if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "EOF") {
+						//make sure to send startup even on the next try. In case
+						//agent controller was down or even booted after the agent.
+						sendStartup = true
+					}
+
 					if time.Now().Unix()-lastfail < RECONNECT_SLEEP {
 						time.Sleep(RECONNECT_SLEEP * time.Second)
 					}
@@ -671,22 +699,6 @@ func main() {
 	}
 
 	// send startup event to all agent controllers
-	event, _ := json.Marshal(map[string]string{
-		"name": "startup",
-	})
-
-	for _, controller := range controllers {
-		reader := bytes.NewBuffer(event)
-
-		url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "event")
-
-		resp, err := controller.Client.Post(url, "application/json", reader)
-		if err != nil {
-			log.Println("Failed to send startup event to AC", url, err)
-			continue
-		}
-		resp.Body.Close()
-	}
 
 	//wait
 	select {}
