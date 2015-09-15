@@ -20,13 +20,21 @@ def runner(data):
 
     con.send(exec_data)
 
-    response = con.recv()
+    exception = None
 
-    if isinstance(response, BaseException):
-        raise response
+    while True:
+        msg = con.recv()
+        if isinstance(msg, StopIteration):
+            break
+        elif isinstance(msg, BaseException):
+            exception = msg
+        else:
+            sys.stdout.write(msg)
+            sys.stdout.flush()
+
+    if exception is not None:
+        raise exception
 
     con.close()
-    return response
 
-
-utils.run(runner)
+utils.dryrun(runner)

@@ -44,6 +44,23 @@ def result(data, format='json'):
 
 
 def run(func):
+    """
+    Runs func and then exit with exit code 0. Not this function never returns
+
+    :param func: a function to run with signature `def func(data)`
+    """
+    result(dryrun(func))
+    sys.exit(0)
+
+
+def dryrun(func):
+    """
+    Runs `func` and feeds it stadin as data
+
+    :param func: a function to run with signature `def func(data)`
+
+    :rtype: object
+    """
     rawin = sys.stdin.read()
     rawin = rawin.strip()
 
@@ -51,8 +68,7 @@ def run(func):
     if rawin:
         data = json.loads(rawin)
 
-    result(func(data))
-    sys.exit(0)
+    return func(data)
 
 
 class Lock(object):

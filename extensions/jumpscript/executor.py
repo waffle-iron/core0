@@ -5,8 +5,14 @@ import sys
 import logging
 import signal
 import utils
-
+import json
 from multiprocessing import Process, connection
+
+# importing jumpscale
+from JumpScale import j # NOQA
+
+import logger
+
 
 LOG_FORMAT = '%(asctime)-15s [%(process)d] %(levelname)s: %(message)s'
 
@@ -23,14 +29,18 @@ class WrapperThread(Process):
             path = os.path.join(jspath, data['domain'], '%s.py' % data['name'])
             logging.info('Executing jumpscript: %s' % data)
 
+            j.logger = logger.LogHandler(self.con)
+
             module = imp.load_source(path, path)
             result = module.action(data['data'])
 
-            self.con.send(result)
+            j.logger.log(json.dumps(result), j.logger.RESULT_JSON)
+
         except Exception, e:
             logging.error(e)
             self.con.send(e)
         finally:
+            self.con.send(StopIteration())
             self.con.close()
 
 
@@ -62,9 +72,6 @@ def daemon(data):
 
     for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
         signal.signal(s, exit)
-
-    # importing jumpscale
-    from JumpScale import j # NOQA
 
     while True:
         try:

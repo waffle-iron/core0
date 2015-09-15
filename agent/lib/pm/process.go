@@ -22,6 +22,7 @@ const (
 	L_OPS_ERROR   = 8  // ops error
 	L_CRITICAL    = 9  // critical error
 	L_STATSD      = 10 // statsd message(s) AVG
+	L_DEBUG       = 11 // debug message
 	L_RESULT_JSON = 20 // result message, json
 	L_RESULT_YAML = 21 // result message, yaml
 	L_RESULT_TOML = 22 // result message, toml

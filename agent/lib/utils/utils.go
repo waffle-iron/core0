@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 22, 23, 30}
+var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
 
 func Expand(s string) ([]int, error) {
 	levels := make(map[int]bool)
