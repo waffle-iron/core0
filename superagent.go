@@ -619,7 +619,7 @@ func main() {
 				if err != nil {
 					log.Println("No new commands, retrying ...", controller.URL, err)
 					//HTTP Timeout
-					if strings.Contains(err.Error(), "connection refused") {
+					if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "EOF") {
 						//make sure to send startup even on the next try. In case
 						//agent controller was down or even booted after the agent.
 						sendStartup = true
