@@ -23,6 +23,11 @@ roles = []
 cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
 
 [extensions]
+    [extensions.syncthing]
+    binary = "./syncthing"
+    cwd = "./extensions/syncthing"
+    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
+
     [extensions.sync]
     #syncthing extension
     binary = "python2.7"
@@ -95,6 +100,11 @@ controllers = [] # empty for all controllers, or controllers keys
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
 
 [startup]
+    [startup.syncthing]
+    name = "syncthing"
+        [startup.syncthing.args]
+        loglevels_db = '*'
+
     [startup.legacy]
     name = "__legacy_daemon"
         [startup.legacy.args]

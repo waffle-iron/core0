@@ -112,7 +112,8 @@ for i in range(3):
     data = {
         'instance.agentcontroller': 'http://%s:8966/' % masterIp,
         'instance.gid': 1,
-        'instance.nid': nid
+        'instance.nid': nid,
+        'instance.roles': '',
     }
 
     agent = j.atyourservice.new(name='agent2', parent=vmAgent, args=data)
