@@ -109,9 +109,6 @@ def sync_folder(data):
     if not response.ok:
         raise Exception('Failed to set syncthing configuration', response.reason)
 
-    response = sessions.post(sync.get_url(sync.ENDPOINT_RESTART), headers=headers)
-    if not response.ok:
-        raise Exception('Failed to restart syncthing', sync.get_url(sync.ENDPOINT_RESTART), response.reason)
 
 if __name__ == '__main__':
     utils.run(sync_folder)
