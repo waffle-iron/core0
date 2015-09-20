@@ -57,8 +57,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
 type ACLogger struct {
 	endpoints map[string]*http.Client
-	buffer    []*pm.Message
-	queue     chan *pm.Message
+	buffer    utils.Buffer
 	defaults  []int
 }
 
@@ -71,29 +70,10 @@ type ACLogger struct {
 func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.Duration, defaults []int) Logger {
 	logger := &ACLogger{
 		endpoints: endpoints,
-		buffer:    make([]*pm.Message, 0, bufsize),
-		queue:     make(chan *pm.Message),
 		defaults:  defaults,
 	}
 
-	go func() {
-		//autostart logger flusher.
-		for {
-			select {
-			case msg := <-logger.queue:
-				if len(logger.buffer) < cap(logger.buffer) {
-					logger.buffer = append(logger.buffer, msg)
-				}
-
-				if len(logger.buffer) == cap(logger.buffer) {
-					//no more buffer space.
-					logger.flush()
-				}
-			case <-time.After(flushInt):
-				logger.flush()
-			}
-		}
-	}()
+	logger.buffer = utils.NewBuffer(bufsize, flushInt, logger.send)
 
 	return logger
 }
@@ -111,25 +91,17 @@ func (logger *ACLogger) Log(msg *pm.Message) {
 		return
 	}
 
-	logger.queue <- msg
+	logger.buffer.Append(msg)
 }
 
-func (logger *ACLogger) flush() {
-	basket := make([]*pm.Message, len(logger.buffer))
-	copy(basket, logger.buffer)
-	go logger.send(basket)
-
-	logger.buffer = logger.buffer[0:0]
-}
-
-func (logger *ACLogger) send(buffer []*pm.Message) {
-	if len(buffer) == 0 {
-		//buffer can be of length zero, when flushed on timer while
+func (logger *ACLogger) send(objs []interface{}) {
+	if len(objs) == 0 {
+		//objs can be of length zero, when flushed on timer while
 		//no messages are ready.
 		return
 	}
 
-	msgs, err := json.Marshal(buffer)
+	msgs, err := json.Marshal(objs)
 	if err != nil {
 		log.Println("Failed to serialize the logs")
 		return
