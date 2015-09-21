@@ -199,8 +199,10 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 
 		//content is the serialized log messages.
 		var messages []*pm.Message
-		json.Unmarshal(body, &messages)
-
+		err = json.Unmarshal(body, &messages)
+		if err != nil {
+			t.Error(err)
+		}
 		signal <- len(messages)
 	}
 
@@ -274,7 +276,10 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 
 		//content is the serialized log messages.
 		var messages []*pm.Message
-		json.Unmarshal(body, &messages)
+		err = json.Unmarshal(body, &messages)
+		if err != nil {
+			t.Error(err)
+		}
 
 		signal <- len(messages)
 	}
