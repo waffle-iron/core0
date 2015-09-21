@@ -1,0 +1,71 @@
+{
+	"ImportPath": "github.com/Jumpscale/agent2",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-15",
+			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
+		},
+		{
+			"ImportPath": "github.com/Jumpscale/hubble",
+			"Rev": "999b36e845a15d51afba1f3a692397f707b6a1f5"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Rev": "39cd638460acf1c01aaac38effc6e54ee7e04bca"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v1.1.0-11-gb808f01",
+			"Rev": "b808f01f660667b1510acf216aa2b9fe7f555ddb"
+		},
+		{
+			"ImportPath": "github.com/naoina/go-stringutil",
+			"Rev": "360db0db4b01d34e12a2ec042c09e7d37fece761"
+		},
+		{
+			"ImportPath": "github.com/naoina/toml",
+			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/common",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/cpu",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/disk",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/host",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/mem",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/net",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/process",
+			"Comment": "1.0.0-153-gc1313e7",
+			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "1d5269ed4e89d423d40362a0914e1c99adb13cc8"
+		}
+	]
+}
