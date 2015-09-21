@@ -42,11 +42,13 @@ func extScript(exe string, workdir string, cmdargs []string, env []string) Proce
 		args := cmd.Args.Clone(false)
 		args.Set("name", exe)
 
+		job_cmdargs := make([]string, len(cmdargs))
+
 		for i, arg := range cmdargs {
-			cmdargs[i] = utils.Format(arg, cmd.Args.Data())
+			job_cmdargs[i] = utils.Format(arg, cmd.Args.Data())
 		}
 
-		args.Set("args", cmdargs)
+		args.Set("args", job_cmdargs)
 		if len(env) > 0 {
 			args.Set("env", env)
 		}
