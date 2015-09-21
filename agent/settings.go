@@ -23,8 +23,6 @@ type Extension struct {
 	Binary string
 	//script search path
 	Cwd string
-	//(optional) if set, overrides the cmd.Args['name']
-	Script string
 	//(optional) Env variables
 	Env map[string]string
 

@@ -548,7 +548,7 @@ func main() {
 			}
 		}
 
-		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Script, extCfg.Args, env)
+		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
 	}
 
 	registerHubbleFunctions(controllers, &settings)

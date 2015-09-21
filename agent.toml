@@ -32,7 +32,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     #syncthing extension
     binary = "python2.7"
     cwd = "./extensions/sync"
-    script = "{name}.py"
+    args = ["{name}.py"]
         [extensions.sync.env]
         PYTHONPATH = "../:/opt/jumpscale7/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
@@ -41,8 +41,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.jumpscript]
     binary = "python2.7"
     cwd = "./extensions/jumpscript"
-    script = "wrapper.py"
-    args = ["{domain}", "{name}"]
+    args = ["wrapper.py", "{domain}", "{name}"]
         [extensions.jumpscript.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
@@ -50,7 +49,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.__jumpscript_daemon]
     binary = "python2.7"
     cwd = "./extensions/jumpscript"
-    script = "executor.py"
+    args = ["executor.py"]
         [extensions.__jumpscript_daemon.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../:/opt/jumpscale7/lib"
@@ -59,7 +58,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.legacy]
     binary = "python2.7"
     cwd = "./extensions/legacy"
-    script = "wrapper.py"
+    args = ["wrapper.py"]
         [extensions.legacy.env]
         PYTHONPATH = "../" # for utils
         SOCKET = "/tmp/legacy.sock"
@@ -69,7 +68,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.__legacy_daemon]
     binary = "python2.7"
     cwd = "./extensions/legacy"
-    script = "executor.py"
+    args = ["executor.py"]
         [extensions.__legacy_daemon.env]
         SOCKET = "/tmp/legacy.sock"
         PYTHONPATH = "../:/opt/jumpscale7/lib"
