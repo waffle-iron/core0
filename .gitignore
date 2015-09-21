@@ -27,3 +27,4 @@ _testmain.go
 extensions/syncthing/
 logs/
 .mid
+Godeps/_workspace
