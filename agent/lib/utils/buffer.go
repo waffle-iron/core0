@@ -25,6 +25,7 @@ func NewBuffer(capacity int, flushInt time.Duration, onflush BufferFlush) Buffer
 
 	go func() {
 		//autostart buffer flusher.
+		timeout := time.After(flushInt)
 		for {
 			select {
 			case msg := <-buffer.queue:
@@ -36,7 +37,8 @@ func NewBuffer(capacity int, flushInt time.Duration, onflush BufferFlush) Buffer
 					//no more buffer space.
 					buffer.flush()
 				}
-			case <-time.After(flushInt):
+			case <-timeout:
+				timeout = time.After(flushInt)
 				buffer.flush()
 			}
 		}

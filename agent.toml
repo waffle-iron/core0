@@ -104,13 +104,19 @@ controllers = [] # accept forwarding commands and connections from all controlle
     name = "syncthing"
         [startup.syncthing.args]
         loglevels_db = '*'
+        domain = "agent"
+        name = "syncthing"
 
     [startup.legacy]
     name = "__legacy_daemon"
         [startup.legacy.args]
         max_restart = 10
+        domain = "agent"
+        name = "legacy"
 
     [startup.jumpscript]
     name = "__jumpscript_daemon"
         [startup.jumpscript.args]
         max_restart = 10
+        domain = "agent"
+        name = "legacy"

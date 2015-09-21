@@ -469,20 +469,24 @@ func main() {
 		}
 	})
 
-	var statsKeys []string
+	var statsDestinations []string
 	if len(settings.Stats.Controllers) > 0 {
-		statsKeys = settings.Stats.Controllers
+		statsDestinations = settings.Stats.Controllers
 	} else {
-		statsKeys = getKeys(controllers)
+		statsDestinations = getKeys(controllers)
 	}
 
-	//register handler for stats flush. Simplest impl is to send the values
-	//immediately to the all ACs.
-	mgr.AddStatsFlushHandler(func(stats *stats.Stats) {
-		//This will be called per process per stats_interval seconds. with
-		//all the aggregated stats for that process.
+	//build a buffer for statsd messages (which are comming from each single command)
+	//and buffer them so we only send them to AC if we have a 1000 record, or reached
+	//a time of 60 seconds.
+	statsBuffer := utils.NewBuffer(1000, 120*time.Second, func(stats []interface{}) {
+		log.Println("Flushing stats to AC", len(stats))
+		if len(stats) == 0 {
+			return
+		}
+
 		res, _ := json.Marshal(stats)
-		for _, key := range statsKeys {
+		for _, key := range statsDestinations {
 			controller, ok := controllers[key]
 			if !ok {
 				log.Printf("Stats: Unknow controller '%s'\n", key)
@@ -498,6 +502,13 @@ func main() {
 			}
 			resp.Body.Close()
 		}
+	})
+	//register handler for stats flush. Simplest impl is to send the values
+	//immediately to the all ACs.
+	mgr.AddStatsFlushHandler(func(stats *stats.Stats) {
+		//This will be called per process per stats_interval seconds. with
+		//all the aggregated stats for that process.
+		statsBuffer.Append(stats)
 	})
 
 	//handle process results
@@ -552,6 +563,8 @@ func main() {
 		}
 
 		cmd := &pm.Cmd{
+			Gid:  settings.Main.Gid,
+			Nid:  settings.Main.Nid,
 			Id:   id,
 			Name: startup.Name,
 			Args: pm.NewMapArgs(startup.Args),
