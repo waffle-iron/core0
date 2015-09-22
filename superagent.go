@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent"
@@ -14,6 +15,7 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	hubble "github.com/Jumpscale/hubble/agent"
+	"github.com/boltdb/bolt"
 	"github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
@@ -21,16 +23,18 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
 
 const (
-	RECONNECT_SLEEP  = 4
-	CMD_GET_MSGS     = "get_msgs"
-	CMD_OPEN_TUNNEL  = "hubble_open_tunnel"
-	CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
-	CMD_LIST_TUNNELS = "hubble_list_tunnels"
+	RECONNECT_SLEEP            = 4
+	CMD_GET_MSGS               = "get_msgs"
+	CMD_GET_MSGS_DEFAULT_LIMIT = 1000
+	CMD_OPEN_TUNNEL            = "hubble_open_tunnel"
+	CMD_CLOSE_TUNNEL           = "hubble_close_tunnel"
+	CMD_LIST_TUNNELS           = "hubble_list_tunnels"
 )
 
 type Controller struct {
@@ -90,8 +94,12 @@ This one is done here and NOT in the 'buildin' library because
 2- Moving this register function to the build-in will cause cyclic dependencies.
 */
 
-func registerGetMsgsFunction(path string) {
-	querier := logger.NewDBMsgQuery(path)
+type LogQuery struct {
+	JobID string `json:"jobid"`
+	Limit int    `json:"limit"`
+}
+
+func registerGetMsgsFunction(db *bolt.DB) {
 
 	get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
@@ -102,27 +110,68 @@ func registerGetMsgsFunction(path string) {
 			result.Time = int64(endtime) - result.StartTime
 		}()
 
-		query := logger.Query{}
+		query := LogQuery{}
 
 		err := json.Unmarshal([]byte(cmd.Data), &query)
 		if err != nil {
-			log.Println("Failed to parse get_msgs query", err)
+			result.State = pm.S_ERROR
+			result.Data = fmt.Sprintf("Failed to parse get_msgs query: %s", err)
+
+			return result
+		}
+
+		if query.JobID == "" {
+			result.State = pm.S_ERROR
+			result.Data = fmt.Sprintf("jobid is required")
+
+			return result
+		}
+
+		var limit int
+		if query.Limit != 0 {
+			limit = query.Limit
+		}
+
+		if limit > CMD_GET_MSGS_DEFAULT_LIMIT {
+			limit = CMD_GET_MSGS_DEFAULT_LIMIT
 		}
 
 		//we still can continue the query even if we have unmarshal errors.
+		records := make([]map[string]interface{}, 0, 1000)
 
-		result_chn, err := querier.Query(query)
+		err = db.View(func(tx *bolt.Tx) error {
+			logs := tx.Bucket([]byte("logs"))
+			if logs == nil {
+				return errors.New("Logs database is not initialized")
+			}
+
+			job := logs.Bucket([]byte(query.JobID))
+			if job == nil {
+				log.Println("Failed to open job bucket")
+				return nil
+			}
+			cursor := job.Cursor()
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				if len(records) == limit {
+					return nil
+				}
+
+				row := make(map[string]interface{})
+				err := json.Unmarshal(value, &row)
+				if err != nil {
+					log.Printf("Failed to load job log '%s'\n", value)
+					return err
+				}
+				records = append(records, row)
+			}
+			return nil
+		})
 
 		if err != nil {
 			result.State = pm.S_ERROR
 			result.Data = fmt.Sprintf("%v", err)
 
 			return result
-		}
-
-		records := make([]logger.Result, 0, 1000)
-		for record := range result_chn {
-			records = append(records, record)
 		}
 
 		data, err := json.Marshal(records)
@@ -332,10 +381,20 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
 			if dbLoggerConfigured {
 				log.Fatal("Only one db logger can be configured")
 			}
-			sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-			handler := logger.NewDBLogger(sqlFactory, logcfg.Levels)
+			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
+			os.Mkdir(logcfg.LogDir, 0755)
+			db, err := bolt.Open(path.Join(logcfg.LogDir, "logs.db"), 0644, nil)
+			db.MaxBatchDelay = 100 * time.Millisecond
+			if err != nil {
+				log.Fatal("Failed to open logs database", err)
+			}
+
+			handler, err := logger.NewDBLogger(db, logcfg.Levels)
+			if err != nil {
+				log.Fatal("DB logger failed to initialize", err)
+			}
 			mgr.AddMessageHandler(handler.Log)
-			registerGetMsgsFunction(logcfg.LogDir)
+			registerGetMsgsFunction(db)
 
 			dbLoggerConfigured = true
 		case "ac":

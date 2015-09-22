@@ -293,7 +293,7 @@ func (pm *PM) msgCallback(msg *Message) {
 	}
 
 	//stamp msg.
-	msg.Epoch = time.Now().Unix()
+	msg.Epoch = time.Now().UnixNano()
 	//add ID
 	msg.Id = pm.getNextMsgID()
 	for _, handler := range pm.msgHandlers {

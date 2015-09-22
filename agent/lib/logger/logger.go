@@ -3,8 +3,10 @@ package logger
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/boltdb/bolt"
 	"log"
 	"net/http"
 	"time"
@@ -15,18 +17,34 @@ type Logger interface {
 }
 
 type DBLogger struct {
-	factory  DBFactory
+	db       *bolt.DB
 	defaults []int
 }
 
 //Creates a new Database logger, it stores the logged message in database
 //factory: is the DB connection factory
 //defaults: default log levels to store in db if is not specificed by the logged message.
-func NewDBLogger(factory DBFactory, defaults []int) Logger {
-	return &DBLogger{
-		factory:  factory,
-		defaults: defaults,
+func NewDBLogger(db *bolt.DB, defaults []int) (Logger, error) {
+	tx, err := db.Begin(true)
+
+	defer tx.Rollback()
+
+	if err != nil {
+		return nil, err
 	}
+
+	if _, err := tx.CreateBucketIfNotExists([]byte("logs")); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &DBLogger{
+		db:       db,
+		defaults: defaults,
+	}, nil
 }
 
 //Log message
@@ -42,17 +60,23 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 		return
 	}
 
-	db := logger.factory.GetDBCon()
-	stmnt := `
-        insert into logs (id, jobid, domain, name, epoch, level, data)
-        values (?, ?, ?, ?, ?, ?, ?)
-    `
-	args := msg.Cmd.Args
-	_, err := db.Exec(stmnt, msg.Id, msg.Cmd.Id, args.GetString("domain"), args.GetString("name"),
-		msg.Epoch, msg.Level, msg.Message)
-	if err != nil {
-		log.Println(err)
-	}
+	go logger.db.Batch(func(tx *bolt.Tx) error {
+		logs := tx.Bucket([]byte("logs"))
+		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.Id))
+		if err != nil {
+			log.Println("Logger:", err)
+			return err
+		}
+
+		value, err := json.Marshal(msg)
+		if err != nil {
+			log.Println("Logger:", err)
+			return err
+		}
+
+		key := []byte(fmt.Sprintf("%020d-%03d", msg.Epoch, msg.Level))
+		return jobBucket.Put(key, value)
+	})
 }
 
 type ACLogger struct {

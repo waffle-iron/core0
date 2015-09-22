@@ -97,9 +97,10 @@ type Message struct {
 func (msg *Message) MarshalJSON() ([]byte, error) {
 	data := make(map[string]interface{})
 	args := msg.Cmd.Args
-	data["domain"] = args.GetString("domaing")
+	data["jobid"] = msg.Cmd.Id
+	data["domain"] = args.GetString("domain")
 	data["name"] = args.GetString("name")
-	data["epoch"] = msg.Epoch
+	data["epoch"] = msg.Epoch / int64(time.Millisecond)
 	data["level"] = msg.Level
 	data["id"] = msg.Id
 	data["data"] = msg.Message
