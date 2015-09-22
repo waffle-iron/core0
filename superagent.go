@@ -151,11 +151,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 				return nil
 			}
 			cursor := job.Cursor()
-			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
-				if len(records) == limit {
-					return nil
-				}
-
+			for key, value := cursor.Last(); key != nil && len(records) < limit; key, value = cursor.Prev() {
 				row := make(map[string]interface{})
 				err := json.Unmarshal(value, &row)
 				if err != nil {
