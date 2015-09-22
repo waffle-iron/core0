@@ -12,13 +12,13 @@
 			"Rev": "999b36e845a15d51afba1f3a692397f707b6a1f5"
 		},
 		{
-			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "39cd638460acf1c01aaac38effc6e54ee7e04bca"
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.0-111-g04a3e85",
+			"Rev": "04a3e85793043e76d41164037d0d7f9d53eecae3"
 		},
 		{
-			"ImportPath": "github.com/mattn/go-sqlite3",
-			"Comment": "v1.1.0-11-gb808f01",
-			"Rev": "b808f01f660667b1510acf216aa2b9fe7f555ddb"
+			"ImportPath": "github.com/gorilla/websocket",
+			"Rev": "39cd638460acf1c01aaac38effc6e54ee7e04bca"
 		},
 		{
 			"ImportPath": "github.com/naoina/go-stringutil",
