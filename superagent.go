@@ -384,7 +384,6 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
 }
 
 func main() {
-	settings := agent.Settings{}
 	var cfg string
 	var help bool
 
@@ -408,7 +407,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	utils.LoadTomlFile(cfg, &settings)
+	settings := utils.GetSettings(cfg)
 
 	//loading command history file
 	//history file is used to remember long running jobs during reboots.

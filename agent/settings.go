@@ -55,6 +55,7 @@ type Settings struct {
 		MessageIdFile string
 		HistoryFile   string
 		Roles         []string
+		Include       string
 	}
 
 	Controllers map[string]Controller
@@ -75,6 +76,13 @@ type Settings struct {
 	Hubble struct {
 		Controllers []string
 	}
+
+	Startup map[string]StartupCmd
+}
+
+//partial loadable settings
+type PartialSettings struct {
+	Extensions map[string]Extension
 
 	Startup map[string]StartupCmd
 }

@@ -1,0 +1,33 @@
+[extensions.js_daemon]
+binary = "python2.7"
+cwd = "./extensions/jumpscript"
+args = ["executor.py"]
+    [extensions.__jumpscript_daemon.env]
+    SOCKET = "/tmp/jumpscript.sock"
+    PYTHONPATH = "../:/opt/jumpscale7/lib"
+    JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
+
+#Internal command for legacy. Will be called
+#by the agent startup.
+[extensions.js_legacy_daemon]
+binary = "python2.7"
+cwd = "./extensions/legacy"
+args = ["executor.py"]
+    [extensions.__legacy_daemon.env]
+    SOCKET = "/tmp/legacy.sock"
+    PYTHONPATH = "../:/opt/jumpscale7/lib"
+    JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
+
+[startup.legacy]
+name = "js_legacy_daemon"
+    [startup.legacy.args]
+    max_restart = 10
+    domain = "agent"
+    name = "legacy"
+
+[startup.jumpscript]
+name = "js_daemon"
+    [startup.jumpscript.args]
+    max_restart = 10
+    domain = "agent"
+    name = "jumpscript"

@@ -2,13 +2,19 @@ package utils
 
 import (
 	"fmt"
+	"github.com/Jumpscale/agent2/agent"
 	"github.com/naoina/toml"
 	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+)
+
+const (
+	CONFIG_SUFFIX = ".toml"
 )
 
 var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
@@ -118,4 +124,55 @@ func LoadTomlFile(filename string, v interface{}) {
 	if err := toml.Unmarshal(buf, v); err != nil {
 		panic(err)
 	}
+}
+
+func GetSettings(filename string) agent.Settings {
+	settings := agent.Settings{}
+
+	LoadTomlFile(filename, &settings)
+	if settings.Main.Include == "" {
+		return settings
+	}
+
+	infos, err := ioutil.ReadDir(settings.Main.Include)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			continue
+		}
+		name := info.Name()
+
+		if name[len(name)-len(CONFIG_SUFFIX):] != CONFIG_SUFFIX {
+			continue
+		}
+
+		partial := agent.PartialSettings{}
+		partialPath := path.Join(settings.Main.Include, name)
+
+		LoadTomlFile(partialPath, &partial)
+
+		//merge into settings
+		for key, ext := range partial.Extensions {
+			_, ok := settings.Extensions[key]
+			if ok {
+				panic(fmt.Sprintf("Extension override in '%s' name '%s'", partialPath, key))
+			}
+
+			settings.Extensions[key] = ext
+		}
+
+		for key, startup := range partial.Startup {
+			_, ok := settings.Startup[key]
+			if ok {
+				panic(fmt.Sprintf("Startup command override in '%s' name '%s'", partialPath, key))
+			}
+
+			settings.Startup[key] = startup
+		}
+	}
+
+	return settings
 }

@@ -1,0 +1,11 @@
+[extensions.syncthing]
+    binary = "./syncthing"
+    cwd = "./extensions/syncthing"
+    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
+
+[startup.syncthing]
+    name = "syncthing"
+        [startup.syncthing.args]
+        loglevels_db = '*'
+        domain = "agent"
+        name = "syncthing"
