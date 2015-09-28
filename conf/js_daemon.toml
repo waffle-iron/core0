@@ -2,7 +2,7 @@
 binary = "python2.7"
 cwd = "./extensions/jumpscript"
 args = ["executor.py"]
-    [extensions.__jumpscript_daemon.env]
+    [extensions.js_daemon.env]
     SOCKET = "/tmp/jumpscript.sock"
     PYTHONPATH = "../:/opt/jumpscale7/lib"
     JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
@@ -13,7 +13,7 @@ args = ["executor.py"]
 binary = "python2.7"
 cwd = "./extensions/legacy"
 args = ["executor.py"]
-    [extensions.__legacy_daemon.env]
+    [extensions.js_legacy_daemon.env]
     SOCKET = "/tmp/legacy.sock"
     PYTHONPATH = "../:/opt/jumpscale7/lib"
     JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
