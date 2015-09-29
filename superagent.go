@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"code.google.com/p/go-uuid/uuid"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -15,7 +16,7 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	hubble "github.com/Jumpscale/hubble/agent"
 	"github.com/shirou/gopsutil/process"
-	//"golang.org/x/exp/inotify"
+	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -424,15 +425,18 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 		//TODO: make a better algorithm to find out which commands must be restart
 		//to not interrupt other running commands.
 		for _, cmdId := range commands {
+			log.Println("Killing command", cmdId)
 			mgr.Kill(cmdId)
 		}
 		commands = commands[:]
 
 		//restart all commands.
-		for id, startup := range partial.Startup {
+		for _, startup := range partial.Startup {
 			if startup.Args == nil {
 				startup.Args = make(map[string]interface{})
 			}
+
+			id := uuid.New()
 
 			cmd := &pm.Cmd{
 				Gid:  settings.Main.Gid,
@@ -454,27 +458,38 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 		return nil
 	}
 
-	// watch := func() error {
-	// 	watcher, err := inotify.NewWatcher()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	err = watcher.Watch(settings.Main.Include)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	for {
-	// 		select {
-	// 		case <-watcher.Event:
-	// 			apply()
-	// 		case err := <-watcher.Error:
-	// 			log.Println(err)
-	// 		}
-	// 	}
-	// }
+	watch := func() error {
+		watcher, err := inotify.NewWatcher()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = watcher.Watch(settings.Main.Include)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for {
+			select {
+			case ev := <-watcher.Event:
+				name := ev.Name
+				if len(name) <= len(utils.CONFIG_SUFFIX) {
+					//file name too short to be a config file (shorter than the extension)
+					continue
+				}
+
+				if name[len(name)-len(utils.CONFIG_SUFFIX):] != utils.CONFIG_SUFFIX {
+					continue
+				}
+				if ev.Mask&(inotify.IN_DELETE|inotify.IN_MODIFY) != 0 {
+					apply()
+				}
+			case err := <-watcher.Error:
+				log.Println(err)
+			}
+		}
+	}
 
 	apply()
-	//go watch()
+	go watch()
 }
 
 func main() {

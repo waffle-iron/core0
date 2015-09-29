@@ -284,7 +284,7 @@ loop:
 		if !success && args.GetInt("max_restart") > 0 {
 			ps.runs += 1
 			if ps.runs < args.GetInt("max_restart") {
-				log.Println("Restarting", ps.cmd, "due to upnormal exit status, trials", ps.runs, "/", args.GetInt("max_restart"))
+				log.Println("Restarting", ps.cmd, "due to upnormal exit status, trials", ps.runs+1, "/", args.GetInt("max_restart"))
 				restarting = true
 				restartIn = 1 * time.Second
 			}
@@ -369,7 +369,7 @@ loop:
 func (ps *ExtProcess) Kill() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Killing job that is already gone", ps)
+			log.Println("Killing job that is already gone", ps.cmd)
 		}
 	}()
 

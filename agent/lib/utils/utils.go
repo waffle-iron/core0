@@ -149,7 +149,10 @@ func GetPartialSettings(settings *agent.Settings) (*agent.PartialSettings, error
 			continue
 		}
 		name := info.Name()
-
+		if len(name) <= len(CONFIG_SUFFIX) {
+			//file name too short to be a config file (shorter than the extension)
+			continue
+		}
 		if name[len(name)-len(CONFIG_SUFFIX):] != CONFIG_SUFFIX {
 			continue
 		}
