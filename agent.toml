@@ -52,6 +52,31 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         PYTHONPATH = "../" # for utils
         SOCKET = "/tmp/legacy.sock"
 
+    [extensions.syncthing]
+    binary = "./syncthing"
+    cwd = "./extensions/syncthing"
+    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
+
+    [extensions.js_daemon]
+    binary = "python2.7"
+    cwd = "./extensions/jumpscript"
+    args = ["executor.py"]
+        [extensions.js_daemon.env]
+        SOCKET = "/tmp/jumpscript.sock"
+        PYTHONPATH = "../:/opt/jumpscale7/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
+
+    #Internal command for legacy. Will be called
+    #by the agent startup.
+    [extensions.js_legacy_daemon]
+    binary = "python2.7"
+    cwd = "./extensions/legacy"
+    args = ["executor.py"]
+        [extensions.js_legacy_daemon.env]
+        SOCKET = "/tmp/legacy.sock"
+        PYTHONPATH = "../:/opt/jumpscale7/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
+
 [logging]
     [logging.db]
     type = "DB"
@@ -77,4 +102,26 @@ controllers = [] # empty for all controllers, or controllers keys
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
 
 [startup]
-#all startup commands has been moved to the sub ./conf folder
+    [startup.syncthing]
+    name = "syncthing"
+        [startup.syncthing.args]
+        loglevels_db = '*'
+        domain = "agent"
+        name = "syncthing"
+
+    [startup.legacy]
+    name = "js_legacy_daemon"
+        [startup.legacy.args]
+        max_restart = 10
+        domain = "agent"
+        name = "legacy"
+
+    [startup.jumpscript]
+    name = "js_daemon"
+        [startup.jumpscript.args]
+        max_restart = 10
+        domain = "agent"
+        name = "jumpscript"
+
+
+

@@ -105,6 +105,16 @@ func In(l []int, x int) bool {
 	return false
 }
 
+func InString(l []string, x string) bool {
+	for i := 0; i < len(l); i++ {
+		if l[i] == x {
+			return true
+		}
+	}
+
+	return false
+}
+
 func Update(dst map[string]interface{}, src map[string]interface{}) {
 	for k, v := range src {
 		dst[k] = v

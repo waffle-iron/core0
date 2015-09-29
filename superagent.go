@@ -391,8 +391,13 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 		return
 	}
 
+	type PlaceHolder struct {
+		Hash string
+		Id   string
+	}
+
 	extensions := make([]string, 0, 100)
-	commands := make([]string, 0, 100)
+	commands := make(map[string]PlaceHolder)
 
 	apply := func() error {
 		partial, err := utils.GetPartialSettings(settings)
@@ -421,17 +426,23 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 			extensions = append(extensions, extKey)
 		}
 
-		//kill all startup commands that might have been started before
-		//TODO: make a better algorithm to find out which commands must be restart
-		//to not interrupt other running commands.
-		for _, cmdId := range commands {
-			log.Println("Killing command", cmdId)
-			mgr.Kill(cmdId)
-		}
-		commands = commands[:]
+		//Simple diff to find out which command needs to be restarted
+		//and witch needs to be stopped totally
+		running := make([]string, 0)
+		for name, startup := range partial.Startup {
+			hash := startup.Hash()
+			if ph, ok := commands[name]; ok {
+				//name already tracked
+				if ph.Hash == hash {
+					//no changes to the command.
+					running = append(running, name)
+					continue
+				} else {
+					mgr.Kill(ph.Id)
+					delete(commands, name)
+				}
+			}
 
-		//restart all commands.
-		for _, startup := range partial.Startup {
 			if startup.Args == nil {
 				startup.Args = make(map[string]interface{})
 			}
@@ -452,7 +463,19 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 			}
 
 			mgr.RunCmd(cmd)
-			commands = append(commands, id)
+			commands[name] = PlaceHolder{
+				Hash: hash,
+				Id:   id,
+			}
+			running = append(running, name)
+		}
+
+		//kill commands that are removed from config
+		for name, ph := range commands {
+			if !utils.InString(running, name) {
+				mgr.Kill(ph.Id)
+				delete(commands, name)
+			}
 		}
 
 		return nil
