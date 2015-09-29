@@ -26,7 +26,7 @@ func NewProcess(cmd *Cmd) Process {
 	return constructor(cmd)
 }
 
-type JsScriptProcess struct {
+type ExtensionProcess struct {
 	extps Process
 	cmd   *Cmd
 }
@@ -36,7 +36,7 @@ type JsScriptProcess struct {
 //workdir: working directory of script
 //scriptname: if scriptname != "", execute that specific script, otherwise use args[name]
 //  scriptname can have {<arg-key>} pattern that will be replaced with the value before execution
-func extScript(exe string, workdir string, cmdargs []string, env []string) ProcessConstructor {
+func extensionProcess(exe string, workdir string, cmdargs []string, env []string) ProcessConstructor {
 	//create a new execute process with python2.7 or lua as executors.
 	constructor := func(cmd *Cmd) Process {
 		args := cmd.Args.Clone(false)
@@ -63,7 +63,7 @@ func extScript(exe string, workdir string, cmdargs []string, env []string) Proce
 			Args: args,
 		}
 
-		return &JsScriptProcess{
+		return &ExtensionProcess{
 			extps: NewExtProcess(extcmd),
 			cmd:   cmd,
 		}
@@ -72,11 +72,11 @@ func extScript(exe string, workdir string, cmdargs []string, env []string) Proce
 	return constructor
 }
 
-func (ps *JsScriptProcess) Cmd() *Cmd {
+func (ps *ExtensionProcess) Cmd() *Cmd {
 	return ps.cmd
 }
 
-func (ps *JsScriptProcess) Run(cfg RunCfg) {
+func (ps *ExtensionProcess) Run(cfg RunCfg) {
 	//intercept all the messages from the 'execute' command and
 	//change it to it's original value.
 	extcfg := RunCfg{
@@ -103,11 +103,11 @@ func (ps *JsScriptProcess) Run(cfg RunCfg) {
 	ps.extps.Run(extcfg)
 }
 
-func (ps *JsScriptProcess) Kill() {
+func (ps *ExtensionProcess) Kill() {
 	ps.extps.Kill()
 }
 
-func (ps *JsScriptProcess) GetStats() *ProcessStats {
+func (ps *ExtensionProcess) GetStats() *ProcessStats {
 	return ps.extps.GetStats()
 }
 
@@ -118,5 +118,9 @@ func (ps *JsScriptProcess) GetStats() *ProcessStats {
 //script: script name
 //if script == "", then script name will be used from cmd.Args.
 func RegisterCmd(cmd string, exe string, workdir string, cmdargs []string, env []string) {
-	CMD_MAP[cmd] = extScript(exe, workdir, cmdargs, env)
+	CMD_MAP[cmd] = extensionProcess(exe, workdir, cmdargs, env)
+}
+
+func UnregisterCmd(cmd string) {
+	delete(CMD_MAP, cmd)
 }

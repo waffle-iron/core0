@@ -15,6 +15,7 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	hubble "github.com/Jumpscale/hubble/agent"
 	"github.com/shirou/gopsutil/process"
+	//"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -383,6 +384,99 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
 	}
 }
 
+//Include, and watch changes of configuration folder
+func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
+	if settings.Main.Include == "" {
+		return
+	}
+
+	extensions := make([]string, 0, 100)
+	commands := make([]string, 0, 100)
+
+	apply := func() error {
+		partial, err := utils.GetPartialSettings(settings)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		//first, unregister all the extensions from the PM.
+		//that might have been registered before.
+		for _, extKey := range extensions {
+			pm.UnregisterCmd(extKey)
+		}
+		extensions = extensions[:]
+
+		//register the execute commands
+		for extKey, extCfg := range partial.Extensions {
+			var env []string
+			if len(extCfg.Env) > 0 {
+				env = make([]string, 0, len(extCfg.Env))
+				for ek, ev := range extCfg.Env {
+					env = append(env, fmt.Sprintf("%v=%v", ek, ev))
+				}
+			}
+
+			pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
+			extensions = append(extensions, extKey)
+		}
+
+		//kill all startup commands that might have been started before
+		//TODO: make a better algorithm to find out which commands must be restart
+		//to not interrupt other running commands.
+		for _, cmdId := range commands {
+			mgr.Kill(cmdId)
+		}
+		commands = commands[:]
+
+		//restart all commands.
+		for id, startup := range partial.Startup {
+			if startup.Args == nil {
+				startup.Args = make(map[string]interface{})
+			}
+
+			cmd := &pm.Cmd{
+				Gid:  settings.Main.Gid,
+				Nid:  settings.Main.Nid,
+				Id:   id,
+				Name: startup.Name,
+				Args: pm.NewMapArgs(startup.Args),
+			}
+
+			meterInt := cmd.Args.GetInt("stats_interval")
+			if meterInt == 0 {
+				cmd.Args.Set("stats_interval", settings.Stats.Interval)
+			}
+
+			mgr.RunCmd(cmd)
+			commands = append(commands, id)
+		}
+
+		return nil
+	}
+
+	// watch := func() error {
+	// 	watcher, err := inotify.NewWatcher()
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	err = watcher.Watch(settings.Main.Include)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	for {
+	// 		select {
+	// 		case <-watcher.Event:
+	// 			apply()
+	// 		case err := <-watcher.Error:
+	// 			log.Println(err)
+	// 		}
+	// 	}
+	// }
+
+	apply()
+	//go watch()
+}
+
 func main() {
 	var cfg string
 	var help bool
@@ -446,7 +540,7 @@ func main() {
 
 	mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
-	configureLogging(mgr, controllers, &settings)
+	configureLogging(mgr, controllers, settings)
 
 	//This handler is called every 30 sec. It should collect and report all
 	//metered values needed for an external process.
@@ -550,7 +644,7 @@ func main() {
 		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
 	}
 
-	registerHubbleFunctions(controllers, &settings)
+	registerHubbleFunctions(controllers, settings)
 	//start process mgr.
 	mgr.Run()
 	//System is ready to receive commands.
@@ -576,6 +670,9 @@ func main() {
 
 		mgr.RunCmd(cmd)
 	}
+
+	//also register extensions and run startup commands from partial configuration files
+	watchAndApply(mgr, settings)
 
 	var pollKeys []string
 	if len(settings.Channel.Cmds) > 0 {

@@ -57,7 +57,7 @@ func LoadCmd(str []byte) (*Cmd, error) {
 }
 
 func (cmd *Cmd) String() string {
-	return fmt.Sprintf("%s# %s %s", cmd.Id, cmd.Name, cmd.Args.GetString("name"))
+	return fmt.Sprintf("(%s# %s %s)", cmd.Id, cmd.Name, cmd.Args.GetString("name"))
 }
 
 type MeterHandler func(cmd *Cmd, p *process.Process)
@@ -254,10 +254,9 @@ func (pm *PM) Killall() {
 }
 
 func (pm *PM) Kill(cmdId string) {
-	for _, v := range pm.processes {
-		if v.Cmd().Id == cmdId {
-			go v.Kill()
-		}
+	v, o := pm.processes[cmdId]
+	if o {
+		v.Kill()
 	}
 }
 
