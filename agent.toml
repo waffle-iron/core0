@@ -26,6 +26,11 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 [extensions]
     #the very basic agent extensions. Also please check the toml files under
     #the Main.Include folder for more extensions
+    [extensions.syncthing]
+    binary = "./syncthing"
+    cwd = "./extensions/syncthing"
+    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
+
     [extensions.sync]
     #syncthing extension
     binary = "python2.7"
@@ -39,23 +44,18 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.jumpscript]
     binary = "python2.7"
     cwd = "./extensions/jumpscript"
-    args = ["wrapper.py", "{domain}", "{name}"]
+    args = ["wrapper.py", "modern", "{domain}", "{name}"]
         [extensions.jumpscript.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
 
     [extensions.legacy]
     binary = "python2.7"
-    cwd = "./extensions/legacy"
-    args = ["wrapper.py"]
+    cwd = "./extensions/jumpscript"
+    args = ["wrapper.py", "legacy", "{domain}", "{name}"]
         [extensions.legacy.env]
         PYTHONPATH = "../" # for utils
-        SOCKET = "/tmp/legacy.sock"
-
-    [extensions.syncthing]
-    binary = "./syncthing"
-    cwd = "./extensions/syncthing"
-    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
+        SOCKET = "/tmp/jumpscript.sock"
 
     [extensions.js_daemon]
     binary = "python2.7"
@@ -65,17 +65,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../:/opt/jumpscale7/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
-
-    #Internal command for legacy. Will be called
-    #by the agent startup.
-    [extensions.js_legacy_daemon]
-    binary = "python2.7"
-    cwd = "./extensions/legacy"
-    args = ["executor.py"]
-        [extensions.js_legacy_daemon.env]
-        SOCKET = "/tmp/legacy.sock"
-        PYTHONPATH = "../:/opt/jumpscale7/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
+        JUMPSCRIPTS_LEGACY_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
 
 [logging]
     [logging.db]
