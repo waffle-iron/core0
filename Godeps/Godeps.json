@@ -66,6 +66,10 @@
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
 			"Rev": "1d5269ed4e89d423d40362a0914e1c99adb13cc8"
+		},
+		{
+			"ImportPath": "golang.org/x/exp/inotify",
+			"Rev": "7c2630d4d190a54176128a4c86a72d7269cdb68c"
 		}
 	]
 }
