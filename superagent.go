@@ -589,14 +589,14 @@ func main() {
 
 		cpu, err := ps.CPUPercent(0)
 		if err == nil {
-			statsd.Gauage("cpu", fmt.Sprintf("%f", cpu))
+			statsd.Gauage("__cpu__", fmt.Sprintf("%f", cpu))
 		}
 
 		mem, err := ps.MemoryInfo()
 		if err == nil {
-			statsd.Gauage("rss", fmt.Sprintf("%d", mem.RSS))
-			statsd.Gauage("vms", fmt.Sprintf("%d", mem.VMS))
-			statsd.Gauage("swap", fmt.Sprintf("%d", mem.Swap))
+			statsd.Gauage("__rss__", fmt.Sprintf("%d", mem.RSS))
+			statsd.Gauage("__vms__", fmt.Sprintf("%d", mem.VMS))
+			statsd.Gauage("__swap__", fmt.Sprintf("%d", mem.Swap))
 		}
 	})
 

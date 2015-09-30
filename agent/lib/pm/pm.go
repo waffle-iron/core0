@@ -203,7 +203,7 @@ func (pm *PM) Run() {
 
 			statsInterval := cmd.Args.GetInt("stats_interval")
 
-			prefix := fmt.Sprintf("%d.%d.%s.%s", cmd.Gid, cmd.Nid,
+			prefix := fmt.Sprintf("%d.%d.%s.%s.%s", cmd.Gid, cmd.Nid, cmd.Name,
 				cmd.Args.GetString("domain"), cmd.Args.GetString("name"))
 
 			statsd := stats.NewStatsd(
