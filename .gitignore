@@ -28,3 +28,5 @@ extensions/syncthing/
 logs/
 .mid
 Godeps/_workspace
+jumpscripts
+legacy

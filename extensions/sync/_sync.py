@@ -2,7 +2,7 @@ import os
 
 settings = {
     'syncthing': os.environ.get('SYNCTHING_URL', 'http://localhost:8384'),
-    'jumpscripts-path': os.path.abspath(os.environ['JUMPSCRIPTS_HOME'])
+    'agent-home': os.environ.get('AGENT_HOME', '/opt/jumpscale7/apps/agent2')
 }
 
 ENDPOINT_CONFIG = '/rest/system/config'

@@ -199,6 +199,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		Gateway string `json:"gateway"`
 		IP      net.IP `json:"ip"`
 		Remote  uint16 `json:"remote"`
+		Tag     string `json:"controller"`
 	}
 
 	openTunnle := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
@@ -219,6 +220,13 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		}
 
 		tag := cmd.Args.GetTag()
+		if tag == "" {
+			//this can only happing if the open tunnel command is coming from
+			//a startup config. So only support setting up tag from config and
+			//can't be set from normal commands for security.
+			tag = tunnelData.Tag
+		}
+
 		agent, ok := agents[tag]
 
 		if !ok {
@@ -238,7 +246,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		data, _ := json.Marshal(tunnelData)
 
 		result.Data = string(data)
-		result.Level = 20
+		result.Level = pm.L_RESULT_JSON
 		result.State = pm.S_SUCCESS
 
 		return result
@@ -257,6 +265,12 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		}
 
 		tag := cmd.Args.GetTag()
+		if tag == "" {
+			//this can only happing if the open tunnel command is coming from
+			//a startup config. So only support setting up tag from config and
+			//can't be set from normal commands for security.
+			tag = tunnelData.Tag
+		}
 		agent, ok := agents[tag]
 
 		if !ok {
@@ -297,7 +311,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 
 		data, _ := json.Marshal(tunnelsInfos)
 		result.Data = string(data)
-		result.Level = 20
+		result.Level = pm.L_RESULT_JSON
 		result.State = pm.S_SUCCESS
 
 		return result
@@ -454,6 +468,7 @@ func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
 				Nid:  settings.Main.Nid,
 				Id:   id,
 				Name: startup.Name,
+				Data: startup.Data,
 				Args: pm.NewMapArgs(startup.Args),
 			}
 
@@ -698,6 +713,7 @@ func main() {
 			Nid:  settings.Main.Nid,
 			Id:   id,
 			Name: startup.Name,
+			Data: startup.Data,
 			Args: pm.NewMapArgs(startup.Args),
 		}
 
@@ -750,7 +766,7 @@ func main() {
 
 					url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "event")
 
-					resp, err := controller.Client.Post(url, "application/json", reader)
+					resp, err := client.Post(url, "application/json", reader)
 					if err != nil {
 						log.Println("Failed to send startup event to AC", url, err)
 					} else {

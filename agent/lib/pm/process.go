@@ -139,8 +139,10 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 		args.GetStringArray("args")...)
 	cmd.Dir = args.GetString("working_dir")
 
+	agentHome, _ := os.Getwd()
 	env := append(args.GetStringArray("env"),
-		fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
+		fmt.Sprintf("AGENT_HOME=%s", agentHome))
 
 	if len(env) > 0 {
 		cmd.Env = env
