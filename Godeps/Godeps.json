@@ -9,7 +9,7 @@
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "67b29ceed2cef01f9b4b21f4e7781170ba19e1d4"
+			"Rev": "b08456f213008d59d6591324f7841e2f93e8fbac"
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
