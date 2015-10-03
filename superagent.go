@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"code.google.com/p/go-uuid/uuid"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	hubble "github.com/Jumpscale/hubble/agent"
 	"github.com/boltdb/bolt"
 	"github.com/shirou/gopsutil/process"
+	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -179,6 +181,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		}
 
 		result.State = pm.S_SUCCESS
+		result.Level = pm.L_RESULT_JSON
 		result.Data = string(data)
 
 		return result
@@ -242,6 +245,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		Gateway string `json:"gateway"`
 		IP      net.IP `json:"ip"`
 		Remote  uint16 `json:"remote"`
+		Tag     string `json:"controller"`
 	}
 
 	openTunnle := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
@@ -262,6 +266,13 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		}
 
 		tag := cmd.Args.GetTag()
+		if tag == "" {
+			//this can only happing if the open tunnel command is coming from
+			//a startup config. So only support setting up tag from config and
+			//can't be set from normal commands for security.
+			tag = tunnelData.Tag
+		}
+
 		agent, ok := agents[tag]
 
 		if !ok {
@@ -281,7 +292,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		data, _ := json.Marshal(tunnelData)
 
 		result.Data = string(data)
-		result.Level = 20
+		result.Level = pm.L_RESULT_JSON
 		result.State = pm.S_SUCCESS
 
 		return result
@@ -300,6 +311,12 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		}
 
 		tag := cmd.Args.GetTag()
+		if tag == "" {
+			//this can only happing if the open tunnel command is coming from
+			//a startup config. So only support setting up tag from config and
+			//can't be set from normal commands for security.
+			tag = tunnelData.Tag
+		}
 		agent, ok := agents[tag]
 
 		if !ok {
@@ -340,7 +357,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 
 		data, _ := json.Marshal(tunnelsInfos)
 		result.Data = string(data)
-		result.Level = 20
+		result.Level = pm.L_RESULT_JSON
 		result.State = pm.S_SUCCESS
 
 		return result
@@ -438,8 +455,138 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
 	}
 }
 
+//Include, and watch changes of configuration folder
+func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
+	if settings.Main.Include == "" {
+		return
+	}
+
+	type PlaceHolder struct {
+		Hash string
+		Id   string
+	}
+
+	extensions := make([]string, 0, 100)
+	commands := make(map[string]PlaceHolder)
+
+	apply := func() error {
+		partial, err := utils.GetPartialSettings(settings)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		//first, unregister all the extensions from the PM.
+		//that might have been registered before.
+		for _, extKey := range extensions {
+			pm.UnregisterCmd(extKey)
+		}
+		extensions = extensions[:]
+
+		//register the execute commands
+		for extKey, extCfg := range partial.Extensions {
+			var env []string
+			if len(extCfg.Env) > 0 {
+				env = make([]string, 0, len(extCfg.Env))
+				for ek, ev := range extCfg.Env {
+					env = append(env, fmt.Sprintf("%v=%v", ek, ev))
+				}
+			}
+
+			pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
+			extensions = append(extensions, extKey)
+		}
+
+		//Simple diff to find out which command needs to be restarted
+		//and witch needs to be stopped totally
+		running := make([]string, 0)
+		for name, startup := range partial.Startup {
+			hash := startup.Hash()
+			if ph, ok := commands[name]; ok {
+				//name already tracked
+				if ph.Hash == hash {
+					//no changes to the command.
+					running = append(running, name)
+					continue
+				} else {
+					mgr.Kill(ph.Id)
+					delete(commands, name)
+				}
+			}
+
+			if startup.Args == nil {
+				startup.Args = make(map[string]interface{})
+			}
+
+			id := uuid.New()
+
+			cmd := &pm.Cmd{
+				Gid:  settings.Main.Gid,
+				Nid:  settings.Main.Nid,
+				Id:   id,
+				Name: startup.Name,
+				Data: startup.Data,
+				Args: pm.NewMapArgs(startup.Args),
+			}
+
+			meterInt := cmd.Args.GetInt("stats_interval")
+			if meterInt == 0 {
+				cmd.Args.Set("stats_interval", settings.Stats.Interval)
+			}
+
+			mgr.RunCmd(cmd)
+			commands[name] = PlaceHolder{
+				Hash: hash,
+				Id:   id,
+			}
+			running = append(running, name)
+		}
+
+		//kill commands that are removed from config
+		for name, ph := range commands {
+			if !utils.InString(running, name) {
+				mgr.Kill(ph.Id)
+				delete(commands, name)
+			}
+		}
+
+		return nil
+	}
+
+	watch := func() error {
+		watcher, err := inotify.NewWatcher()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = watcher.Watch(settings.Main.Include)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for {
+			select {
+			case ev := <-watcher.Event:
+				name := ev.Name
+				if len(name) <= len(utils.CONFIG_SUFFIX) {
+					//file name too short to be a config file (shorter than the extension)
+					continue
+				}
+
+				if name[len(name)-len(utils.CONFIG_SUFFIX):] != utils.CONFIG_SUFFIX {
+					continue
+				}
+				if ev.Mask&(inotify.IN_DELETE|inotify.IN_MODIFY) != 0 {
+					apply()
+				}
+			case err := <-watcher.Error:
+				log.Println(err)
+			}
+		}
+	}
+
+	apply()
+	go watch()
+}
+
 func main() {
-	settings := agent.Settings{}
 	var cfg string
 	var help bool
 
@@ -463,7 +610,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	utils.LoadTomlFile(cfg, &settings)
+	settings := utils.GetSettings(cfg)
 
 	//loading command history file
 	//history file is used to remember long running jobs during reboots.
@@ -502,7 +649,7 @@ func main() {
 
 	mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
-	configureLogging(mgr, controllers, &settings)
+	configureLogging(mgr, controllers, settings)
 
 	//This handler is called every 30 sec. It should collect and report all
 	//metered values needed for an external process.
@@ -513,14 +660,14 @@ func main() {
 
 		cpu, err := ps.CPUPercent(0)
 		if err == nil {
-			statsd.Gauage("cpu", fmt.Sprintf("%f", cpu))
+			statsd.Gauage("__cpu__", fmt.Sprintf("%f", cpu))
 		}
 
 		mem, err := ps.MemoryInfo()
 		if err == nil {
-			statsd.Gauage("rss", fmt.Sprintf("%d", mem.RSS))
-			statsd.Gauage("vms", fmt.Sprintf("%d", mem.VMS))
-			statsd.Gauage("swap", fmt.Sprintf("%d", mem.Swap))
+			statsd.Gauage("__rss__", fmt.Sprintf("%d", mem.RSS))
+			statsd.Gauage("__vms__", fmt.Sprintf("%d", mem.VMS))
+			statsd.Gauage("__swap__", fmt.Sprintf("%d", mem.Swap))
 		}
 	})
 
@@ -606,7 +753,7 @@ func main() {
 		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
 	}
 
-	registerHubbleFunctions(controllers, &settings)
+	registerHubbleFunctions(controllers, settings)
 	//start process mgr.
 	mgr.Run()
 	//System is ready to receive commands.
@@ -622,6 +769,7 @@ func main() {
 			Nid:  settings.Main.Nid,
 			Id:   id,
 			Name: startup.Name,
+			Data: startup.Data,
 			Args: pm.NewMapArgs(startup.Args),
 		}
 
@@ -632,6 +780,9 @@ func main() {
 
 		mgr.RunCmd(cmd)
 	}
+
+	//also register extensions and run startup commands from partial configuration files
+	watchAndApply(mgr, settings)
 
 	var pollKeys []string
 	if len(settings.Channel.Cmds) > 0 {
@@ -671,7 +822,7 @@ func main() {
 
 					url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "event")
 
-					resp, err := controller.Client.Post(url, "application/json", reader)
+					resp, err := client.Post(url, "application/json", reader)
 					if err != nil {
 						log.Println("Failed to send startup event to AC", url, err)
 					} else {

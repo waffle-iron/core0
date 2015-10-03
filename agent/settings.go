@@ -1,5 +1,12 @@
 package agent
 
+import (
+	"crypto/md5"
+	"fmt"
+	"io"
+	"sort"
+)
+
 //logger settings
 type Logger struct {
 	//logger type, now only 'db' and 'ac' are supported
@@ -46,6 +53,24 @@ type StartupCmd struct {
 	Args map[string]interface{}
 }
 
+func (up StartupCmd) Hash() string {
+	h := md5.New()
+
+	io.WriteString(h, fmt.Sprintf("Name:%s,", up.Name))
+	io.WriteString(h, fmt.Sprintf("Data:%s,", up.Data))
+
+	keys := make([]string, 0, len(up.Args))
+	for key, _ := range up.Args {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+	for _, key := range keys {
+		io.WriteString(h, fmt.Sprintf("%s:%v,", key, up.Args[key]))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 //main agent settings
 type Settings struct {
 	Main struct {
@@ -55,6 +80,7 @@ type Settings struct {
 		MessageIdFile string
 		HistoryFile   string
 		Roles         []string
+		Include       string
 	}
 
 	Controllers map[string]Controller
@@ -75,6 +101,13 @@ type Settings struct {
 	Hubble struct {
 		Controllers []string
 	}
+
+	Startup map[string]StartupCmd
+}
+
+//partial loadable settings
+type PartialSettings struct {
+	Extensions map[string]Extension
 
 	Startup map[string]StartupCmd
 }

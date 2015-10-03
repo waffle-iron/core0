@@ -1,14 +1,21 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent"
 	"github.com/naoina/toml"
 	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+)
+
+const (
+	CONFIG_SUFFIX = ".toml"
 )
 
 var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
@@ -98,6 +105,16 @@ func In(l []int, x int) bool {
 	return false
 }
 
+func InString(l []string, x string) bool {
+	for i := 0; i < len(l); i++ {
+		if l[i] == x {
+			return true
+		}
+	}
+
+	return false
+}
+
 func Update(dst map[string]interface{}, src map[string]interface{}) {
 	for k, v := range src {
 		dst[k] = v
@@ -105,17 +122,91 @@ func Update(dst map[string]interface{}, src map[string]interface{}) {
 }
 
 //LoadTomlFile loads toml using "github.com/naoina/toml"
-func LoadTomlFile(filename string, v interface{}) {
+func LoadTomlFile(filename string, v interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer f.Close()
 	buf, err := ioutil.ReadAll(f)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if err := toml.Unmarshal(buf, v); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetPartialSettings(settings *agent.Settings) (*agent.PartialSettings, error) {
+	partial := &agent.PartialSettings{
+		Extensions: make(map[string]agent.Extension),
+		Startup:    make(map[string]agent.StartupCmd),
+	}
+
+	if settings.Main.Include == "" {
+		return partial, nil
+	}
+
+	infos, err := ioutil.ReadDir(settings.Main.Include)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			continue
+		}
+		name := info.Name()
+		if len(name) <= len(CONFIG_SUFFIX) {
+			//file name too short to be a config file (shorter than the extension)
+			continue
+		}
+		if name[len(name)-len(CONFIG_SUFFIX):] != CONFIG_SUFFIX {
+			continue
+		}
+
+		partialCfg := agent.PartialSettings{}
+		partialPath := path.Join(settings.Main.Include, name)
+
+		err := LoadTomlFile(partialPath, &partialCfg)
+		if err != nil {
+			return nil, err
+		}
+
+		//merge into settings
+		for key, ext := range partialCfg.Extensions {
+			_, m := settings.Extensions[key]
+			_, p := partial.Extensions[key]
+			if m || p {
+				return nil, errors.New(fmt.Sprintf("Extension override in '%s' name '%s'", partialPath, key))
+			}
+
+			partial.Extensions[key] = ext
+		}
+
+		for key, startup := range partialCfg.Startup {
+			_, m := settings.Startup[key]
+			_, p := partial.Startup[key]
+			if m || p {
+				return nil, errors.New(fmt.Sprintf("Startup command override in '%s' name '%s'", partialPath, key))
+			}
+
+			partial.Startup[key] = startup
+		}
+	}
+
+	return partial, nil
+}
+
+func GetSettings(filename string) *agent.Settings {
+	settings := &agent.Settings{}
+
+	//that's the main config file, panic if can't load
+	if err := LoadTomlFile(filename, settings); err != nil {
 		panic(err)
 	}
+
+	return settings
 }

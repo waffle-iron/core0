@@ -9,7 +9,7 @@
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "999b36e845a15d51afba1f3a692397f707b6a1f5"
+			"Rev": "b08456f213008d59d6591324f7841e2f93e8fbac"
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
@@ -66,6 +66,10 @@
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
 			"Rev": "1d5269ed4e89d423d40362a0914e1c99adb13cc8"
+		},
+		{
+			"ImportPath": "golang.org/x/exp/inotify",
+			"Rev": "7c2630d4d190a54176128a4c86a72d7269cdb68c"
 		}
 	]
 }

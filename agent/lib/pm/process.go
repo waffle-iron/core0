@@ -140,8 +140,10 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 		args.GetStringArray("args")...)
 	cmd.Dir = args.GetString("working_dir")
 
+	agentHome, _ := os.Getwd()
 	env := append(args.GetStringArray("env"),
-		fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
+		fmt.Sprintf("AGENT_HOME=%s", agentHome))
 
 	if len(env) > 0 {
 		cmd.Env = env
@@ -254,7 +256,7 @@ loop:
 		case s := <-ps.ctrl:
 			if s == 1 {
 				//kill signal
-				log.Println("killing process", ps.cmd.Id, cmd.Process.Pid)
+				log.Println("killing process", ps.cmd, cmd.Process.Pid)
 				cmd.Process.Kill()
 				killed = true
 				ps.runs = 0
@@ -275,29 +277,64 @@ loop:
 	}
 
 	//process exited.
-	log.Println("Exit status: ", success)
+	log.Println(ps.cmd, "exit status: ", success)
 
-	if !success && args.GetInt("max_restart") > 0 {
-		ps.runs += 1
-		if ps.runs < args.GetInt("max_restart") {
-			log.Println("Restarting ...")
-			restarting = true
-			time.Sleep(1 * time.Second)
-			go ps.Run(cfg)
-		} else {
-			log.Println("Not restarting")
+	if !killed {
+		//only can restart if processes wasn't killed
+		var restartIn time.Duration
+
+		//restarting due to failuer with max_restart set
+		if !success && args.GetInt("max_restart") > 0 {
+			ps.runs += 1
+			if ps.runs < args.GetInt("max_restart") {
+				log.Println("Restarting", ps.cmd, "due to upnormal exit status, trials", ps.runs+1, "/", args.GetInt("max_restart"))
+				restarting = true
+				restartIn = 1 * time.Second
+			}
 		}
-	}
 
-	//recurring
-	if args.GetInt("recurring_period") > 0 {
-		restarting = true
-		go func() {
-			time.Sleep(time.Duration(args.GetInt("recurring_period")) * time.Second)
-			ps.runs = 0
-			log.Println("Recurring ...")
-			ps.Run(cfg)
-		}()
+		//recurring task, need to restart anyway
+		if args.GetInt("recurring_period") > 0 {
+			log.Println("Recurring", ps.cmd, "in", args.GetInt("recurring_period"), "seconds")
+			restarting = true
+			restartIn = time.Duration(args.GetInt("recurring_period")) * time.Second
+		}
+
+		if restarting {
+			//we are starting a go routine here. so normal execution of
+			//the caller function will be followed.
+			go func() {
+				select {
+				case <-time.After(restartIn):
+					if success {
+						ps.runs = 0
+					} else {
+						ps.runs += 1
+					}
+					//restarting.
+					ps.Run(cfg)
+				case s := <-ps.ctrl:
+					//process killed while waiting.
+					//since the waiting was done inside a go routine. we need to do
+					//the normal cleaning, that was skipped because of the restarting flag.
+					if s == 1 {
+						log.Println(ps.cmd, "killed while waiting for recurring")
+						killed = true
+						defer func() {
+							close(ps.ctrl)
+							cfg.Signal <- 1 //forces the PM to clean up
+						}()
+						//and send the kill result.
+						jobresult := NewBasicJobResult(ps.cmd)
+
+						jobresult.State = S_KILLED
+						jobresult.StartTime = int64(starttime)
+						jobresult.Time = int64(endtime - starttime)
+						cfg.ResultHandler(jobresult)
+					}
+				}
+			}()
+		}
 	}
 
 	var state string
@@ -333,6 +370,12 @@ loop:
 }
 
 func (ps *ExtProcess) Kill() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Killing job that is already gone", ps.cmd)
+		}
+	}()
+
 	ps.ctrl <- 1
 }
 

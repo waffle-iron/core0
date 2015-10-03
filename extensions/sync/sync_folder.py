@@ -49,12 +49,13 @@ def sync_folder(data):
     headers['X-API-Key'] = api_key
 
     remote_device_id = data['device_id']
+    remote_device_address = data.get('address', 'dynamic')
     devices = filter(lambda d: d['deviceID'] == remote_device_id, config['devices'])
 
     dirty = False
     if not devices:
         device = {
-            'addresses': ['dynamic'],
+            'addresses': [remote_device_address],
             'certName': '',
             'compression': 'metadata',
             'deviceID': remote_device_id,
@@ -68,6 +69,7 @@ def sync_folder(data):
     # add device to shared folder.
     folders = filter(lambda f: f['id'] == data['folder_id'], config['folders'])
 
+    folder_path = os.path.join(sync.settings['agent-home'], data['path'])
     if not folders:
         # add folder.
         folder = {
@@ -79,15 +81,15 @@ def sync_folder(data):
             'ignorePerms': False,
             'invalid': '',
             'order': 'random',
-            'path': data['path'],
+            'path': folder_path,
             'pullers': 16,
             'readOnly': False,
             'rescanIntervalS': 60,
             'versioning': {'params': {}, 'type': ''}
         }
 
-        if not os.path.isdir(data['path']):
-            os.makedirs(data['path'], 0755)
+        if not os.path.isdir(folder_path):
+            os.makedirs(folder_path, 0755)
 
         config['folders'].append(folder)
         dirty = True
