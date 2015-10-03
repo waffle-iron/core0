@@ -220,7 +220,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		} else if parsedUrl.Scheme == "https" {
 			parsedUrl.Scheme = "wss"
 		} else {
-			log.Fatalf("Unknown scheme '%s'", parsedUrl.Scheme)
+			log.Fatalf("Unknown scheme '%s' in controller url '%s'", parsedUrl.Scheme, controller.URL)
 		}
 
 		agent := hubble.NewAgent(parsedUrl.String(), localName, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
@@ -245,7 +245,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 		Gateway string `json:"gateway"`
 		IP      net.IP `json:"ip"`
 		Remote  uint16 `json:"remote"`
-		Tag     string `json:"controller"`
+		Tag     string `json:"controller,omitempty"`
 	}
 
 	openTunnle := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
