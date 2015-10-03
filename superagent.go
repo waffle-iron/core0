@@ -136,6 +136,7 @@ func registerGetMsgsFunction(path string) {
 		}
 
 		result.State = pm.S_SUCCESS
+		result.Level = pm.L_RESULT_JSON
 		result.Data = string(data)
 
 		return result
