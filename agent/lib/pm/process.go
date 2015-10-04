@@ -1,6 +1,8 @@
 package pm
 
 import (
+	"bytes"
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
@@ -35,6 +37,8 @@ const (
 	S_KILLED       = "KILLED"
 	S_UNKNOWN_CMD  = "UNKNOWN_CMD"
 	S_DUPILCATE_ID = "DUPILICATE_ID"
+
+	STREAM_BUFFER_SIZE = 1000 // keeps only last 1000 line of stream
 )
 
 var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
@@ -70,6 +74,7 @@ type JobResult struct {
 	Cmd       string   `json:"cmd"`
 	Args      *MapArgs `json:"args"`
 	Data      string   `json:"data"`
+	Streams   []string `json:"streams,omitempty"`
 	Level     int      `json:"level"`
 	State     string   `json:"state"`
 	StartTime int64    `json:"starttime"`
@@ -131,6 +136,16 @@ func (ps *ExtProcess) Cmd() *Cmd {
 	return ps.cmd
 }
 
+func concatBuffer(buffer *list.List) string {
+	var strbuf bytes.Buffer
+	for l := buffer.Front(); l != nil; l = l.Next() {
+		strbuf.WriteString(l.Value.(string))
+		strbuf.WriteString("\n")
+	}
+
+	return strbuf.String()
+}
+
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
@@ -190,10 +205,25 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
 	var result *Message = nil
 
+	stdoutBuffer := list.New()
+	stderrBuffer := list.New()
+
 	msgInterceptor := func(msg *Message) {
 		if utils.In(RESULT_MESSAGE_LEVELS, msg.Level) {
 			//process result message.
 			result = msg
+		}
+
+		if msg.Level == L_STDOUT {
+			stdoutBuffer.PushBack(msg.Message)
+			if stdoutBuffer.Len() > STREAM_BUFFER_SIZE {
+				stdoutBuffer.Remove(stdoutBuffer.Front())
+			}
+		} else if msg.Level == L_STDERR {
+			stderrBuffer.PushBack(msg.Message)
+			if stderrBuffer.Len() > STREAM_BUFFER_SIZE {
+				stderrBuffer.Remove(stderrBuffer.Front())
+			}
 		}
 
 		cfg.MessageHandler(msg)
@@ -365,6 +395,10 @@ loop:
 		return
 	}
 
+	jobresult.Streams = []string{
+		concatBuffer(stdoutBuffer),
+		concatBuffer(stderrBuffer),
+	}
 	//delegating the result.
 	cfg.ResultHandler(jobresult)
 }
