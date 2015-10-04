@@ -15,13 +15,13 @@ import (
 )
 
 type Cmd struct {
-	Id   string   `json:"id"`
-	Gid  int      `json:"gid"`
-	Nid  int      `json:"nid"`
-	Role string   `json:"role"`
-	Name string   `json:"cmd"`
-	Args *MapArgs `json:"args"`
-	Data string   `json:"data"`
+	Id    string   `json:"id"`
+	Gid   int      `json:"gid"`
+	Nid   int      `json:"nid"`
+	Roles []string `json:"roles"`
+	Name  string   `json:"cmd"`
+	Args  *MapArgs `json:"args"`
+	Data  string   `json:"data"`
 }
 
 //Builds a cmd from a map.

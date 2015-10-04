@@ -97,11 +97,44 @@ This one is done here and NOT in the 'buildin' library because
 */
 
 type LogQuery struct {
-	JobID string `json:"jobid"`
-	Limit int    `json:"limit"`
+	JobID  string      `json:"jobid"`
+	Levels interface{} `json:"levels"`
+	Limit  int         `json:"limit"`
 }
 
 func registerGetMsgsFunction(db *bolt.DB) {
+
+	get_levels := func(levels interface{}) ([]int, error) {
+		var results []int
+
+		if levels == nil {
+			levels = "*"
+		}
+
+		//loading levels.
+		if levels != nil {
+			switch ls := levels.(type) {
+			case string:
+				var err error
+				results, err = utils.Expand(ls)
+				if err != nil {
+					return nil, err
+				}
+			case []int:
+				results = ls
+			case []float64:
+				//happens when unmarshaling from json
+				results = make([]int, len(ls))
+				for i := 0; i < len(ls); i++ {
+					results[i] = int(ls[i])
+				}
+			}
+		} else {
+			levels = make([]int, 0)
+		}
+
+		return results, nil
+	}
 
 	get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
@@ -124,7 +157,15 @@ func registerGetMsgsFunction(db *bolt.DB) {
 
 		if query.JobID == "" {
 			result.State = pm.S_ERROR
-			result.Data = fmt.Sprintf("jobid is required")
+			result.Data = "jobid is required"
+
+			return result
+		}
+
+		levels, err := get_levels(query.Levels)
+		if err != nil {
+			result.State = pm.S_ERROR
+			result.Data = fmt.Sprintf("Error parsing levels (%s): %s", query.Levels, err)
 
 			return result
 		}
@@ -139,7 +180,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		}
 
 		//we still can continue the query even if we have unmarshal errors.
-		records := make([]map[string]interface{}, 0, 1000)
+		records := make([]map[string]interface{}, 0, CMD_GET_MSGS_DEFAULT_LIMIT)
 
 		err = db.View(func(tx *bolt.Tx) error {
 			logs := tx.Bucket([]byte("logs"))
@@ -160,7 +201,9 @@ func registerGetMsgsFunction(db *bolt.DB) {
 					log.Printf("Failed to load job log '%s'\n", value)
 					return err
 				}
-				records = append(records, row)
+				if utils.In(levels, int(row["level"].(float64))) {
+					records = append(records, row)
+				}
 			}
 			return nil
 		})
