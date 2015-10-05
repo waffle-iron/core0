@@ -5,22 +5,16 @@ import sys
 from multiprocessing import connection
 
 
-MODE_MODERN = 'modern'
-MODE_LEGACY = 'legacy'
-
-
 def runner(data):
     assert 'SOCKET' in os.environ, 'SOCKET env var is not set'
-    assert len(sys.argv) == 4, 'Invalid number of command line arguments'
+    assert len(sys.argv) == 3, 'Invalid number of command line arguments'
 
-    mode, domain, name = sys.argv[1:]
-    assert mode in (MODE_MODERN, MODE_LEGACY), 'Only support execution modes are modren and legacy'
+    domain, name = sys.argv[1:]
 
     socket = os.environ['SOCKET']
     con = connection.Client(socket)
     exec_data = {
         'data': data,
-        'legacy': mode == MODE_LEGACY,
         'domain': domain,
         'name': name
     }

@@ -43,18 +43,10 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.jumpscript]
     binary = "python2.7"
     cwd = "./extensions/jumpscript"
-    args = ["wrapper.py", "modern", "{domain}", "{name}"]
+    args = ["wrapper.py", "{domain}", "{name}"]
         [extensions.jumpscript.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
-
-    [extensions.legacy]
-    binary = "python2.7"
-    cwd = "./extensions/jumpscript"
-    args = ["wrapper.py", "legacy", "{domain}", "{name}"]
-        [extensions.legacy.env]
-        PYTHONPATH = "../" # for utils
-        SOCKET = "/tmp/jumpscript.sock"
 
     [extensions.js_daemon]
     binary = "python2.7"

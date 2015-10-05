@@ -25,12 +25,7 @@ class WrapperThread(Process):
     def run(self):
         try:
             data = self.con.recv()
-            legacy = data.get('legacy', False)
             jspath = os.environ.get('JUMPSCRIPTS_HOME')
-            if legacy:
-                jspath = os.environ.get('JUMPSCRIPTS_LEGACY_HOME')
-                if jspath is None:
-                    raise RuntimeError('legacy mode is not configured, missing JUMPSCRIPTS_LEGACY_HOME')
 
             path = os.path.join(jspath, data['domain'], '%s.py' % data['name'])
             logging.info('Executing jumpscript: %s' % data)
@@ -38,11 +33,7 @@ class WrapperThread(Process):
             j.logger = logger.LogHandler(self.con)
 
             module = imp.load_source(path, path)
-            if legacy:
-                # legacy jump scripts accepts arguments seperated.
-                result = module.action(**data['data'])
-            else:
-                result = module.action(data['data'])
+            result = module.action(**data['data'])
 
             j.logger.log(json.dumps(result), j.logger.RESULT_JSON)
 
