@@ -52,7 +52,10 @@ func extensionProcess(exe string, workdir string, cmdargs []string, env []string
 		if len(env) > 0 {
 			args.Set("env", env)
 		}
-		args.Set("working_dir", workdir)
+
+		if workdir != "" {
+			args.Set("working_dir", workdir)
+		}
 
 		extcmd := &Cmd{
 			Id:   cmd.Id,

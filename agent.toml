@@ -66,6 +66,10 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
         JUMPSCRIPTS_LEGACY_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
 
+    [extensions.bash]
+    binary = "bash"
+    args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash -c $T || rm -rf $T']
+
 [logging]
     [logging.db]
     type = "DB"
