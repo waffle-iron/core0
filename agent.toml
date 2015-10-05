@@ -68,7 +68,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 
     [extensions.bash]
     binary = "bash"
-    args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash -c $T || rm -rf $T']
+    args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash -c $T; EXIT=$?; rm -rf $T; exit $EXIT']
 
 [logging]
     [logging.db]
