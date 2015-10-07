@@ -20,6 +20,7 @@ def sync_folder(data):
 
     remote_device_id = data['device_id']
     remote_device_address = data.get('address', 'dynamic')
+    remove_device_name = data.get('name', remote_device_id.split('-')[0])
     devices = filter(lambda d: d['deviceID'] == remote_device_id, config['devices'])
 
     dirty = False
@@ -30,7 +31,7 @@ def sync_folder(data):
             'compression': 'metadata',
             'deviceID': remote_device_id,
             'introducer': False,
-            'name': remote_device_id.split('-')[0]
+            'name': remove_device_name
         }
 
         config['devices'].append(device)

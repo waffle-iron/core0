@@ -2,6 +2,7 @@ import requests
 import logging
 import time
 import json
+import md5
 
 ENDPOINT_CONFIG = '/rest/system/config'
 ENDPOINT_RESTART = '/rest/system/restart'
@@ -89,3 +90,12 @@ class Syncthing(object):
         response = self.post(ENDPOINT_CONFIG, data=config)
         if not response.ok:
             raise Exception('Failed to set syncthing configuration', response.reason)
+
+    def restart(self):
+        response = self.post(ENDPOINT_RESTART)
+
+        if not response.ok:
+            raise Exception('Failed to restart syncthing: %s' % response.reason)
+
+    def folder_path_to_id(self, path):
+        return md5.md5(path).hexdigest()
