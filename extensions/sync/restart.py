@@ -4,9 +4,9 @@ import api
 import _sync as sync
 
 
-def sync_folder(data):
+def restart(data):
     syncthing = api.Syncthing(sync.SYNCTHING_URL)
     syncthing.restart()
 
 if __name__ == '__main__':
-    utils.run(sync_folder)
+    utils.run(restart)

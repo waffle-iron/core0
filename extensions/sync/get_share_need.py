@@ -5,7 +5,7 @@ import _sync as sync
 
 
 def validate_data(data):
-    for key in ('path',):
+    for key in ('name',):
         if key not in data:
             raise ValueError('Invalid request data, missing "%s"' % key)
 
@@ -18,14 +18,14 @@ def get_ignore(data):
     config = syncthing.config
 
     # add device to shared folder.
-    folders = filter(lambda f: f['path'] == data['path'], config['folders'])
+    folders = filter(lambda f: f['id'] == data['name'], config['folders'])
 
     if not folders:
-        raise Exception('No share with path=%s' % data['path'])
+        raise Exception('No share with name=%s' % data['name'])
     else:
         folder = folders[0]
 
-    response = syncthing.get('/rest/db/ignores', {'folder': folder['id']})
+    response = syncthing.get('/rest/db/need', {'folder': folder['id']})
 
     if not response.ok:
         raise Exception('Could not get share ignore list: %s' % response.reason)

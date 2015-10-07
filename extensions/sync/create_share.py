@@ -7,7 +7,7 @@ import _sync as sync
 
 
 def validate_data(data):
-    for key in ('path', 'ignore', 'readonly'):
+    for key in ('name', 'path', 'ignore', 'readonly'):
         if key not in data:
             raise ValueError('Invalid request data, missing "%s"' % key)
 
@@ -22,7 +22,7 @@ def create_share(data):
     # add device to shared folder.
     folders = filter(lambda f: f['path'] == data['path'], config['folders'])
 
-    folder_id = syncthing.folder_path_to_id(data['path'])
+    folder_id = data['name']
     folder_path = os.path.join(sync.settings['agent-home'], data['path'])
     if not folders:
         # add folder.
