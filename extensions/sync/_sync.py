@@ -9,6 +9,8 @@ ENDPOINT_CONFIG = '/rest/system/config'
 ENDPOINT_RESTART = '/rest/system/restart'
 ENDPOINT_STATUS = '/rest/system/status'
 
+SYNCTHING_URL = settings['syncthing']
+
 
 def get_url(endpoint):
     syncthing = settings['syncthing'].rstrip('/')

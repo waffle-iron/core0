@@ -1,9 +1,6 @@
 import os
 import utils
-import requests
-import json
-import time
-import logging
+import api
 
 import _sync as sync
 
@@ -17,36 +14,9 @@ def validate_data(data):
 def sync_folder(data):
     validate_data(data)
 
-    sessions = requests.Session()
+    syncthing = api.Syncthing(sync.SYNCTHING_URL)
 
-    headers = {
-        'content-type': 'application/json'
-    }
-
-    config_url = sync.get_url(sync.ENDPOINT_CONFIG)
-
-    _errors = 0
-    while True:
-        try:
-            response = sessions.get(config_url)
-            if not response.ok:
-                raise Exception('Invalid response from syncthing: %s' % response.reason)
-            else:
-                break
-        except:
-            _errors += 1
-            if _errors >= 3:
-                raise
-            seconds = 3 * _errors
-            logging.info('Error retreiving syncthing config, retrying in %s seconds', seconds)
-            time.sleep(seconds)
-
-    config = response.json()
-
-    local_device_id = response.headers['x-syncthing-id']
-    # Get API key for future use
-    api_key = config['gui']['apiKey']
-    headers['X-API-Key'] = api_key
+    config = syncthing.config
 
     remote_device_id = data['device_id']
     remote_device_address = data.get('address', 'dynamic')
@@ -75,7 +45,7 @@ def sync_folder(data):
         folder = {
             'autoNormalize': False,
             'copiers': 1,
-            'devices': [{'deviceID': local_device_id}],
+            'devices': [{'deviceID': syncthing.device_id}],
             'hashers': 0,
             'id': data['folder_id'],
             'ignorePerms': False,
@@ -107,9 +77,7 @@ def sync_folder(data):
     if not dirty:
         return
 
-    response = sessions.post(config_url, data=json.dumps(config), headers=headers)
-    if not response.ok:
-        raise Exception('Failed to set syncthing configuration', response.reason)
+    syncthing.set_config(config)
 
 
 if __name__ == '__main__':
