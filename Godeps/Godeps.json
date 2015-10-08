@@ -29,6 +29,10 @@
 			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
 		},
 		{
+			"ImportPath": "github.com/rjeczalik/notify",
+			"Rev": "b097dccf0a46b407c6be47666d8ed2b3ea108513"
+		},
+		{
 			"ImportPath": "github.com/shirou/gopsutil/common",
 			"Comment": "1.0.0-153-gc1313e7",
 			"Rev": "c1313e76341b18456212c5645d1daa7f132ac50e"
