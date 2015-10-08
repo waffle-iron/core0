@@ -2,8 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/Jumpscale/agent2/client"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +10,9 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+
+	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/Jumpscale/agentcontroller2/client"
 )
 
 const (
