@@ -2,23 +2,12 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/go-uuid/uuid"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent"
-	"github.com/Jumpscale/agent2/agent/lib/builtin"
-	"github.com/Jumpscale/agent2/agent/lib/logger"
-	"github.com/Jumpscale/agent2/agent/lib/pm"
-	"github.com/Jumpscale/agent2/agent/lib/stats"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
-	hubble "github.com/Jumpscale/hubble/agent"
-	"github.com/boltdb/bolt"
-	"github.com/shirou/gopsutil/process"
-	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -28,6 +17,17 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/Jumpscale/agent2/agent"
+	"github.com/Jumpscale/agent2/agent/configuration"
+	"github.com/Jumpscale/agent2/agent/lib/builtin"
+	"github.com/Jumpscale/agent2/agent/lib/logger"
+	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/stats"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
+	hubble "github.com/Jumpscale/hubble/agent"
+	"github.com/boltdb/bolt"
+	"github.com/shirou/gopsutil/process"
 )
 
 const (
@@ -498,137 +498,6 @@ func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *a
 	}
 }
 
-//Include, and watch changes of configuration folder
-func watchAndApply(mgr *pm.PM, settings *agent.Settings) {
-	if settings.Main.Include == "" {
-		return
-	}
-
-	type PlaceHolder struct {
-		Hash string
-		Id   string
-	}
-
-	extensions := make([]string, 0, 100)
-	commands := make(map[string]PlaceHolder)
-
-	apply := func() error {
-		partial, err := utils.GetPartialSettings(settings)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		//first, unregister all the extensions from the PM.
-		//that might have been registered before.
-		for _, extKey := range extensions {
-			pm.UnregisterCmd(extKey)
-		}
-		extensions = extensions[:]
-
-		//register the execute commands
-		for extKey, extCfg := range partial.Extensions {
-			var env []string
-			if len(extCfg.Env) > 0 {
-				env = make([]string, 0, len(extCfg.Env))
-				for ek, ev := range extCfg.Env {
-					env = append(env, fmt.Sprintf("%v=%v", ek, ev))
-				}
-			}
-
-			pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
-			extensions = append(extensions, extKey)
-		}
-
-		//Simple diff to find out which command needs to be restarted
-		//and witch needs to be stopped totally
-		running := make([]string, 0)
-		for name, startup := range partial.Startup {
-			hash := startup.Hash()
-			if ph, ok := commands[name]; ok {
-				//name already tracked
-				if ph.Hash == hash {
-					//no changes to the command.
-					running = append(running, name)
-					continue
-				} else {
-					mgr.Kill(ph.Id)
-					delete(commands, name)
-				}
-			}
-
-			if startup.Args == nil {
-				startup.Args = make(map[string]interface{})
-			}
-
-			id := uuid.New()
-
-			cmd := &pm.Cmd{
-				Gid:  settings.Main.Gid,
-				Nid:  settings.Main.Nid,
-				Id:   id,
-				Name: startup.Name,
-				Data: startup.Data,
-				Args: pm.NewMapArgs(startup.Args),
-			}
-
-			meterInt := cmd.Args.GetInt("stats_interval")
-			if meterInt == 0 {
-				cmd.Args.Set("stats_interval", settings.Stats.Interval)
-			}
-
-			mgr.RunCmd(cmd)
-			commands[name] = PlaceHolder{
-				Hash: hash,
-				Id:   id,
-			}
-			running = append(running, name)
-		}
-
-		//kill commands that are removed from config
-		for name, ph := range commands {
-			if !utils.InString(running, name) {
-				mgr.Kill(ph.Id)
-				delete(commands, name)
-			}
-		}
-
-		return nil
-	}
-
-	watch := func() error {
-		watcher, err := inotify.NewWatcher()
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = watcher.Watch(settings.Main.Include)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for {
-			select {
-			case ev := <-watcher.Event:
-				name := ev.Name
-				if len(name) <= len(utils.CONFIG_SUFFIX) {
-					//file name too short to be a config file (shorter than the extension)
-					continue
-				}
-
-				if name[len(name)-len(utils.CONFIG_SUFFIX):] != utils.CONFIG_SUFFIX {
-					continue
-				}
-				if ev.Mask&(inotify.IN_DELETE|inotify.IN_MODIFY) != 0 {
-					apply()
-				}
-			case err := <-watcher.Error:
-				log.Println(err)
-			}
-		}
-	}
-
-	apply()
-	go watch()
-}
-
 func main() {
 	var cfg string
 	var help bool
@@ -825,7 +694,7 @@ func main() {
 	}
 
 	//also register extensions and run startup commands from partial configuration files
-	watchAndApply(mgr, settings)
+	configuration.WatchAndApply(mgr, settings)
 
 	var pollKeys []string
 	if len(settings.Channel.Cmds) > 0 {
