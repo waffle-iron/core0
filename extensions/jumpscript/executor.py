@@ -7,6 +7,7 @@ import signal
 import utils
 import json
 import requests
+import time
 from multiprocessing import Process, connection
 import traceback
 
@@ -17,8 +18,10 @@ import logger
 
 
 LOG_FORMAT = '%(asctime)-15s [%(process)d] %(levelname)s: %(message)s'
+
 SCRIPTS_CACHE_DIR = '/tmp/jscache/'
 SCRIPTS_URL_PATH = '{gid}/{nid}/script'
+SCRIPTS_DELETE_OLDER_THAN = 86400  # A day
 
 
 class WrapperThread(Process):
@@ -95,6 +98,29 @@ class WrapperThread(Process):
             self.con.close()
 
 
+class CleanerThread(threading.Thread):
+    def __init__(self, path):
+        super(CleanerThread, self).__init__()
+        self.path = path
+
+    def run(self):
+        while True:
+            try:
+                now = time.time()
+                for fname in j.system.fs.listFilesInDir(self.path, filter='*.js'):
+                    logging.info('Checking file for clean up %s' % fname)
+                    mtime = os.path.getmtime(fname)
+                    if now - mtime >= SCRIPTS_DELETE_OLDER_THAN:
+                        logging.info('Deleting old file %s' % fname)
+                        j.system.fs.remove(fname)
+                        j.system.fs.remove('%sc' % fname)
+            except Exception, e:
+                # never die. just log error.
+                logging.log('Error while cleaning up old scripts %s' % e)
+            finally:
+                time.sleep(3600)  # run every hour.
+
+
 def daemon(data):
     assert 'SOCKET' in os.environ, 'SOCKET env var is not set'
     assert 'JUMPSCRIPTS_HOME' in os.environ, 'JUMPSCRIPTS_HOME env var is not set'
@@ -105,8 +131,7 @@ def daemon(data):
     except:
         pass
 
-    logging.basicConfig(filename='/var/log/jumpscript-daemon.log',
-                        format=LOG_FORMAT,
+    logging.basicConfig(format=LOG_FORMAT,
                         level=logging.INFO)
 
     logging.info('Starting daemon')
@@ -123,6 +148,11 @@ def daemon(data):
 
     # make sure we create cache folder.
     j.system.fs.createDir(SCRIPTS_CACHE_DIR)
+
+    # starting clean up thread.
+    cleaner = CleanerThread(SCRIPTS_CACHE_DIR)
+    logging.info('Starting the clean up thread')
+    cleaner.start()
 
     for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
         signal.signal(s, exit)
