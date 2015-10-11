@@ -193,7 +193,6 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	cmd.Dir = args.GetString("working_dir")
 
 	extraEnv := ps.getExtraEnv()
-	log.Println("Env:", extraEnv)
 
 	env := append(args.GetStringArray("env"),
 		extraEnv...)
