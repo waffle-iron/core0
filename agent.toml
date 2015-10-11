@@ -51,7 +51,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     [extensions.jumpscript_content]
     binary = "python2.7"
     cwd = "./extensions/jumpscript"
-    args = ["wrapper_content.py", "{name}"]
+    args = ["wrapper_content.py"]
         [extensions.jumpscript_content.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
@@ -109,13 +109,6 @@ controllers = [] # accept forwarding commands and connections from all controlle
     #this is used in case the controller is behind nat and syncthing can't reach it.
     name = "hubble_open_tunnel"
     data = '{"local": 33000, "gateway": "controller", "remote": 22000, "ip": "127.0.0.1", "controller": "main"}'
-
-    [startup.legacy]
-    name = "js_legacy_daemon"
-        [startup.legacy.args]
-        max_restart = 10
-        domain = "agent"
-        name = "legacy"
 
     [startup.jumpscript]
     name = "js_daemon"
