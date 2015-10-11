@@ -3,27 +3,15 @@ package pm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"log"
 )
 
-// type Args interface {
-//     GetInt(key string) int
-//     GetString(key string) string
-//     GetFloat(key string) float64
-//     GetMap(key string) map[string]interface{}
-//     GetArray(key string) []interface{}
-//     GetStringArray(key string) []string
-//     GetIntArray(key string) []int
-//     Set(key string, value interface{})
-//     SetTag(tag int)
-//     GetTag() int
-//     Clone(deep bool) Args
-// }
-
 type MapArgs struct {
-	tag  string
-	data map[string]interface{}
+	tag        string
+	controller *agent.Controller
+	data       map[string]interface{}
 }
 
 func NewMapArgs(data map[string]interface{}) *MapArgs {
@@ -175,8 +163,9 @@ func (args *MapArgs) Clone(deep bool) *MapArgs {
 	}
 
 	return &MapArgs{
-		tag:  args.tag,
-		data: data,
+		tag:        args.tag,
+		controller: args.controller,
+		data:       data,
 	}
 }
 
@@ -186,4 +175,12 @@ func (args *MapArgs) SetTag(tag string) {
 
 func (args *MapArgs) GetTag() string {
 	return args.tag
+}
+
+func (args *MapArgs) SetController(controller *agent.Controller) {
+	args.controller = controller
+}
+
+func (args *MapArgs) GetController() *agent.Controller {
+	return args.controller
 }

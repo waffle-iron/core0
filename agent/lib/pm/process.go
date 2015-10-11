@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 )
 
@@ -146,6 +147,42 @@ func concatBuffer(buffer *list.List) string {
 	return strbuf.String()
 }
 
+func joinCertPath(base string, relative string) string {
+	if relative == "" {
+		return relative
+	}
+
+	if path.IsAbs(relative) {
+		return relative
+	} else {
+		return path.Join(base, relative)
+	}
+}
+
+func (ps *ExtProcess) getExtraEnv() []string {
+	env := make([]string, 0, 10)
+	agentHome, _ := os.Getwd()
+	env = append(env,
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
+		fmt.Sprintf("AGENT_HOME=%s", agentHome),
+		fmt.Sprintf("AGENT_GID=%d", ps.cmd.Gid),
+		fmt.Sprintf("AGENT_NID=%d", ps.cmd.Nid))
+
+	ctrl := ps.cmd.Args.GetController()
+	if ctrl == nil {
+		return env
+	}
+
+	env = append(env,
+		fmt.Sprintf("AGENT_CONTROLLER_URL=%s", ctrl.URL),
+		fmt.Sprintf("AGENT_CONTROLLER_NAME=%s", ps.cmd.Args.GetTag()),
+		fmt.Sprintf("AGENT_CONTROLLER_CA=%s", joinCertPath(agentHome, ctrl.Security.CertificateAuthority)),
+		fmt.Sprintf("AGENT_CONTROLLER_CLIENT_CERT=%s", joinCertPath(agentHome, ctrl.Security.ClientCertificate)),
+		fmt.Sprintf("AGENT_CONTROLLER_CLIENT_CERT_KEY=%s", joinCertPath(agentHome, ctrl.Security.ClientCertificateKey)))
+
+	return env
+}
+
 //Start process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
@@ -155,10 +192,11 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 		args.GetStringArray("args")...)
 	cmd.Dir = args.GetString("working_dir")
 
-	agentHome, _ := os.Getwd()
+	extraEnv := ps.getExtraEnv()
+	log.Println("Env:", extraEnv)
+
 	env := append(args.GetStringArray("env"),
-		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
-		fmt.Sprintf("AGENT_HOME=%s", agentHome))
+		extraEnv...)
 
 	if len(env) > 0 {
 		cmd.Env = env

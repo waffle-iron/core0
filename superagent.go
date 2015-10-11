@@ -39,7 +39,7 @@ const (
 	CMD_LIST_TUNNELS           = "hubble_list_tunnels"
 )
 
-type Controller struct {
+type ControllerClient struct {
 	URL    string
 	Client *http.Client
 }
@@ -233,7 +233,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 	pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
 }
 
-func registerHubbleFunctions(controllers map[string]Controller, settings *agent.Settings) {
+func registerHubbleFunctions(controllers map[string]ControllerClient, settings *agent.Settings) {
 	var proxisKeys []string
 	if len(settings.Hubble.Controllers) == 0 {
 		proxisKeys = getKeys(controllers)
@@ -411,7 +411,7 @@ func registerHubbleFunctions(controllers map[string]Controller, settings *agent.
 	pm.CMD_MAP[CMD_LIST_TUNNELS] = builtin.InternalProcessFactory(listTunnels)
 }
 
-func getKeys(m map[string]Controller) []string {
+func getKeys(m map[string]ControllerClient) []string {
 	keys := make([]string, 0, len(m))
 	for key, _ := range m {
 		keys = append(keys, key)
@@ -428,7 +428,7 @@ func buildUrl(gid int, nid int, base string, endpoint string) string {
 		endpoint)
 }
 
-func configureLogging(mgr *pm.PM, controllers map[string]Controller, settings *agent.Settings) {
+func configureLogging(mgr *pm.PM, controllers map[string]ControllerClient, settings *agent.Settings) {
 	//apply logging handlers.
 	dbLoggerConfigured := false
 	for _, logcfg := range settings.Logging {
@@ -551,9 +551,9 @@ func main() {
 	}
 
 	//build list with ACs that we will poll from.
-	controllers := make(map[string]Controller)
+	controllers := make(map[string]ControllerClient)
 	for key, controllerCfg := range settings.Controllers {
-		controllers[key] = Controller{
+		controllers[key] = ControllerClient{
 			URL:    controllerCfg.URL,
 			Client: getHttpClient(&controllerCfg.Security),
 		}
@@ -796,7 +796,13 @@ func main() {
 				}
 
 				//tag command for routing.
+				ctrlConfig := settings.Controllers[key]
 				cmd.Args.SetTag(key)
+				cmd.Args.SetController(&ctrlConfig)
+
+				cmd.Gid = settings.Main.Gid
+				cmd.Nid = settings.Main.Nid
+
 				log.Println("Starting command", cmd)
 
 				if cmd.Args.GetInt("max_time") == -1 {
