@@ -1,5 +1,6 @@
-import os
+import io
 import collections
+import os
 from StringIO import StringIO
 
 LEVEL = collections.namedtuple('LEVEL', 'name level')
@@ -95,7 +96,17 @@ class LogHandler(object):
         else:
             buff.write('%d::%s\n' % (num_level, msg))
 
-        self._con.send(buff.getvalue())
+        # send to stdout.
+        self._con.send((1, buff.getvalue()))
 
     def stats(self, key, value, op=STATS_GAUAGE):
         self.log('%s:%g|%s' % (key, value, op.op), LogHandler.LOG_STATSD)
+
+
+class StreamHandler(io.RawIOBase):
+    def __init__(self, con, default_level):
+        self._con = con
+        self._default_level = default_level
+
+    def write(self, b):
+        self._con.send((self._default_level, b))

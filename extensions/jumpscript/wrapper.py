@@ -1,6 +1,7 @@
 import utils
 import os
 import sys
+import reader
 
 from multiprocessing import connection
 
@@ -21,21 +22,9 @@ def runner(data):
 
     con.send(exec_data)
 
-    exception = None
-
-    while True:
-        msg = con.recv()
-        if isinstance(msg, StopIteration):
-            break
-        elif isinstance(msg, BaseException):
-            exception = msg
-        else:
-            sys.stdout.write(msg)
-            sys.stdout.flush()
-
-    if exception is not None:
-        raise exception
-
+    code = reader.readResponseToEnd(con)
     con.close()
+
+    sys.exit(code)
 
 utils.dryrun(runner)

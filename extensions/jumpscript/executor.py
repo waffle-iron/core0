@@ -26,8 +26,11 @@ SCRIPTS_DELETE_OLDER_THAN = 86400  # A day
 
 class WrapperThread(Process):
     def __init__(self, con):
-        self.con = con
+        # remember this is running inside a fork now. So monkey patching only affecting this process
         super(WrapperThread, self).__init__()
+        self.con = con
+        sys.stdout = logger.StreamHandler(con, 1)
+        sys.stderr = logger.StreamHandler(con, 2)
 
     def run_path(self, path, args):
         logging.info('Executing jumpscript: %s' % path)
@@ -91,10 +94,11 @@ class WrapperThread(Process):
             error = traceback.format_exc()
             logging.error(error)
             eco = j.errorconditionhandler.parsePythonErrorObject(e)
+            # logging the critical message
             j.logger.log(eco.toJson(), j.logger.LOG_CRITICAL)
-            self.con.send(e)
+            self.con.send((0, e))
         finally:
-            self.con.send(StopIteration())
+            self.con.send((0, StopIteration()))
             self.con.close()
 
 

@@ -76,6 +76,7 @@ type JobResult struct {
 	Args      *MapArgs `json:"args"`
 	Data      string   `json:"data"`
 	Streams   []string `json:"streams,omitempty"`
+	Critical  string   `json:"critical,omitempty"`
 	Level     int      `json:"level"`
 	State     string   `json:"state"`
 	StartTime int64    `json:"starttime"`
@@ -244,6 +245,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 
 	stdoutBuffer := list.New()
 	stderrBuffer := list.New()
+	var critical string
 
 	msgInterceptor := func(msg *Message) {
 		if utils.In(RESULT_MESSAGE_LEVELS, msg.Level) {
@@ -261,6 +263,8 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 			if stderrBuffer.Len() > STREAM_BUFFER_SIZE {
 				stderrBuffer.Remove(stderrBuffer.Front())
 			}
+		} else if msg.Level == L_CRITICAL {
+			critical = msg.Message
 		}
 
 		cfg.MessageHandler(msg)
@@ -436,6 +440,8 @@ loop:
 		concatBuffer(stdoutBuffer),
 		concatBuffer(stderrBuffer),
 	}
+
+	jobresult.Critical = critical
 	//delegating the result.
 	cfg.ResultHandler(jobresult)
 }
