@@ -9,7 +9,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdPing] = InternalProcessFactory(ping)
+	pm.CmdMap[CmdPing] = InternalProcessFactory(ping)
 }
 
 func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

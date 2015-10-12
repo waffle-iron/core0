@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetMemInfo] = InternalProcessFactory(getMemInfo)
+	pm.CmdMap[CmdGetMemInfo] = InternalProcessFactory(getMemInfo)
 }
 
 func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

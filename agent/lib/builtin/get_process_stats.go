@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetProcessStats] = InternalProcessFactory(getProcessStats)
+	pm.CmdMap[CmdGetProcessStats] = InternalProcessFactory(getProcessStats)
 }
 
 type GetProcessStatsData struct {

@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetNicInfo] = InternalProcessFactory(getNicInfo)
+	pm.CmdMap[CmdGetNicInfo] = InternalProcessFactory(getNicInfo)
 }
 
 func getNicInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

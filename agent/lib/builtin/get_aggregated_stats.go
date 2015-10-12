@@ -14,7 +14,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
+	pm.CmdMap[CmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
 }
 
 func getAggregatedStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

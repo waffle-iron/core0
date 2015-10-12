@@ -13,12 +13,12 @@ const (
 
 type ProcessConstructor func(cmd *Cmd) Process
 
-var CMD_MAP = map[string]ProcessConstructor{
+var CmdMap = map[string]ProcessConstructor{
 	CmdExecute: NewExtProcess,
 }
 
 func NewProcess(cmd *Cmd) Process {
-	constructor, ok := CMD_MAP[cmd.Name]
+	constructor, ok := CmdMap[cmd.Name]
 	if !ok {
 		return nil
 	}
@@ -121,9 +121,9 @@ func (ps *ExtensionProcess) GetStats() *ProcessStats {
 //script: script name
 //if script == "", then script name will be used from cmd.Args.
 func RegisterCmd(cmd string, exe string, workdir string, cmdargs []string, env []string) {
-	CMD_MAP[cmd] = extensionProcess(exe, workdir, cmdargs, env)
+	CmdMap[cmd] = extensionProcess(exe, workdir, cmdargs, env)
 }
 
 func UnregisterCmd(cmd string) {
-	delete(CMD_MAP, cmd)
+	delete(CmdMap, cmd)
 }

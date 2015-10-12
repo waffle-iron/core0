@@ -9,7 +9,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdKillAll] = InternalProcessFactory(killall)
+	pm.CmdMap[CmdKillAll] = InternalProcessFactory(killall)
 }
 
 func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

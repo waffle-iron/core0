@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdKill] = InternalProcessFactory(kill)
+	pm.CmdMap[CmdKill] = InternalProcessFactory(kill)
 }
 
 type KillData struct {

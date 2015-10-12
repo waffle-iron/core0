@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetCpuInfo] = InternalProcessFactory(getCPUInfo)
+	pm.CmdMap[CmdGetCpuInfo] = InternalProcessFactory(getCPUInfo)
 }
 
 func getCPUInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

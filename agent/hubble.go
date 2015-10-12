@@ -195,7 +195,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		return result
 	}
 
-	pm.CMD_MAP[CmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
-	pm.CMD_MAP[CmdCloseTunnel] = builtin.InternalProcessFactory(closeTunnel)
-	pm.CMD_MAP[CmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
+	pm.CmdMap[CmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
+	pm.CmdMap[CmdCloseTunnel] = builtin.InternalProcessFactory(closeTunnel)
+	pm.CmdMap[CmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
 }

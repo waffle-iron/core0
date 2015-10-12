@@ -151,5 +151,5 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		return result
 	}
 
-	pm.CMD_MAP[CmdGetMsgs] = builtin.InternalProcessFactory(get_msgs)
+	pm.CmdMap[CmdGetMsgs] = builtin.InternalProcessFactory(get_msgs)
 }
