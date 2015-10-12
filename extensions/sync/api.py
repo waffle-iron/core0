@@ -61,7 +61,7 @@ class Syncthing(object):
                 _errors += 1
                 if _errors >= 3:
                     raise
-                seconds = 3 * _errors
+                seconds = 5 * _errors
                 logging.info('Error retreiving syncthing config, retrying in %s seconds', seconds)
                 time.sleep(seconds)
 
