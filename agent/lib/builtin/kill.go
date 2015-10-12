@@ -7,29 +7,29 @@ import (
 )
 
 const (
-	CmdKill = "kill"
+	cmdKill = "kill"
 )
 
 func init() {
-	pm.CmdMap[CmdKill] = InternalProcessFactory(kill)
+	pm.CmdMap[cmdKill] = InternalProcessFactory(kill)
 }
 
-type KillData struct {
-	Id string `json:id`
+type killData struct {
+	ID string `json:id`
 }
 
 func kill(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 
 	//load data
-	data := KillData{}
+	data := killData{}
 	err := json.Unmarshal([]byte(cmd.Data), &data)
 
 	if err != nil {
 		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
-		cfg.ProcessManager.Kill(data.Id)
+		cfg.ProcessManager.Kill(data.ID)
 		result.State = pm.StateSuccess
 	}
 

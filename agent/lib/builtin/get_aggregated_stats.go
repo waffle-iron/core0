@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	CmdGetAggregatedStats = "get_aggregated_stats"
+	cmdGetAggregatedStats = "get_aggregated_stats"
 )
 
 func init() {
-	pm.CmdMap[CmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
+	pm.CmdMap[cmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
 }
 
 func getAggregatedStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
@@ -32,9 +32,9 @@ func getAggregatedStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	//also get agent cpu and memory consumption.
 	if agent, err := process.NewProcess(int32(os.Getpid())); err == nil {
-		agentCpu, err := agent.CPUPercent(0)
+		agentCPU, err := agent.CPUPercent(0)
 		if err == nil {
-			stat.CPU += agentCpu
+			stat.CPU += agentCPU
 		} else {
 			log.Println(err)
 		}

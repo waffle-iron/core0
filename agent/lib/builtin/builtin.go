@@ -5,13 +5,22 @@ import (
 	"time"
 )
 
+/*
+Runable represents a runnable built in function that can be managed by the process manager.
+*/
 type Runable func(*pm.Cmd, pm.RunCfg) *pm.JobResult
 
+/*
+InternalProcess implements a Procss interface and represents an internal (go) process that can be managed by the process manager
+*/
 type InternalProcess struct {
 	runable Runable
 	cmd     *pm.Cmd
 }
 
+/*
+InternalProcessFactory factory to build Runnable processes
+*/
 func InternalProcessFactory(runable Runable) pm.ProcessConstructor {
 	constructor := func(cmd *pm.Cmd) pm.Process {
 		return &InternalProcess{
@@ -23,10 +32,16 @@ func InternalProcessFactory(runable Runable) pm.ProcessConstructor {
 	return constructor
 }
 
+/*
+Cmd returns the internal process command
+*/
 func (ps *InternalProcess) Cmd() *pm.Cmd {
 	return ps.cmd
 }
 
+/*
+Run runs the internal process
+*/
 func (ps *InternalProcess) Run(cfg pm.RunCfg) {
 	defer func() {
 		cfg.Signal <- 1
@@ -43,10 +58,16 @@ func (ps *InternalProcess) Run(cfg pm.RunCfg) {
 	}
 }
 
+/*
+Kill kills internal process (not implemented)
+*/
 func (ps *InternalProcess) Kill() {
 	//you can't kill an internal process.
 }
 
+/*
+GetStats gets cpu, mem, etc.. consumption of internal process (not implemented)
+*/
 func (ps *InternalProcess) GetStats() *pm.ProcessStats {
 	//can't provide values for the internal process, but
 	//we have to return the correct data struct for interface completenss

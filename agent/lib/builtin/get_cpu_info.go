@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CmdGetCpuInfo = "get_cpu_info"
+	cmdGetCPUInfo = "get_cpu_info"
 )
 
 func init() {
-	pm.CmdMap[CmdGetCpuInfo] = InternalProcessFactory(getCPUInfo)
+	pm.CmdMap[cmdGetCPUInfo] = InternalProcessFactory(getCPUInfo)
 }
 
 func getCPUInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

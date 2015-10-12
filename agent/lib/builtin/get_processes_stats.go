@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	CmdGetProcessesStats = "get_processes_stats"
+	cmdGetProcessesStats = "get_processes_stats"
 )
 
 func init() {
-	pm.CmdMap[CmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
+	pm.CmdMap[cmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
 }
 
-type GetStatsData struct {
+type getStatsData struct {
 	Domain string `json:domain`
 	Name   string `json:name`
 }
@@ -23,7 +23,7 @@ func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 
 	//load data
-	data := GetStatsData{}
+	data := getStatsData{}
 	json.Unmarshal([]byte(cmd.Data), &data)
 
 	stats := make([]*pm.ProcessStats, 0, len(cfg.ProcessManager.Processes()))

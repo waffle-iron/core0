@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	CmdPing = "ping"
+	cmdPing = "ping"
 )
 
 func init() {
-	pm.CmdMap[CmdPing] = InternalProcessFactory(ping)
+	pm.CmdMap[cmdPing] = InternalProcessFactory(ping)
 }
 
 func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

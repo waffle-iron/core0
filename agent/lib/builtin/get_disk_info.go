@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CmdGetDiskInfo = "get_disk_info"
+	cmdGetDiskInfo = "get_disk_info"
 )
 
 func init() {
-	pm.CmdMap[CmdGetDiskInfo] = InternalProcessFactory(getDiskInfo)
+	pm.CmdMap[cmdGetDiskInfo] = InternalProcessFactory(getDiskInfo)
 }
 
 func getDiskInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
