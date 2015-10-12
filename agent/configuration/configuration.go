@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/Jumpscale/agent2/agent"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 
 	"github.com/rjeczalik/notify"
 )
 
 //WatchAndApply watches and applies changes of configuration folder
-func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
-	if settings.Main.Include == "" {
+func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
+	if cfg.Main.Include == "" {
 		return
 	}
 
@@ -28,7 +28,7 @@ func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
 	commands := make(map[string]PlaceHolder)
 
 	apply := func() error {
-		partial, err := utils.GetPartialSettings(settings)
+		partial, err := settings.GetPartialSettings(cfg)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -78,8 +78,8 @@ func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
 			id := uuid.New()
 
 			cmd := &pm.Cmd{
-				Gid:  settings.Main.Gid,
-				Nid:  settings.Main.Nid,
+				Gid:  cfg.Main.Gid,
+				Nid:  cfg.Main.Nid,
 				Id:   id,
 				Name: startup.Name,
 				Data: startup.Data,
@@ -88,7 +88,7 @@ func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
 
 			meterInt := cmd.Args.GetInt("stats_interval")
 			if meterInt == 0 {
-				cmd.Args.Set("stats_interval", settings.Stats.Interval)
+				cmd.Args.Set("stats_interval", cfg.Stats.Interval)
 			}
 
 			mgr.RunCmd(cmd)
@@ -128,7 +128,7 @@ func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
 			fsevent := <-fsevents
 			path := fsevent.Path()
 
-			if !strings.HasSuffix(path, utils.CONFIG_SUFFIX) {
+			if !strings.HasSuffix(path, settings.CONFIG_SUFFIX) {
 				//file name too short to be a config file (shorter than the extension)
 				continue
 			}
@@ -139,5 +139,5 @@ func WatchAndApply(mgr *pm.PM, settings *agent.Settings) {
 	}
 
 	apply()
-	go watch(settings.Main.Include)
+	go watch(cfg.Main.Include)
 }

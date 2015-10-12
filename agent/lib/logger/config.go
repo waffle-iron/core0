@@ -3,6 +3,7 @@ package logger
 import (
 	"github.com/Jumpscale/agent2/agent"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/boltdb/bolt"
 	"log"
 	"net/http"
@@ -12,10 +13,10 @@ import (
 	"time"
 )
 
-func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, settings *agent.Settings) {
+func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, cfg *settings.Settings) {
 	//apply logging handlers.
 	dbLoggerConfigured := false
-	for _, logcfg := range settings.Logging {
+	for _, logcfg := range cfg.Logging {
 		switch strings.ToLower(logcfg.Type) {
 		case "db":
 			if dbLoggerConfigured {
@@ -47,13 +48,13 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 					if !ok {
 						log.Fatalf("Unknow controller '%s'", key)
 					}
-					url := controller.BuildUrl(settings.Main.Gid, settings.Main.Nid, "log")
+					url := controller.BuildUrl(cfg.Main.Gid, cfg.Main.Nid, "log")
 					endpoints[url] = controller.Client
 				}
 			} else {
 				//all ACs
 				for _, controller := range controllers {
-					url := controller.BuildUrl(settings.Main.Gid, settings.Main.Nid, "log")
+					url := controller.BuildUrl(cfg.Main.Gid, cfg.Main.Nid, "log")
 					endpoints[url] = controller.Client
 				}
 			}

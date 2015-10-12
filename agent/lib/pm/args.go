@@ -3,14 +3,14 @@ package pm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent"
+	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"log"
 )
 
 type MapArgs struct {
 	tag        string
-	controller *agent.Controller
+	controller *settings.Controller
 	data       map[string]interface{}
 }
 
@@ -177,10 +177,10 @@ func (args *MapArgs) GetTag() string {
 	return args.tag
 }
 
-func (args *MapArgs) SetController(controller *agent.Controller) {
+func (args *MapArgs) SetController(controller *settings.Controller) {
 	args.controller = controller
 }
 
-func (args *MapArgs) GetController() *agent.Controller {
+func (args *MapArgs) GetController() *settings.Controller {
 	return args.controller
 }

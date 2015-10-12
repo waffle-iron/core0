@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,7 +17,7 @@ type ControllerClient struct {
 	Client *http.Client
 }
 
-func getHttpClient(security *Security) *http.Client {
+func getHttpClient(security *settings.Security) *http.Client {
 	var tlsConfig tls.Config
 
 	if security.CertificateAuthority != "" {
@@ -58,7 +59,7 @@ func getHttpClient(security *Security) *http.Client {
 	}
 }
 
-func NewControllerClient(cfg Controller) *ControllerClient {
+func NewControllerClient(cfg settings.Controller) *ControllerClient {
 	client := &ControllerClient{
 		URL:    strings.TrimRight(cfg.URL, "/"),
 		Client: getHttpClient(&cfg.Security),

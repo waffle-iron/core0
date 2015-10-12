@@ -1,10 +1,18 @@
-package agent
+package settings
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"io"
+	"io/ioutil"
+	"path"
 	"sort"
+)
+
+const (
+	CONFIG_SUFFIX = ".toml"
 )
 
 //logger settings
@@ -110,4 +118,76 @@ type PartialSettings struct {
 	Extensions map[string]Extension
 
 	Startup map[string]StartupCmd
+}
+
+func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
+	partial := &PartialSettings{
+		Extensions: make(map[string]Extension),
+		Startup:    make(map[string]StartupCmd),
+	}
+
+	if settings.Main.Include == "" {
+		return partial, nil
+	}
+
+	infos, err := ioutil.ReadDir(settings.Main.Include)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			continue
+		}
+		name := info.Name()
+		if len(name) <= len(CONFIG_SUFFIX) {
+			//file name too short to be a config file (shorter than the extension)
+			continue
+		}
+		if name[len(name)-len(CONFIG_SUFFIX):] != CONFIG_SUFFIX {
+			continue
+		}
+
+		partialCfg := PartialSettings{}
+		partialPath := path.Join(settings.Main.Include, name)
+
+		err := utils.LoadTomlFile(partialPath, &partialCfg)
+		if err != nil {
+			return nil, err
+		}
+
+		//merge into settings
+		for key, ext := range partialCfg.Extensions {
+			_, m := settings.Extensions[key]
+			_, p := partial.Extensions[key]
+			if m || p {
+				return nil, errors.New(fmt.Sprintf("Extension override in '%s' name '%s'", partialPath, key))
+			}
+
+			partial.Extensions[key] = ext
+		}
+
+		for key, startup := range partialCfg.Startup {
+			_, m := settings.Startup[key]
+			_, p := partial.Startup[key]
+			if m || p {
+				return nil, errors.New(fmt.Sprintf("Startup command override in '%s' name '%s'", partialPath, key))
+			}
+
+			partial.Startup[key] = startup
+		}
+	}
+
+	return partial, nil
+}
+
+func GetSettings(filename string) *Settings {
+	settings := &Settings{}
+
+	//that's the main config file, panic if can't load
+	if err := utils.LoadTomlFile(filename, settings); err != nil {
+		panic(err)
+	}
+
+	return settings
 }
