@@ -62,7 +62,7 @@ func newExtensionProcess(exe string, workdir string, cmdargs []string, env []str
 		}
 
 		extcmd := &Cmd{
-			Id:   cmd.Id,
+			ID:   cmd.ID,
 			Gid:  cmd.Gid,
 			Nid:  cmd.Nid,
 			Name: cmdExecute,
@@ -98,7 +98,7 @@ func (ps *extensionProcess) Run(cfg RunCfg) {
 		ResultHandler: func(result *JobResult) {
 			result.Args = ps.cmd.Args
 			result.Cmd = ps.cmd.Name
-			result.Id = ps.cmd.Id
+			result.ID = ps.cmd.ID
 			result.Gid = ps.cmd.Gid
 			result.Nid = ps.cmd.Nid
 

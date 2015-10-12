@@ -69,7 +69,7 @@ type RunCfg struct {
 }
 
 type JobResult struct {
-	Id        string   `json:"id"`
+	ID        string   `json:"id"`
 	Gid       int      `json:"gid"`
 	Nid       int      `json:"nid"`
 	Cmd       string   `json:"cmd"`
@@ -85,7 +85,7 @@ type JobResult struct {
 
 func NewBasicJobResult(cmd *Cmd) *JobResult {
 	return &JobResult{
-		Id:   cmd.Id,
+		ID:   cmd.ID,
 		Gid:  cmd.Gid,
 		Nid:  cmd.Nid,
 		Cmd:  cmd.Name,
@@ -94,7 +94,7 @@ func NewBasicJobResult(cmd *Cmd) *JobResult {
 }
 
 type Message struct {
-	Id      uint32
+	ID      uint32
 	Cmd     *Cmd
 	Level   int
 	Message string
@@ -104,12 +104,12 @@ type Message struct {
 func (msg *Message) MarshalJSON() ([]byte, error) {
 	data := make(map[string]interface{})
 	args := msg.Cmd.Args
-	data["jobid"] = msg.Cmd.Id
+	data["jobid"] = msg.Cmd.ID
 	data["domain"] = args.GetString("domain")
 	data["name"] = args.GetString("name")
 	data["epoch"] = msg.Epoch / int64(time.Millisecond)
 	data["level"] = msg.Level
-	data["id"] = msg.Id
+	data["id"] = msg.ID
 	data["data"] = msg.Message
 
 	return json.Marshal(data)

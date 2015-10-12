@@ -125,7 +125,7 @@ func main() {
 		cmd := &pm.Cmd{
 			Gid:  config.Main.Gid,
 			Nid:  config.Main.Nid,
-			Id:   id,
+			ID:   id,
 			Name: startup.Name,
 			Data: startup.Data,
 			Args: pm.NewMapArgs(startup.Args),

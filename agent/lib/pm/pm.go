@@ -14,8 +14,9 @@ import (
 	"time"
 )
 
+//Cmd is an executable command
 type Cmd struct {
-	Id    string   `json:"id"`
+	ID    string   `json:"id"`
 	Gid   int      `json:"gid"`
 	Nid   int      `json:"nid"`
 	Roles []string `json:"roles"`
@@ -33,7 +34,7 @@ func NewMapCmd(data map[string]interface{}) *Cmd {
 	cmd := &Cmd{
 		Gid:  data["gid"].(int),
 		Nid:  data["nid"].(int),
-		Id:   data["id"].(string),
+		ID:   data["id"].(string),
 		Name: data["name"].(string),
 		Data: stdin.(string),
 		Args: NewMapArgs(data["args"].(map[string]interface{})),
@@ -57,7 +58,7 @@ func LoadCmd(str []byte) (*Cmd, error) {
 }
 
 func (cmd *Cmd) String() string {
-	return fmt.Sprintf("(%s# %s %s)", cmd.Id, cmd.Name, cmd.Args.GetString("name"))
+	return fmt.Sprintf("(%s# %s %s)", cmd.ID, cmd.Name, cmd.Args.GetString("name"))
 }
 
 type MeterHandler func(cmd *Cmd, p *process.Process)
@@ -186,7 +187,7 @@ func (pm *PM) Run() {
 				continue
 			}
 
-			_, exists := pm.processes[cmd.Id]
+			_, exists := pm.processes[cmd.ID]
 			if exists {
 				errResult := NewBasicJobResult(cmd)
 				errResult.State = StateDuplicateId
@@ -195,7 +196,7 @@ func (pm *PM) Run() {
 				continue
 			}
 
-			pm.processes[cmd.Id] = process
+			pm.processes[cmd.ID] = process
 
 			statsInterval := cmd.Args.GetInt("stats_interval")
 
@@ -208,7 +209,7 @@ func (pm *PM) Run() {
 				pm.statsFlushCallback)
 
 			statsd.Run()
-			pm.statsdes[cmd.Id] = statsd
+			pm.statsdes[cmd.ID] = statsd
 
 			// A process must signal it's termination (that it's not going
 			// to restart) for the process manager to clean up it's reference
@@ -217,8 +218,8 @@ func (pm *PM) Run() {
 				<-signal
 				close(signal)
 				statsd.Stop()
-				delete(pm.processes, cmd.Id)
-				delete(pm.statsdes, cmd.Id)
+				delete(pm.processes, cmd.ID)
+				delete(pm.statsdes, cmd.ID)
 
 				//tell the queue that this command has finished so it prepares a
 				//new command to execute
@@ -257,7 +258,7 @@ func (pm *PM) Kill(cmdId string) {
 }
 
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
-	statsd, ok := pm.statsdes[cmd.Id]
+	statsd, ok := pm.statsdes[cmd.ID]
 	if !ok {
 		return
 	}
@@ -276,7 +277,7 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) handlStatsdMsgs(msg *Message) {
-	statsd, ok := pm.statsdes[msg.Cmd.Id]
+	statsd, ok := pm.statsdes[msg.Cmd.ID]
 	if !ok {
 		// there is no statsd configured for this process!! we shouldn't
 		// be here but just in case
@@ -298,7 +299,7 @@ func (pm *PM) msgCallback(msg *Message) {
 	//stamp msg.
 	msg.Epoch = time.Now().UnixNano()
 	//add ID
-	msg.Id = pm.getNextMsgID()
+	msg.ID = pm.getNextMsgID()
 	for _, handler := range pm.msgHandlers {
 		handler(msg)
 	}

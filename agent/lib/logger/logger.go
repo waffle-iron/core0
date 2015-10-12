@@ -70,7 +70,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
 	go logger.db.Batch(func(tx *bolt.Tx) error {
 		logs := tx.Bucket([]byte("logs"))
-		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.Id))
+		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.ID))
 		if err != nil {
 			log.Println("Logger:", err)
 			return err

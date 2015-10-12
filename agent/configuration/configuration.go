@@ -80,7 +80,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 			cmd := &pm.Cmd{
 				Gid:  cfg.Main.Gid,
 				Nid:  cfg.Main.Nid,
-				Id:   id,
+				ID:   id,
 				Name: startup.Name,
 				Data: startup.Data,
 				Args: pm.NewMapArgs(startup.Args),
