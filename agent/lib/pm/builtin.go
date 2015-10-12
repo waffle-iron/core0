@@ -8,15 +8,24 @@ import (
 )
 
 const (
-	CmdExecute = "execute"
+	cmdExecute = "execute"
 )
 
+/*
+ProcessConstructor represnts a function that returns a Process
+*/
 type ProcessConstructor func(cmd *Cmd) Process
 
+/*
+Global command ProcessConstructor registery
+*/
 var CmdMap = map[string]ProcessConstructor{
-	CmdExecute: NewExtProcess,
+	cmdExecute: NewExtProcess,
 }
 
+/*
+NewProcess creates a new process from a command
+*/
 func NewProcess(cmd *Cmd) Process {
 	constructor, ok := CmdMap[cmd.Name]
 	if !ok {
@@ -26,29 +35,24 @@ func NewProcess(cmd *Cmd) Process {
 	return constructor(cmd)
 }
 
-type ExtensionProcess struct {
+type extensionProcess struct {
 	extps Process
 	cmd   *Cmd
 }
 
-//Create a constructor for external process to execute an external script
-//exe: name of executor, (python, lua, bash)
-//workdir: working directory of script
-//scriptname: if scriptname != "", execute that specific script, otherwise use args[name]
-//  scriptname can have {<arg-key>} pattern that will be replaced with the value before execution
-func extensionProcess(exe string, workdir string, cmdargs []string, env []string) ProcessConstructor {
+func newExtensionProcess(exe string, workdir string, cmdargs []string, env []string) ProcessConstructor {
 	//create a new execute process with python2.7 or lua as executors.
 	constructor := func(cmd *Cmd) Process {
 		args := cmd.Args.Clone(false)
 		args.Set("name", exe)
 
-		job_cmdargs := make([]string, len(cmdargs))
+		jobCmdArgs := make([]string, len(cmdargs))
 
 		for i, arg := range cmdargs {
-			job_cmdargs[i] = utils.Format(arg, cmd.Args.Data())
+			jobCmdArgs[i] = utils.Format(arg, cmd.Args.Data())
 		}
 
-		args.Set("args", job_cmdargs)
+		args.Set("args", jobCmdArgs)
 		if len(env) > 0 {
 			args.Set("env", env)
 		}
@@ -61,12 +65,12 @@ func extensionProcess(exe string, workdir string, cmdargs []string, env []string
 			Id:   cmd.Id,
 			Gid:  cmd.Gid,
 			Nid:  cmd.Nid,
-			Name: CmdExecute,
+			Name: cmdExecute,
 			Data: cmd.Data,
 			Args: args,
 		}
 
-		return &ExtensionProcess{
+		return &extensionProcess{
 			extps: NewExtProcess(extcmd),
 			cmd:   cmd,
 		}
@@ -75,11 +79,11 @@ func extensionProcess(exe string, workdir string, cmdargs []string, env []string
 	return constructor
 }
 
-func (ps *ExtensionProcess) Cmd() *Cmd {
+func (ps *extensionProcess) Cmd() *Cmd {
 	return ps.cmd
 }
 
-func (ps *ExtensionProcess) Run(cfg RunCfg) {
+func (ps *extensionProcess) Run(cfg RunCfg) {
 	//intercept all the messages from the 'execute' command and
 	//change it to it's original value.
 	extcfg := RunCfg{
@@ -106,24 +110,24 @@ func (ps *ExtensionProcess) Run(cfg RunCfg) {
 	ps.extps.Run(extcfg)
 }
 
-func (ps *ExtensionProcess) Kill() {
+func (ps *extensionProcess) Kill() {
 	ps.extps.Kill()
 }
 
-func (ps *ExtensionProcess) GetStats() *ProcessStats {
+func (ps *extensionProcess) GetStats() *ProcessStats {
 	return ps.extps.GetStats()
 }
 
-//registers a command to the process manager.
-//cmd: Command name
-//exe: executing binary
-//workdir: working directory
-//script: script name
-//if script == "", then script name will be used from cmd.Args.
+/*
+RegisterCmd registers a new command (extension) so it can be executed via commands
+*/
 func RegisterCmd(cmd string, exe string, workdir string, cmdargs []string, env []string) {
-	CmdMap[cmd] = extensionProcess(exe, workdir, cmdargs, env)
+	CmdMap[cmd] = newExtensionProcess(exe, workdir, cmdargs, env)
 }
 
+/*
+UnregisterCmd removes an extension from the global registery
+*/
 func UnregisterCmd(cmd string) {
 	delete(CmdMap, cmd)
 }
