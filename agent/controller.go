@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+/*
+ControllerClient represents an active agent controller connection.
+*/
 type ControllerClient struct {
 	URL    string
 	Client *http.Client
@@ -20,14 +23,14 @@ type ControllerClient struct {
 
 func getKeys(m map[string]*ControllerClient) []string {
 	keys := make([]string, 0, len(m))
-	for key, _ := range m {
+	for key := range m {
 		keys = append(keys, key)
 	}
 
 	return keys
 }
 
-func getHttpClient(security *settings.Security) *http.Client {
+func getHTTPClient(security *settings.Security) *http.Client {
 	var tlsConfig tls.Config
 
 	if security.CertificateAuthority != "" {
@@ -65,16 +68,22 @@ func getHttpClient(security *settings.Security) *http.Client {
 	}
 }
 
+/*
+NewControllerClient gets a new agent controller connection
+*/
 func NewControllerClient(cfg *settings.Controller) *ControllerClient {
 	client := &ControllerClient{
 		URL:    strings.TrimRight(cfg.URL, "/"),
-		Client: getHttpClient(&cfg.Security),
+		Client: getHTTPClient(&cfg.Security),
 		Config: cfg,
 	}
 
 	return client
 }
 
+/*
+BuildUrl builds the request URL for agent
+*/
 func (client *ControllerClient) BuildUrl(gid int, nid int, endpoint string) string {
 	return fmt.Sprintf("%s/%d/%d/%s", client.URL,
 		gid,

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var valid_levels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
+var validLevels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
 
 func Expand(s string) ([]int, error) {
 	levels := make(map[int]bool)
@@ -37,7 +37,7 @@ func Expand(s string) ([]int, error) {
 		}
 
 		if lower == "*" {
-			for _, l := range valid_levels {
+			for _, l := range validLevels {
 				levels[l] = true
 			}
 			continue
@@ -51,7 +51,7 @@ func Expand(s string) ([]int, error) {
 		lower_value = int(lower_value_64)
 
 		if !has_upper {
-			if In(valid_levels, lower_value) {
+			if In(validLevels, lower_value) {
 				levels[lower_value] = true
 			}
 
@@ -63,7 +63,7 @@ func Expand(s string) ([]int, error) {
 		}
 
 		for i := lower_value; i <= upper_value; i++ {
-			if In(valid_levels, i) {
+			if In(validLevels, i) {
 				levels[i] = true
 			}
 		}

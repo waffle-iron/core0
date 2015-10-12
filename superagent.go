@@ -19,7 +19,7 @@ import (
 
 func getKeys(m map[string]*agent.ControllerClient) []string {
 	keys := make([]string, 0, len(m))
-	for key, _ := range m {
+	for key := range m {
 		keys = append(keys, key)
 	}
 
