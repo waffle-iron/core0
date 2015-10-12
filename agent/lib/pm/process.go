@@ -271,10 +271,10 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	}
 
 	// start consuming outputs.
-	outConsumer := NewStreamConsumer(ps.cmd, stdout, 1)
+	outConsumer := newStreamConsumer(ps.cmd, stdout, 1)
 	outConsumer.Consume(msgInterceptor)
 
-	errConsumer := NewStreamConsumer(ps.cmd, stderr, 2)
+	errConsumer := newStreamConsumer(ps.cmd, stderr, 2)
 	errConsumer.Consume(msgInterceptor)
 
 	if ps.cmd.Data != "" {
