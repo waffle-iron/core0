@@ -28,6 +28,7 @@ def add_device_to_share(data):
 
     folder = folders[0]
 
+    dirty = False
     if not filter(lambda d: d['deviceID'] == remote_device_id, folder['devices']):
         # share folder with device.
 

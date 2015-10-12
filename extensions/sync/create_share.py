@@ -24,6 +24,7 @@ def create_share(data):
 
     folder_id = data['name']
     folder_path = os.path.join(sync.settings['agent-home'], data['path'])
+    dirty = False
     if not folders:
         # add folder.
         folder = {
