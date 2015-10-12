@@ -13,29 +13,29 @@ import (
 	"time"
 )
 
-type Poller struct {
+type poller struct {
 	key        string
 	manager    *pm.PM
 	controller *ControllerClient
 	config     *settings.Settings
 }
 
-func NewPoller(key string, manager *pm.PM, controller *ControllerClient, config *settings.Settings) *Poller {
-	poller := &Poller{
+func newPoller(key string, manager *pm.PM, controller *ControllerClient, config *settings.Settings) *poller {
+	poll := &poller{
 		key:        key,
 		manager:    manager,
 		controller: controller,
 		config:     config,
 	}
 
-	return poller
+	return poll
 }
 
-func (poller *Poller) longPoll() {
+func (poll *poller) longPoll() {
 	lastfail := time.Now().Unix()
-	controller := poller.controller
+	controller := poll.controller
 	client := controller.Client
-	config := poller.config
+	config := poll.config
 
 	sendStartup := true
 
@@ -49,7 +49,7 @@ func (poller *Poller) longPoll() {
 		pollQuery.Add("role", role)
 	}
 
-	pollUrl := fmt.Sprintf("%s?%s", controller.BuildURL(config.Main.Gid, config.Main.Nid, "cmd"),
+	pollURL := fmt.Sprintf("%s?%s", controller.BuildURL(config.Main.Gid, config.Main.Nid, "cmd"),
 		pollQuery.Encode())
 
 	for {
@@ -69,7 +69,7 @@ func (poller *Poller) longPoll() {
 			}
 		}
 
-		response, err := client.Get(pollUrl)
+		response, err := client.Get(pollURL)
 		if err != nil {
 			log.Println("No new commands, retrying ...", controller.URL, err)
 			//HTTP Timeout
@@ -120,7 +120,7 @@ func (poller *Poller) longPoll() {
 
 		//tag command for routing.
 		ctrlConfig := controller.Config
-		cmd.Args.SetTag(poller.key)
+		cmd.Args.SetTag(poll.key)
 		cmd.Args.SetController(ctrlConfig)
 
 		cmd.Gid = config.Main.Gid
@@ -129,13 +129,16 @@ func (poller *Poller) longPoll() {
 		log.Println("Starting command", cmd)
 
 		if cmd.Args.GetString("queue") == "" {
-			poller.manager.RunCmd(cmd)
+			poll.manager.RunCmd(cmd)
 		} else {
-			poller.manager.RunCmdQueued(cmd)
+			poll.manager.RunCmdQueued(cmd)
 		}
 	}
 }
 
+/*
+StartPollers starts the long polling routines and feed the manager with received commands
+*/
 func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, config *settings.Settings) {
 	var keys []string
 	if len(config.Channel.Cmds) > 0 {
@@ -150,7 +153,7 @@ func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, conf
 			log.Fatalf("No contoller with name '%s'\n", key)
 		}
 
-		poller := NewPoller(key, manager, controller, config)
-		go poller.longPoll()
+		poll := newPoller(key, manager, controller, config)
+		go poll.longPoll()
 	}
 }
