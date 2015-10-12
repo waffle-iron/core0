@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/Jumpscale/agent2/agent"
@@ -62,7 +59,7 @@ func main() {
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)
 	for key, controllerCfg := range config.Controllers {
-		controllers[key] = agent.NewControllerClient(controllerCfg)
+		controllers[key] = agent.NewControllerClient(&controllerCfg)
 	}
 
 	mgr := pm.NewPM(config.Main.MessageIdFile, config.Main.MaxJobs)
@@ -150,123 +147,7 @@ func main() {
 	configuration.WatchAndApply(mgr, config)
 
 	//start jobs pollers.
-	var pollKeys []string
-	if len(config.Channel.Cmds) > 0 {
-		pollKeys = config.Channel.Cmds
-	} else {
-		pollKeys = getKeys(controllers)
-	}
-
-	pollQuery := make(url.Values)
-
-	for _, role := range config.Main.Roles {
-		pollQuery.Add("role", role)
-	}
-
-	event, _ := json.Marshal(map[string]string{
-		"name": "startup",
-	})
-
-	//start pollers goroutines
-	for _, key := range pollKeys {
-		go func() {
-			lastfail := time.Now().Unix()
-			controller, ok := controllers[key]
-			if !ok {
-				log.Fatalf("Channel: Unknow controller '%s'", key)
-			}
-
-			client := controller.Client
-
-			sendStartup := true
-
-			for {
-				if sendStartup {
-					//this happens on first loop, or if the connection to the controller was gone and then
-					//restored.
-					reader := bytes.NewBuffer(event)
-
-					url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "event")
-
-					resp, err := client.Post(url, "application/json", reader)
-					if err != nil {
-						log.Println("Failed to send startup event to AC", url, err)
-					} else {
-						resp.Body.Close()
-						sendStartup = false
-					}
-				}
-
-				url := fmt.Sprintf("%s?%s", controller.BuildUrl(config.Main.Gid, config.Main.Nid, "cmd"),
-					pollQuery.Encode())
-
-				response, err := client.Get(url)
-				if err != nil {
-					log.Println("No new commands, retrying ...", controller.URL, err)
-					//HTTP Timeout
-					if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "EOF") {
-						//make sure to send startup even on the next try. In case
-						//agent controller was down or even booted after the agent.
-						sendStartup = true
-					}
-
-					if time.Now().Unix()-lastfail < RECONNECT_SLEEP {
-						time.Sleep(RECONNECT_SLEEP * time.Second)
-					}
-					lastfail = time.Now().Unix()
-
-					continue
-				}
-
-				body, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					log.Println("Failed to load response content", err)
-					continue
-				}
-
-				response.Body.Close()
-				if response.StatusCode != 200 {
-					log.Println("Failed to retrieve jobs", response.Status, string(body))
-					time.Sleep(2 * time.Second)
-					continue
-				}
-
-				if len(body) == 0 {
-					//no data, can be a long poll timeout
-					continue
-				}
-
-				cmd, err := pm.LoadCmd(body)
-				if err != nil {
-					log.Println("Failed to load cmd", err, string(body))
-					continue
-				}
-
-				//set command defaults
-				//1 - stats_interval
-				meterInt := cmd.Args.GetInt("stats_interval")
-				if meterInt == 0 {
-					cmd.Args.Set("stats_interval", config.Stats.Interval)
-				}
-
-				//tag command for routing.
-				ctrlConfig := config.Controllers[key]
-				cmd.Args.SetTag(key)
-				cmd.Args.SetController(&ctrlConfig)
-
-				cmd.Gid = config.Main.Gid
-				cmd.Nid = config.Main.Nid
-
-				log.Println("Starting command", cmd)
-
-				if cmd.Args.GetString("queue") == "" {
-					mgr.RunCmd(cmd)
-				} else {
-					mgr.RunCmdQueued(cmd)
-				}
-			}
-		}()
-	}
+	agent.StartPollers(mgr, controllers, config)
 
 	//wait
 	select {}

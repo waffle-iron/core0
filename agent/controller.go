@@ -15,6 +15,7 @@ import (
 type ControllerClient struct {
 	URL    string
 	Client *http.Client
+	Config *settings.Controller
 }
 
 func getKeys(m map[string]*ControllerClient) []string {
@@ -64,10 +65,11 @@ func getHttpClient(security *settings.Security) *http.Client {
 	}
 }
 
-func NewControllerClient(cfg settings.Controller) *ControllerClient {
+func NewControllerClient(cfg *settings.Controller) *ControllerClient {
 	client := &ControllerClient{
 		URL:    strings.TrimRight(cfg.URL, "/"),
 		Client: getHttpClient(&cfg.Security),
+		Config: cfg,
 	}
 
 	return client
