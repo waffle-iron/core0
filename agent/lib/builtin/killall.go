@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	CMD_KILLALL = "killall"
+	CmdKillAll = "killall"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_KILLALL] = InternalProcessFactory(killall)
+	pm.CMD_MAP[CmdKillAll] = InternalProcessFactory(killall)
 }
 
 func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CMD_GET_NIC_INFO = "get_nic_info"
+	CmdGetNicInfo = "get_nic_info"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_GET_NIC_INFO] = InternalProcessFactory(getNicInfo)
+	pm.CMD_MAP[CmdGetNicInfo] = InternalProcessFactory(getNicInfo)
 }
 
 func getNicInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CMD_GET_MEM_INFO = "get_mem_info"
+	CmdGetMemInfo = "get_mem_info"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_GET_MEM_INFO] = InternalProcessFactory(getMemInfo)
+	pm.CMD_MAP[CmdGetMemInfo] = InternalProcessFactory(getMemInfo)
 }
 
 func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

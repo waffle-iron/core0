@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CMD_GET_PROCESSES_STATS = "get_processes_stats"
+	CmdGetProcessesStats = "get_processes_stats"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_GET_PROCESSES_STATS] = InternalProcessFactory(getProcessesStats)
+	pm.CMD_MAP[CmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
 }
 
 type GetStatsData struct {

@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CMD_GET_OS_INFO = "get_os_info"
+	CmdGetOsInfo = "get_os_info"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_GET_OS_INFO] = InternalProcessFactory(getOsInfo)
+	pm.CMD_MAP[CmdGetOsInfo] = InternalProcessFactory(getOsInfo)
 }
 
 func getOsInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

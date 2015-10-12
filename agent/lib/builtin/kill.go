@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	CMD_KILL = "kill"
+	CmdKill = "kill"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_KILL] = InternalProcessFactory(kill)
+	pm.CMD_MAP[CmdKill] = InternalProcessFactory(kill)
 }
 
 type KillData struct {

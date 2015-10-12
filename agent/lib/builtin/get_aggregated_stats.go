@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	CMD_GET_AGGREGATED_STATS = "get_aggregated_stats"
+	CmdGetAggregatedStats = "get_aggregated_stats"
 )
 
 func init() {
-	pm.CMD_MAP[CMD_GET_AGGREGATED_STATS] = InternalProcessFactory(getAggregatedStats)
+	pm.CMD_MAP[CmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
 }
 
 func getAggregatedStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
