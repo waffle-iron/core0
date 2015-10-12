@@ -128,7 +128,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 			fsevent := <-fsevents
 			path := fsevent.Path()
 
-			if !strings.HasSuffix(path, settings.CONFIG_SUFFIX) {
+			if !strings.HasSuffix(path, settings.ConfigSuffix) {
 				//file name too short to be a config file (shorter than the extension)
 				continue
 			}

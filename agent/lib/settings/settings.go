@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	CONFIG_SUFFIX = ".toml"
+	ConfigSuffix = ".toml"
 )
 
 //logger settings
@@ -140,11 +140,11 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 			continue
 		}
 		name := info.Name()
-		if len(name) <= len(CONFIG_SUFFIX) {
+		if len(name) <= len(ConfigSuffix) {
 			//file name too short to be a config file (shorter than the extension)
 			continue
 		}
-		if name[len(name)-len(CONFIG_SUFFIX):] != CONFIG_SUFFIX {
+		if name[len(name)-len(ConfigSuffix):] != ConfigSuffix {
 			continue
 		}
 

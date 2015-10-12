@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	CMD_EXECUTE = "execute"
+	CmdExecute = "execute"
 )
 
 type ProcessConstructor func(cmd *Cmd) Process
 
 var CMD_MAP = map[string]ProcessConstructor{
-	CMD_EXECUTE: NewExtProcess,
+	CmdExecute: NewExtProcess,
 }
 
 func NewProcess(cmd *Cmd) Process {
@@ -61,7 +61,7 @@ func extensionProcess(exe string, workdir string, cmdargs []string, env []string
 			Id:   cmd.Id,
 			Gid:  cmd.Gid,
 			Nid:  cmd.Nid,
-			Name: CMD_EXECUTE,
+			Name: CmdExecute,
 			Data: cmd.Data,
 			Args: args,
 		}

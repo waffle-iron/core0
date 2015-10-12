@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	TYPE_KEYVALUE = "kv"
-	TYPE_GAUAGE   = "g"
-	TYPE_TIMER    = "ms"
-	TYPE_COUNTER  = "c"
-	TYPE_SET      = "s"
+	TypeKeyValue = "kv"
+	TypeGauage   = "g"
+	TypeTimer    = "ms"
+	TypeCounter = "c"
+	TypeSet     = "s"
 )
 
 type msg struct {
@@ -90,23 +90,23 @@ func (statsd *Statsd) Feed(str string) error {
 //Gauage value
 //value can be formatted as \d, +\d, -\d
 func (statsd *Statsd) Gauage(key string, value string) {
-	statsd.op(TYPE_GAUAGE, key, value, "")
+	statsd.op(TypeGauage, key, value, "")
 }
 
 func (statsd *Statsd) Counter(key string, value string) {
-	statsd.op(TYPE_COUNTER, key, value, "")
+	statsd.op(TypeCounter, key, value, "")
 }
 
 func (statsd *Statsd) KeyValue(key string, value string) {
-	statsd.op(TYPE_KEYVALUE, key, value, "")
+	statsd.op(TypeKeyValue, key, value, "")
 }
 
 func (statsd *Statsd) Timer(key string, value string) {
-	statsd.op(TYPE_TIMER, key, value, "")
+	statsd.op(TypeTimer, key, value, "")
 }
 
 func (statsd *Statsd) Set(key string, value string) {
-	statsd.op(TYPE_SET, key, value, "")
+	statsd.op(TypeSet, key, value, "")
 }
 
 func (statsd *Statsd) flush() {
@@ -156,15 +156,15 @@ func (statsd *Statsd) Run() {
 				buffer, ok := statsd.buffer[msg.key]
 				if !ok {
 					switch msg.optype {
-					case TYPE_GAUAGE:
+					case TypeGauage:
 						buffer = newGauageBuffer()
-					case TYPE_KEYVALUE:
+					case TypeKeyValue:
 						buffer = newKVBuffer()
-					case TYPE_COUNTER:
+					case TypeCounter:
 						buffer = newCounterBuffer()
-					case TYPE_SET:
+					case TypeSet:
 						buffer = newSetBuffer()
-					case TYPE_TIMER:
+					case TypeTimer:
 						buffer = newTimerBuffer()
 					}
 					statsd.buffer[msg.key] = buffer

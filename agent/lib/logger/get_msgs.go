@@ -19,8 +19,8 @@ type LogQuery struct {
 }
 
 const (
-	CMD_GET_MSGS               = "get_msgs"
-	CMD_GET_MSGS_DEFAULT_LIMIT = 1000
+	CmdGetMsgs             = "get_msgs"
+	CmdGetMsgsDefaultLimit = 1000
 )
 
 func registerGetMsgsFunction(db *bolt.DB) {
@@ -96,12 +96,12 @@ func registerGetMsgsFunction(db *bolt.DB) {
 			limit = query.Limit
 		}
 
-		if limit > CMD_GET_MSGS_DEFAULT_LIMIT {
-			limit = CMD_GET_MSGS_DEFAULT_LIMIT
+		if limit > CmdGetMsgsDefaultLimit {
+			limit = CmdGetMsgsDefaultLimit
 		}
 
 		//we still can continue the query even if we have unmarshal errors.
-		records := make([]map[string]interface{}, 0, CMD_GET_MSGS_DEFAULT_LIMIT)
+		records := make([]map[string]interface{}, 0, CmdGetMsgsDefaultLimit)
 
 		err = db.View(func(tx *bolt.Tx) error {
 			logs := tx.Bucket([]byte("logs"))
@@ -151,5 +151,5 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		return result
 	}
 
-	pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
+	pm.CMD_MAP[CmdGetMsgs] = builtin.InternalProcessFactory(get_msgs)
 }
