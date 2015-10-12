@@ -181,7 +181,7 @@ func (pm *PM) Run() {
 			if process == nil {
 				log.Println("Unknow command", cmd.Name)
 				errResult := NewBasicJobResult(cmd)
-				errResult.State = S_UNKNOWN_CMD
+				errResult.State = StateUnknownCmd
 				pm.resultCallback(errResult)
 				continue
 			}
@@ -189,7 +189,7 @@ func (pm *PM) Run() {
 			_, exists := pm.processes[cmd.Id]
 			if exists {
 				errResult := NewBasicJobResult(cmd)
-				errResult.State = S_DUPILCATE_ID
+				errResult.State = StateDuplicateId
 				errResult.Data = "A job exists with the same ID"
 				pm.resultCallback(errResult)
 				continue
@@ -286,7 +286,7 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
 	statsd.Feed(strings.Trim(msg.Message, " "))
 }
 func (pm *PM) msgCallback(msg *Message) {
-	if msg.Level == L_STATSD {
+	if msg.Level == LevelStatsd {
 		pm.handlStatsdMsgs(msg)
 	}
 

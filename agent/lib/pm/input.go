@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var PM_MESG_PATTERN, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
+var pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
 
 type StreamConsumer struct {
 	cmd    *Cmd
@@ -49,7 +49,7 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
 
 			if line != "" {
 				if !multiline {
-					matches := PM_MESG_PATTERN.FindStringSubmatch(line)
+					matches := pmMsgPattern.FindStringSubmatch(line)
 					if matches == nil {
 						//use default level.
 						handler(&Message{

@@ -82,7 +82,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 
 	openTunnle := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 
 		var tunnelData TunnelData
 		err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
@@ -124,15 +124,15 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		data, _ := json.Marshal(tunnelData)
 
 		result.Data = string(data)
-		result.Level = pm.L_RESULT_JSON
-		result.State = pm.S_SUCCESS
+		result.Level = pm.LevelResultJson
+		result.State = pm.StateSuccess
 
 		return result
 	}
 
 	closeTunnel := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 
 		var tunnelData TunnelData
 		err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
@@ -159,14 +159,14 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
 		agent.RemoveTunnel(tunnel)
 
-		result.State = pm.S_SUCCESS
+		result.State = pm.StateSuccess
 
 		return result
 	}
 
 	listTunnels := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 
 		tag := cmd.Args.GetTag()
 		agent, ok := agents[tag]
@@ -189,8 +189,8 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 
 		data, _ := json.Marshal(tunnelsInfos)
 		result.Data = string(data)
-		result.Level = pm.L_RESULT_JSON
-		result.State = pm.S_SUCCESS
+		result.Level = pm.LevelResultJson
+		result.State = pm.StateSuccess
 
 		return result
 	}

@@ -70,14 +70,14 @@ func registerGetMsgsFunction(db *bolt.DB) {
 
 		err := json.Unmarshal([]byte(cmd.Data), &query)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("Failed to parse get_msgs query: %s", err)
 
 			return result
 		}
 
 		if query.JobID == "" {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = "jobid is required"
 
 			return result
@@ -85,7 +85,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 
 		levels, err := get_levels(query.Levels)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("Error parsing levels (%s): %s", query.Levels, err)
 
 			return result
@@ -130,7 +130,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		})
 
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("%v", err)
 
 			return result
@@ -138,14 +138,14 @@ func registerGetMsgsFunction(db *bolt.DB) {
 
 		data, err := json.Marshal(records)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("%v", err)
 
 			return result
 		}
 
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJson
 		result.Data = string(data)
 
 		return result

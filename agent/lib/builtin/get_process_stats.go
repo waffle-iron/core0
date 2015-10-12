@@ -28,7 +28,7 @@ func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	process, ok := cfg.ProcessManager.Processes()[data.Id]
 
 	if !ok {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("Process with id '%s' doesn't exist", data.Id)
 		return result
 	}
@@ -37,11 +37,11 @@ func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	serialized, err := json.Marshal(stats)
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJson
 		result.Data = string(serialized)
 	}
 

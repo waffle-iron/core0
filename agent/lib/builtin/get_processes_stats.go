@@ -48,11 +48,11 @@ func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	serialized, err := json.Marshal(stats)
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJson
 		result.Data = string(serialized)
 	}
 

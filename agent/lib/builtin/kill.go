@@ -26,11 +26,11 @@ func kill(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	err := json.Unmarshal([]byte(cmd.Data), &data)
 
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
 		cfg.ProcessManager.Kill(data.Id)
-		result.State = pm.S_SUCCESS
+		result.State = pm.StateSuccess
 	}
 
 	return result

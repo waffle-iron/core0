@@ -15,35 +15,35 @@ import (
 )
 
 const (
-	L_STDOUT      = 1  // stdout
-	L_STDERR      = 2  // stderr
-	L_PUBLIC      = 3  // message for endusers / public message
-	L_OPERATOR    = 4  // message for operator / internal message
-	L_UNKNOWN     = 5  // log msg (unstructured = level5, cat=unknown)
-	L_STRUCTURED  = 6  // log msg structured
-	L_WARNING     = 7  // warning message
-	L_OPS_ERROR   = 8  // ops error
-	L_CRITICAL    = 9  // critical error
-	L_STATSD      = 10 // statsd message(s) AVG
-	L_DEBUG       = 11 // debug message
-	L_RESULT_JSON = 20 // result message, json
-	L_RESULT_YAML = 21 // result message, yaml
-	L_RESULT_TOML = 22 // result message, toml
-	L_RESULT_HRD  = 23 // result message, hrd
-	L_RESULT_JOB  = 30 // job, json (full result of a job)
+	LevelStdout     = 1  // stdout
+	LevelStderr     = 2  // stderr
+	LevelPublic     = 3  // message for endusers / public message
+	LevelOperator   = 4  // message for operator / internal message
+	LevelUnknown    = 5  // log msg (unstructured = level5, cat=unknown)
+	LevelStructured = 6  // log msg structured
+	LevelWarning    = 7  // warning message
+	LevelOpsError   = 8  // ops error
+	LevelCritical   = 9  // critical error
+	LevelStatsd     = 10 // statsd message(s) AVG
+	LevelDebug      = 11 // debug message
+	LevelResultJson = 20 // result message, json
+	LevelResultYaml = 21 // result message, yaml
+	LevelResultToml = 22 // result message, toml
+	LevelResultHrd  = 23 // result message, hrd
+	LevelResultJob  = 30 // job, json (full result of a job)
 
-	S_SUCCESS      = "SUCCESS"
-	S_ERROR        = "ERROR"
-	S_TIMEOUT      = "TIMEOUT"
-	S_KILLED       = "KILLED"
-	S_UNKNOWN_CMD  = "UNKNOWN_CMD"
-	S_DUPILCATE_ID = "DUPILICATE_ID"
+	StateSuccess     = "SUCCESS"
+	StateError       = "ERROR"
+	StateTimeout     = "TIMEOUT"
+	StateKilled      = "KILLED"
+	StateUnknownCmd  = "UNKNOWN_CMD"
+	StateDuplicateId = "DUPILICATE_ID"
 
-	STREAM_BUFFER_SIZE = 1000 // keeps only last 1000 line of stream
+	StreamBufferSize = 1000 // keeps only last 1000 line of stream
 )
 
-var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
-	L_RESULT_YAML, L_RESULT_TOML, L_RESULT_HRD, L_RESULT_JOB}
+var ResultMessageLevels []int = []int{LevelResultJson,
+	LevelResultYaml, LevelResultToml, LevelResultHrd, LevelResultJob}
 
 type ProcessStats struct {
 	Cmd  *Cmd    `json:"cmd"`
@@ -231,7 +231,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	if err != nil {
 		log.Println("Failed to start process", err)
 		jobresult := NewBasicJobResult(ps.cmd)
-		jobresult.State = S_ERROR
+		jobresult.State = StateError
 		jobresult.Data = fmt.Sprintf("%v", err)
 		cfg.ResultHandler(jobresult)
 		return
@@ -248,22 +248,22 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	var critical string
 
 	msgInterceptor := func(msg *Message) {
-		if utils.In(RESULT_MESSAGE_LEVELS, msg.Level) {
+		if utils.In(ResultMessageLevels, msg.Level) {
 			//process result message.
 			result = msg
 		}
 
-		if msg.Level == L_STDOUT {
+		if msg.Level == LevelStdout {
 			stdoutBuffer.PushBack(msg.Message)
-			if stdoutBuffer.Len() > STREAM_BUFFER_SIZE {
+			if stdoutBuffer.Len() > StreamBufferSize {
 				stdoutBuffer.Remove(stdoutBuffer.Front())
 			}
-		} else if msg.Level == L_STDERR {
+		} else if msg.Level == LevelStderr {
 			stderrBuffer.PushBack(msg.Message)
-			if stderrBuffer.Len() > STREAM_BUFFER_SIZE {
+			if stderrBuffer.Len() > StreamBufferSize {
 				stderrBuffer.Remove(stderrBuffer.Front())
 			}
-		} else if msg.Level == L_CRITICAL {
+		} else if msg.Level == LevelCritical {
 			critical = msg.Message
 		}
 
@@ -398,7 +398,7 @@ loop:
 						//and send the kill result.
 						jobresult := NewBasicJobResult(ps.cmd)
 
-						jobresult.State = S_KILLED
+						jobresult.State = StateKilled
 						jobresult.StartTime = int64(starttime)
 						jobresult.Time = int64(endtime - starttime)
 						cfg.ResultHandler(jobresult)
@@ -410,13 +410,13 @@ loop:
 
 	var state string
 	if success {
-		state = S_SUCCESS
+		state = StateSuccess
 	} else if timedout {
-		state = S_TIMEOUT
+		state = StateTimeout
 	} else if killed {
-		state = S_KILLED
+		state = StateKilled
 	} else {
-		state = S_ERROR
+		state = StateError
 	}
 
 	jobresult := NewBasicJobResult(ps.cmd)

@@ -17,7 +17,7 @@ func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	cfg.ProcessManager.Killall()
 
-	result.State = pm.S_SUCCESS
+	result.State = pm.StateSuccess
 
 	return result
 }
