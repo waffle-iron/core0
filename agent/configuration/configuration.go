@@ -21,7 +21,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 
 	type PlaceHolder struct {
 		Hash string
-		Id   string
+		ID   string
 	}
 
 	extensions := make([]string, 0, 100)
@@ -66,7 +66,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 					running = append(running, name)
 					continue
 				} else {
-					mgr.Kill(ph.Id)
+					mgr.Kill(ph.ID)
 					delete(commands, name)
 				}
 			}
@@ -94,7 +94,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 			mgr.RunCmd(cmd)
 			commands[name] = PlaceHolder{
 				Hash: hash,
-				Id:   id,
+				ID:   id,
 			}
 			running = append(running, name)
 		}
@@ -102,7 +102,7 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 		//kill commands that are removed from config
 		for name, ph := range commands {
 			if !utils.InString(running, name) {
-				mgr.Kill(ph.Id)
+				mgr.Kill(ph.ID)
 				delete(commands, name)
 			}
 		}
