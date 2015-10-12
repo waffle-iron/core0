@@ -56,7 +56,7 @@ func (buffer *StatsBuffer) onflush(stats []interface{}) {
 
 	res, _ := json.Marshal(stats)
 	for _, controller := range buffer.destinations {
-		url := controller.BuildUrl(buffer.gid, buffer.nid, "stats")
+		url := controller.BuildURL(buffer.gid, buffer.nid, "stats")
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
 		if err != nil {

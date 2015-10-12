@@ -82,9 +82,9 @@ func NewControllerClient(cfg *settings.Controller) *ControllerClient {
 }
 
 /*
-BuildUrl builds the request URL for agent
+BuildURL builds the request URL for agent
 */
-func (client *ControllerClient) BuildUrl(gid int, nid int, endpoint string) string {
+func (client *ControllerClient) BuildURL(gid int, nid int, endpoint string) string {
 	return fmt.Sprintf("%s/%d/%d/%s", client.URL,
 		gid,
 		nid,

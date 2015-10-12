@@ -48,13 +48,13 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 					if !ok {
 						log.Fatalf("Unknow controller '%s'", key)
 					}
-					url := controller.BuildUrl(cfg.Main.Gid, cfg.Main.Nid, "log")
+					url := controller.BuildURL(cfg.Main.Gid, cfg.Main.Nid, "log")
 					endpoints[url] = controller.Client
 				}
 			} else {
 				//all ACs
 				for _, controller := range controllers {
-					url := controller.BuildUrl(cfg.Main.Gid, cfg.Main.Nid, "log")
+					url := controller.BuildURL(cfg.Main.Gid, cfg.Main.Nid, "log")
 					endpoints[url] = controller.Client
 				}
 			}

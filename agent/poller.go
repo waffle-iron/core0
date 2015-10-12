@@ -49,7 +49,7 @@ func (poller *Poller) longPoll() {
 		pollQuery.Add("role", role)
 	}
 
-	pollUrl := fmt.Sprintf("%s?%s", controller.BuildUrl(config.Main.Gid, config.Main.Nid, "cmd"),
+	pollUrl := fmt.Sprintf("%s?%s", controller.BuildURL(config.Main.Gid, config.Main.Nid, "cmd"),
 		pollQuery.Encode())
 
 	for {
@@ -58,7 +58,7 @@ func (poller *Poller) longPoll() {
 			//restored.
 			reader := bytes.NewBuffer(event)
 
-			url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "event")
+			url := controller.BuildURL(config.Main.Gid, config.Main.Nid, "event")
 
 			resp, err := client.Post(url, "application/json", reader)
 			if err != nil {

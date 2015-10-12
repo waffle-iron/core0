@@ -100,7 +100,7 @@ func main() {
 			return
 		}
 
-		url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "result")
+		url := controller.BuildURL(config.Main.Gid, config.Main.Nid, "result")
 
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
