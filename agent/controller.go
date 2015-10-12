@@ -43,10 +43,6 @@ func getHttpClient(security *settings.Security) *http.Client {
 		if security.ClientCertificateKey == "" {
 			log.Fatal("Missing certificate key file")
 		}
-		// pem, err := ioutil.ReadFile(security.ClientCertificate)
-		// if err != nil {
-		//     log.Fatal(err)
-		// }
 
 		cert, err := tls.LoadX509KeyPair(security.ClientCertificate,
 			security.ClientCertificateKey)

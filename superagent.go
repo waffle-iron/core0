@@ -67,14 +67,31 @@ func main() {
 
 	mgr := pm.NewPM(config.Main.MessageIdFile, config.Main.MaxJobs)
 
+	//configure logging handlers from configurations
 	logger.ConfigureLogging(mgr, controllers, config)
+
+	//configure hubble functions from configurations
+	agent.RegisterHubbleFunctions(controllers, config)
+
+	//register the extensions from the main configuration
+	for extKey, extCfg := range config.Extensions {
+		var env []string
+		if len(extCfg.Env) > 0 {
+			env = make([]string, 0, len(extCfg.Env))
+			for ek, ev := range extCfg.Env {
+				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
+			}
+		}
+
+		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
+	}
 
 	//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
 	//flush)
 	statsBuffer := agent.NewStatsBuffer(1000, 120*time.Second, controllers, config)
 	mgr.AddStatsFlushHandler(statsBuffer.Handler)
 
-	//handle process results
+	//handle process results. Forwards the result to the correct controller.
 	mgr.AddResultHandler(func(result *pm.JobResult) {
 		//send result to AC.
 		//NOTE: we always force the real gid and nid on the result.
@@ -101,22 +118,9 @@ func main() {
 		resp.Body.Close()
 	})
 
-	//register the execute commands
-	for extKey, extCfg := range config.Extensions {
-		var env []string
-		if len(extCfg.Env) > 0 {
-			env = make([]string, 0, len(extCfg.Env))
-			for ek, ev := range extCfg.Env {
-				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
-			}
-		}
-
-		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
-	}
-
-	agent.RegisterHubbleFunctions(controllers, config)
 	//start process mgr.
 	mgr.Run()
+
 	//System is ready to receive commands.
 	//before start polling on commands, lets run our startup commands
 	//from config
@@ -145,6 +149,7 @@ func main() {
 	//also register extensions and run startup commands from partial configuration files
 	configuration.WatchAndApply(mgr, config)
 
+	//start jobs pollers.
 	var pollKeys []string
 	if len(config.Channel.Cmds) > 0 {
 		pollKeys = config.Channel.Cmds
