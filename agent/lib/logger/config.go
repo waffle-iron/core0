@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+/*
+ConfigureLogging attached the correct message handler on top the process manager from the configurations
+*/
 func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, cfg *settings.Settings) {
 	//apply logging handlers.
 	dbLoggerConfigured := false
