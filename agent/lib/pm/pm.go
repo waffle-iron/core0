@@ -143,10 +143,6 @@ func (pm *PM) getNextMsgID() uint32 {
 	return pm.mid
 }
 
-func (pm *PM) AddStatsdMeterHandler(handler StatsdMeterHandler) {
-	pm.statsdMeterHandlers = append(pm.statsdMeterHandlers, handler)
-}
-
 func (pm *PM) AddMessageHandler(handler MessageHandler) {
 	pm.msgHandlers = append(pm.msgHandlers, handler)
 }
@@ -266,8 +262,16 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 		return
 	}
 
-	for _, handler := range pm.statsdMeterHandlers {
-		handler(statsd, cmd, ps)
+	cpu, err := ps.CPUPercent(0)
+	if err == nil {
+		statsd.Gauage("_cpu_", fmt.Sprintf("%f", cpu))
+	}
+
+	mem, err := ps.MemoryInfo()
+	if err == nil {
+		statsd.Gauage("_rss_", fmt.Sprintf("%d", mem.RSS))
+		statsd.Gauage("_vms_", fmt.Sprintf("%d", mem.VMS))
+		statsd.Gauage("_swap_", fmt.Sprintf("%d", mem.Swap))
 	}
 }
 

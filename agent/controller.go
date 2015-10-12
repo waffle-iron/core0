@@ -17,6 +17,15 @@ type ControllerClient struct {
 	Client *http.Client
 }
 
+func getKeys(m map[string]*ControllerClient) []string {
+	keys := make([]string, 0, len(m))
+	for key, _ := range m {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
 func getHttpClient(security *settings.Security) *http.Client {
 	var tlsConfig tls.Config
 

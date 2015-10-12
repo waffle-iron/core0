@@ -22,15 +22,6 @@ const (
 	CMD_LIST_TUNNELS = "hubble_list_tunnels"
 )
 
-func getKeys(m map[string]*ControllerClient) []string {
-	keys := make([]string, 0, len(m))
-	for key, _ := range m {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
 func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings *settings.Settings) {
 	var proxisKeys []string
 	if len(settings.Hubble.Controllers) == 0 {

@@ -18,9 +18,6 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/logger"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
-	"github.com/Jumpscale/agent2/agent/lib/stats"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/shirou/gopsutil/process"
 )
 
 const (
@@ -34,14 +31,6 @@ func getKeys(m map[string]*agent.ControllerClient) []string {
 	}
 
 	return keys
-}
-
-func buildUrl(gid int, nid int, base string, endpoint string) string {
-	base = strings.TrimRight(base, "/")
-	return fmt.Sprintf("%s/%d/%d/%s", base,
-		gid,
-		nid,
-		endpoint)
 }
 
 func main() {
@@ -70,32 +59,6 @@ func main() {
 
 	config := settings.GetSettings(cfg)
 
-	//loading command history file
-	//history file is used to remember long running jobs during reboots.
-	var history []*pm.Cmd
-	hisstr, err := ioutil.ReadFile(config.Main.HistoryFile)
-
-	if err == nil {
-		err = json.Unmarshal(hisstr, &history)
-		if err != nil {
-			log.Println("Failed to load history file, invalid syntax ", err)
-			history = make([]*pm.Cmd, 0)
-		}
-	} else {
-		log.Println("Couldn't read history file")
-		history = make([]*pm.Cmd, 0)
-	}
-
-	//dump hisory file
-	dumpHistory := func() {
-		data, err := json.Marshal(history)
-		if err != nil {
-			log.Fatal("Failed to write history file")
-		}
-
-		ioutil.WriteFile(config.Main.HistoryFile, data, 0644)
-	}
-
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)
 	for key, controllerCfg := range config.Controllers {
@@ -106,67 +69,10 @@ func main() {
 
 	logger.ConfigureLogging(mgr, controllers, config)
 
-	//This handler is called every 30 sec. It should collect and report all
-	//metered values needed for an external process.
-	mgr.AddStatsdMeterHandler(func(statsd *stats.Statsd, cmd *pm.Cmd, ps *process.Process) {
-		//for each long running external process this will be called every 2 sec
-		//You can here collect all the data you want abou the process and feed
-		//statsd.
-
-		cpu, err := ps.CPUPercent(0)
-		if err == nil {
-			statsd.Gauage("__cpu__", fmt.Sprintf("%f", cpu))
-		}
-
-		mem, err := ps.MemoryInfo()
-		if err == nil {
-			statsd.Gauage("__rss__", fmt.Sprintf("%d", mem.RSS))
-			statsd.Gauage("__vms__", fmt.Sprintf("%d", mem.VMS))
-			statsd.Gauage("__swap__", fmt.Sprintf("%d", mem.Swap))
-		}
-	})
-
-	var statsDestinations []string
-	if len(config.Stats.Controllers) > 0 {
-		statsDestinations = config.Stats.Controllers
-	} else {
-		statsDestinations = getKeys(controllers)
-	}
-
-	//build a buffer for statsd messages (which are comming from each single command)
-	//and buffer them so we only send them to AC if we have a 1000 record, or reached
-	//a time of 60 seconds.
-	statsBuffer := utils.NewBuffer(1000, 120*time.Second, func(stats []interface{}) {
-		log.Println("Flushing stats to AC", len(stats))
-		if len(stats) == 0 {
-			return
-		}
-
-		res, _ := json.Marshal(stats)
-		for _, key := range statsDestinations {
-			controller, ok := controllers[key]
-			if !ok {
-				log.Printf("Stats: Unknow controller '%s'\n", key)
-				continue
-			}
-
-			url := buildUrl(config.Main.Gid, config.Main.Nid, controller.URL, "stats")
-			reader := bytes.NewBuffer(res)
-			resp, err := controller.Client.Post(url, "application/json", reader)
-			if err != nil {
-				log.Println("Failed to send stats result to AC", url, err)
-				return
-			}
-			resp.Body.Close()
-		}
-	})
-	//register handler for stats flush. Simplest impl is to send the values
-	//immediately to the all ACs.
-	mgr.AddStatsFlushHandler(func(stats *stats.Stats) {
-		//This will be called per process per stats_interval seconds. with
-		//all the aggregated stats for that process.
-		statsBuffer.Append(stats)
-	})
+	//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
+	//flush)
+	statsBuffer := agent.NewStatsBuffer(1000, 120*time.Second, controllers, config)
+	mgr.AddStatsFlushHandler(statsBuffer.Handler)
 
 	//handle process results
 	mgr.AddResultHandler(func(result *pm.JobResult) {
@@ -184,7 +90,7 @@ func main() {
 			return
 		}
 
-		url := buildUrl(config.Main.Gid, config.Main.Nid, controller.URL, "result")
+		url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "result")
 
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
@@ -275,7 +181,7 @@ func main() {
 					//restored.
 					reader := bytes.NewBuffer(event)
 
-					url := buildUrl(config.Main.Gid, config.Main.Nid, controller.URL, "event")
+					url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "event")
 
 					resp, err := client.Post(url, "application/json", reader)
 					if err != nil {
@@ -286,7 +192,7 @@ func main() {
 					}
 				}
 
-				url := fmt.Sprintf("%s?%s", buildUrl(config.Main.Gid, config.Main.Nid, controller.URL, "cmd"),
+				url := fmt.Sprintf("%s?%s", controller.BuildUrl(config.Main.Gid, config.Main.Nid, "cmd"),
 					pollQuery.Encode())
 
 				response, err := client.Get(url)
@@ -348,12 +254,6 @@ func main() {
 
 				log.Println("Starting command", cmd)
 
-				if cmd.Args.GetInt("max_time") == -1 {
-					//that's a long running process.
-					history = append(history, cmd)
-					dumpHistory()
-				}
-
 				if cmd.Args.GetString("queue") == "" {
 					mgr.RunCmd(cmd)
 				} else {
@@ -362,23 +262,6 @@ func main() {
 			}
 		}()
 	}
-
-	//rerun history (rerun persisted processes)
-	for i := 0; i < len(history); i++ {
-		cmd := history[i]
-		meterInt := cmd.Args.GetInt("stats_interval")
-		if meterInt == 0 {
-			cmd.Args.Set("stats_interval", config.Stats.Interval)
-		}
-
-		if err != nil {
-			log.Println("Failed to load history command", history[i])
-		}
-
-		mgr.RunCmd(cmd)
-	}
-
-	// send startup event to all agent controllers
 
 	//wait
 	select {}
