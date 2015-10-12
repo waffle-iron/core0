@@ -15,13 +15,21 @@ import (
 )
 
 const (
+	//ReconnectSleepTime Sleeps this amount of seconds if hubble agent connection failed before retyring
 	ReconnectSleepTime = 4
 
-	CmdOpenTunnel  = "hubble_open_tunnel"
-	CmdCloseTunnel = "hubble_close_tunnel"
-	CmdListTunnels = "hubble_list_tunnels"
+	cmdOpenTunnel  = "hubble_open_tunnel"
+	cmdCLoseTunnel = "hubble_close_tunnel"
+	cmdListTunnels = "hubble_list_tunnels"
 )
 
+/*
+RegisterHubbleFunctions Registers all the handlers for hubble commands this include
+- hubble_open_tunnel
+- hubble_close_tunnel
+- hubble_list_tunnels
+
+*/
 func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings *settings.Settings) {
 	var proxisKeys []string
 	if len(settings.Hubble.Controllers) == 0 {
@@ -41,21 +49,21 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		}
 
 		//start agent for that controller.
-		baseUrl := controller.BuildURL(settings.Main.Gid, settings.Main.Nid, "hubble")
-		parsedUrl, err := url.Parse(baseUrl)
+		baseURL := controller.BuildURL(settings.Main.Gid, settings.Main.Nid, "hubble")
+		parsedURL, err := url.Parse(baseURL)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if parsedUrl.Scheme == "http" {
-			parsedUrl.Scheme = "ws"
-		} else if parsedUrl.Scheme == "https" {
-			parsedUrl.Scheme = "wss"
+		if parsedURL.Scheme == "http" {
+			parsedURL.Scheme = "ws"
+		} else if parsedURL.Scheme == "https" {
+			parsedURL.Scheme = "wss"
 		} else {
-			log.Fatalf("Unknown scheme '%s' in controller url '%s'", parsedUrl.Scheme, controller.URL)
+			log.Fatalf("Unknown scheme '%s' in controller url '%s'", parsedURL.Scheme, controller.URL)
 		}
 
-		agent := hubble.NewAgent(parsedUrl.String(), localName, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
+		agent := hubble.NewAgent(parsedURL.String(), localName, "", controller.Client.Transport.(*http.Transport).TLSClientConfig)
 
 		agents[proxyKey] = agent
 
@@ -195,7 +203,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		return result
 	}
 
-	pm.CmdMap[CmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
-	pm.CmdMap[CmdCloseTunnel] = builtin.InternalProcessFactory(closeTunnel)
-	pm.CmdMap[CmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
+	pm.CmdMap[cmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
+	pm.CmdMap[cmdCLoseTunnel] = builtin.InternalProcessFactory(closeTunnel)
+	pm.CmdMap[cmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
 }
