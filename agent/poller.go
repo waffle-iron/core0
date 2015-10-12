@@ -79,8 +79,8 @@ func (poller *Poller) longPoll() {
 				sendStartup = true
 			}
 
-			if time.Now().Unix()-lastfail < RECONNECT_SLEEP {
-				time.Sleep(RECONNECT_SLEEP * time.Second)
+			if time.Now().Unix()-lastfail < ReconnectSleepTime {
+				time.Sleep(ReconnectSleepTime * time.Second)
 			}
 			lastfail = time.Now().Unix()
 

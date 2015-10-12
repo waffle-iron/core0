@@ -17,10 +17,6 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 )
 
-const (
-	RECONNECT_SLEEP = 4
-)
-
 func getKeys(m map[string]*agent.ControllerClient) []string {
 	keys := make([]string, 0, len(m))
 	for key, _ := range m {

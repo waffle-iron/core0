@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	RECONNECT_SLEEP = 4
+	ReconnectSleepTime = 4
 
-	CMD_OPEN_TUNNEL  = "hubble_open_tunnel"
-	CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
-	CMD_LIST_TUNNELS = "hubble_list_tunnels"
+	CmdOpenTunnel  = "hubble_open_tunnel"
+	CmdCloseTunnel = "hubble_close_tunnel"
+	CmdListTunnels = "hubble_list_tunnels"
 )
 
 func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings *settings.Settings) {
@@ -63,7 +63,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		onExit = func(agent hubble.Agent, err error) {
 			if err != nil {
 				go func() {
-					time.Sleep(RECONNECT_SLEEP * time.Second)
+					time.Sleep(ReconnectSleepTime * time.Second)
 					agent.Start(onExit)
 				}()
 			}
@@ -195,7 +195,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		return result
 	}
 
-	pm.CMD_MAP[CMD_OPEN_TUNNEL] = builtin.InternalProcessFactory(openTunnle)
-	pm.CMD_MAP[CMD_CLOSE_TUNNEL] = builtin.InternalProcessFactory(closeTunnel)
-	pm.CMD_MAP[CMD_LIST_TUNNELS] = builtin.InternalProcessFactory(listTunnels)
+	pm.CMD_MAP[CmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
+	pm.CMD_MAP[CmdCloseTunnel] = builtin.InternalProcessFactory(closeTunnel)
+	pm.CMD_MAP[CmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
 }
