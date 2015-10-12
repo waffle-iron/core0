@@ -2,10 +2,7 @@ package main
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -14,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -26,65 +22,16 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	hubble "github.com/Jumpscale/hubble/agent"
-	"github.com/boltdb/bolt"
 	"github.com/shirou/gopsutil/process"
 )
 
 const (
-	RECONNECT_SLEEP            = 4
-	CMD_GET_MSGS               = "get_msgs"
-	CMD_GET_MSGS_DEFAULT_LIMIT = 1000
-	CMD_OPEN_TUNNEL            = "hubble_open_tunnel"
-	CMD_CLOSE_TUNNEL           = "hubble_close_tunnel"
-	CMD_LIST_TUNNELS           = "hubble_list_tunnels"
+	RECONNECT_SLEEP = 4
+
+	CMD_OPEN_TUNNEL  = "hubble_open_tunnel"
+	CMD_CLOSE_TUNNEL = "hubble_close_tunnel"
+	CMD_LIST_TUNNELS = "hubble_list_tunnels"
 )
-
-type ControllerClient struct {
-	URL    string
-	Client *http.Client
-}
-
-func getHttpClient(security *agent.Security) *http.Client {
-	var tlsConfig tls.Config
-
-	if security.CertificateAuthority != "" {
-		pem, err := ioutil.ReadFile(security.CertificateAuthority)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		tlsConfig.RootCAs = x509.NewCertPool()
-		tlsConfig.RootCAs.AppendCertsFromPEM(pem)
-	}
-
-	if security.ClientCertificate != "" {
-		if security.ClientCertificateKey == "" {
-			log.Fatal("Missing certificate key file")
-		}
-		// pem, err := ioutil.ReadFile(security.ClientCertificate)
-		// if err != nil {
-		//     log.Fatal(err)
-		// }
-
-		cert, err := tls.LoadX509KeyPair(security.ClientCertificate,
-			security.ClientCertificateKey)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	return &http.Client{
-		Timeout: 60 * time.Second,
-		Transport: &http.Transport{
-			DisableKeepAlives:   true,
-			Proxy:               http.ProxyFromEnvironment,
-			TLSHandshakeTimeout: 10 * time.Second,
-			TLSClientConfig:     &tlsConfig,
-		},
-	}
-}
 
 /*
 This function will register a handler to the get_msgs function
@@ -96,144 +43,7 @@ This one is done here and NOT in the 'buildin' library because
 2- Moving this register function to the build-in will cause cyclic dependencies.
 */
 
-type LogQuery struct {
-	JobID  string      `json:"jobid"`
-	Levels interface{} `json:"levels"`
-	Limit  int         `json:"limit"`
-}
-
-func registerGetMsgsFunction(db *bolt.DB) {
-
-	get_levels := func(levels interface{}) ([]int, error) {
-		var results []int
-
-		if levels == nil {
-			levels = "*"
-		}
-
-		//loading levels.
-		if levels != nil {
-			switch ls := levels.(type) {
-			case string:
-				var err error
-				results, err = utils.Expand(ls)
-				if err != nil {
-					return nil, err
-				}
-			case []int:
-				results = ls
-			case []float64:
-				//happens when unmarshaling from json
-				results = make([]int, len(ls))
-				for i := 0; i < len(ls); i++ {
-					results[i] = int(ls[i])
-				}
-			}
-		} else {
-			levels = make([]int, 0)
-		}
-
-		return results, nil
-	}
-
-	get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-		result := pm.NewBasicJobResult(cmd)
-		result.StartTime = int64(time.Duration(time.Now().UnixNano()) / time.Millisecond)
-
-		defer func() {
-			endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
-			result.Time = int64(endtime) - result.StartTime
-		}()
-
-		query := LogQuery{}
-
-		err := json.Unmarshal([]byte(cmd.Data), &query)
-		if err != nil {
-			result.State = pm.S_ERROR
-			result.Data = fmt.Sprintf("Failed to parse get_msgs query: %s", err)
-
-			return result
-		}
-
-		if query.JobID == "" {
-			result.State = pm.S_ERROR
-			result.Data = "jobid is required"
-
-			return result
-		}
-
-		levels, err := get_levels(query.Levels)
-		if err != nil {
-			result.State = pm.S_ERROR
-			result.Data = fmt.Sprintf("Error parsing levels (%s): %s", query.Levels, err)
-
-			return result
-		}
-
-		var limit int
-		if query.Limit != 0 {
-			limit = query.Limit
-		}
-
-		if limit > CMD_GET_MSGS_DEFAULT_LIMIT {
-			limit = CMD_GET_MSGS_DEFAULT_LIMIT
-		}
-
-		//we still can continue the query even if we have unmarshal errors.
-		records := make([]map[string]interface{}, 0, CMD_GET_MSGS_DEFAULT_LIMIT)
-
-		err = db.View(func(tx *bolt.Tx) error {
-			logs := tx.Bucket([]byte("logs"))
-			if logs == nil {
-				return errors.New("Logs database is not initialized")
-			}
-
-			job := logs.Bucket([]byte(query.JobID))
-			if job == nil {
-				log.Println("Failed to open job bucket")
-				return nil
-			}
-			cursor := job.Cursor()
-			for key, value := cursor.Last(); key != nil && len(records) < limit; key, value = cursor.Prev() {
-				row := make(map[string]interface{})
-				err := json.Unmarshal(value, &row)
-				if err != nil {
-					log.Printf("Failed to load job log '%s'\n", value)
-					return err
-				}
-				if utils.In(levels, int(row["level"].(float64))) {
-					records = append(records, row)
-				}
-			}
-			return nil
-		})
-
-		if err != nil {
-			result.State = pm.S_ERROR
-			result.Data = fmt.Sprintf("%v", err)
-
-			return result
-		}
-
-		data, err := json.Marshal(records)
-		if err != nil {
-			result.State = pm.S_ERROR
-			result.Data = fmt.Sprintf("%v", err)
-
-			return result
-		}
-
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
-		result.Data = string(data)
-
-		return result
-	}
-
-	pm.CMD_MAP[CMD_GET_MSGS] = builtin.InternalProcessFactory(get_msgs)
-}
-
-func registerHubbleFunctions(controllers map[string]ControllerClient, settings *agent.Settings) {
+func registerHubbleFunctions(controllers map[string]*agent.ControllerClient, settings *agent.Settings) {
 	var proxisKeys []string
 	if len(settings.Hubble.Controllers) == 0 {
 		proxisKeys = getKeys(controllers)
@@ -411,7 +221,7 @@ func registerHubbleFunctions(controllers map[string]ControllerClient, settings *
 	pm.CMD_MAP[CMD_LIST_TUNNELS] = builtin.InternalProcessFactory(listTunnels)
 }
 
-func getKeys(m map[string]ControllerClient) []string {
+func getKeys(m map[string]*agent.ControllerClient) []string {
 	keys := make([]string, 0, len(m))
 	for key, _ := range m {
 		keys = append(keys, key)
@@ -426,76 +236,6 @@ func buildUrl(gid int, nid int, base string, endpoint string) string {
 		gid,
 		nid,
 		endpoint)
-}
-
-func configureLogging(mgr *pm.PM, controllers map[string]ControllerClient, settings *agent.Settings) {
-	//apply logging handlers.
-	dbLoggerConfigured := false
-	for _, logcfg := range settings.Logging {
-		switch strings.ToLower(logcfg.Type) {
-		case "db":
-			if dbLoggerConfigured {
-				log.Fatal("Only one db logger can be configured")
-			}
-			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-			os.Mkdir(logcfg.LogDir, 0755)
-			db, err := bolt.Open(path.Join(logcfg.LogDir, "logs.db"), 0644, nil)
-			db.MaxBatchDelay = 100 * time.Millisecond
-			if err != nil {
-				log.Fatal("Failed to open logs database", err)
-			}
-
-			handler, err := logger.NewDBLogger(db, logcfg.Levels)
-			if err != nil {
-				log.Fatal("DB logger failed to initialize", err)
-			}
-			mgr.AddMessageHandler(handler.Log)
-			registerGetMsgsFunction(db)
-
-			dbLoggerConfigured = true
-		case "ac":
-			endpoints := make(map[string]*http.Client)
-
-			if len(logcfg.Controllers) > 0 {
-				//specific ones.
-				for _, key := range logcfg.Controllers {
-					controller, ok := controllers[key]
-					if !ok {
-						log.Fatalf("Unknow controller '%s'", key)
-					}
-					url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "log")
-					endpoints[url] = controller.Client
-				}
-			} else {
-				//all ACs
-				for _, controller := range controllers {
-					url := buildUrl(settings.Main.Gid, settings.Main.Nid, controller.URL, "log")
-					endpoints[url] = controller.Client
-				}
-			}
-
-			batchsize := 1000 // default
-			flushint := 120   // default (in seconds)
-			if logcfg.BatchSize != 0 {
-				batchsize = logcfg.BatchSize
-			}
-			if logcfg.FlushInt != 0 {
-				flushint = logcfg.FlushInt
-			}
-
-			handler := logger.NewACLogger(
-				endpoints,
-				batchsize,
-				time.Duration(flushint)*time.Second,
-				logcfg.Levels)
-			mgr.AddMessageHandler(handler.Log)
-		case "console":
-			handler := logger.NewConsoleLogger(logcfg.Levels)
-			mgr.AddMessageHandler(handler.Log)
-		default:
-			log.Fatalf("Unsupported logger type: %s", logcfg.Type)
-		}
-	}
 }
 
 func main() {
@@ -551,17 +291,14 @@ func main() {
 	}
 
 	//build list with ACs that we will poll from.
-	controllers := make(map[string]ControllerClient)
+	controllers := make(map[string]*agent.ControllerClient)
 	for key, controllerCfg := range settings.Controllers {
-		controllers[key] = ControllerClient{
-			URL:    controllerCfg.URL,
-			Client: getHttpClient(&controllerCfg.Security),
-		}
+		controllers[key] = agent.NewControllerClient(controllerCfg)
 	}
 
 	mgr := pm.NewPM(settings.Main.MessageIdFile, settings.Main.MaxJobs)
 
-	configureLogging(mgr, controllers, settings)
+	logger.ConfigureLogging(mgr, controllers, settings)
 
 	//This handler is called every 30 sec. It should collect and report all
 	//metered values needed for an external process.
