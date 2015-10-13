@@ -5,10 +5,10 @@ import (
 	"log"
 	"strings"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/pborman/uuid"
 
 	"github.com/rjeczalik/notify"
 )

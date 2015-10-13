@@ -1,9 +1,6 @@
 {
 	"ImportPath": "github.com/Jumpscale/agent2",
 	"GoVersion": "go1.4.2",
-	"Packages": [
-		"github.com/Jumpscale/agent2"
-	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -30,6 +27,10 @@
 		{
 			"ImportPath": "github.com/naoina/toml",
 			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
+		},
+		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
 		},
 		{
 			"ImportPath": "github.com/rjeczalik/notify",
