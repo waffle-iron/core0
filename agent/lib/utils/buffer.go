@@ -4,18 +4,22 @@ import (
 	"time"
 )
 
+//BufferFlush callback type for on flush event
 type BufferFlush func([]interface{})
 
+//Buffer interface
 type Buffer interface {
 	Append(obj interface{})
 }
 
+//TimedBuffer flushes buffer on time or if max buffer size is reached
 type TimedBuffer struct {
 	array   []interface{}
 	queue   chan interface{}
 	onflush BufferFlush
 }
 
+//NewBuffer creates a new timed buffer
 func NewBuffer(capacity int, flushInt time.Duration, onflush BufferFlush) Buffer {
 	buffer := &TimedBuffer{
 		array:   make([]interface{}, 0, capacity),
@@ -47,6 +51,7 @@ func NewBuffer(capacity int, flushInt time.Duration, onflush BufferFlush) Buffer
 	return buffer
 }
 
+//Append appends object to buffer
 func (buffer *TimedBuffer) Append(obj interface{}) {
 	buffer.queue <- obj
 }

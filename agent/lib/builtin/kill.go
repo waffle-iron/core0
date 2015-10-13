@@ -15,7 +15,7 @@ func init() {
 }
 
 type killData struct {
-	ID string `json:id`
+	ID string `json:"id"`
 }
 
 func kill(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

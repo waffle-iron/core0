@@ -15,7 +15,7 @@ func init() {
 }
 
 type getProcessStatsData struct {
-	ID string `json:id`
+	ID string `json:"id"`
 }
 
 func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

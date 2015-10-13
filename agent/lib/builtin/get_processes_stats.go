@@ -15,8 +15,8 @@ func init() {
 }
 
 type getStatsData struct {
-	Domain string `json:domain`
-	Name   string `json:name`
+	Domain string `json:"domain"`
+	Name   string `json:"name"`
 }
 
 func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

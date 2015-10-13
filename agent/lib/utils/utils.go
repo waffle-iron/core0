@@ -11,8 +11,9 @@ import (
 	"strings"
 )
 
-var validLevels []int = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
+var validLevels = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 30}
 
+//Expand expands a string of the format 1,2,3-5 or * to the valid list of log levels
 func Expand(s string) ([]int, error) {
 	levels := make(map[int]bool)
 
@@ -21,19 +22,19 @@ func Expand(s string) ([]int, error) {
 
 		boundries := strings.Split(part, "-")
 		lower := strings.Trim(boundries[0], " ")
-		lower_value := 0
-		upper_value := 0
-		has_upper := false
+		lowerValue := 0
+		upperValue := 0
+		hasUpper := false
 
 		if len(boundries) > 1 {
 
-			upper_value_64, err := strconv.ParseInt(strings.Trim(boundries[1], " "), 10, 32)
+			upperValue64, err := strconv.ParseInt(strings.Trim(boundries[1], " "), 10, 32)
 			if err != nil {
 				return nil, err
 			}
 
-			has_upper = true
-			upper_value = int(upper_value_64)
+			hasUpper = true
+			upperValue = int(upperValue64)
 		}
 
 		if lower == "*" {
@@ -43,26 +44,26 @@ func Expand(s string) ([]int, error) {
 			continue
 		}
 
-		lower_value_64, err := strconv.ParseInt(lower, 10, 32)
+		lowerValue64, err := strconv.ParseInt(lower, 10, 32)
 		if err != nil {
 			return nil, err
 		}
 
-		lower_value = int(lower_value_64)
+		lowerValue = int(lowerValue64)
 
-		if !has_upper {
-			if In(validLevels, lower_value) {
-				levels[lower_value] = true
+		if !hasUpper {
+			if In(validLevels, lowerValue) {
+				levels[lowerValue] = true
 			}
 
 			continue
 		}
 
-		if upper_value > 30 {
-			upper_value = 30
+		if upperValue > 30 {
+			upperValue = 30
 		}
 
-		for i := lower_value; i <= upper_value; i++ {
+		for i := lowerValue; i <= upperValue; i++ {
 			if In(validLevels, i) {
 				levels[i] = true
 			}
@@ -70,7 +71,7 @@ func Expand(s string) ([]int, error) {
 	}
 
 	result := make([]int, 0, len(levels))
-	for key, _ := range levels {
+	for key := range levels {
 		result = append(result, key)
 	}
 
@@ -78,8 +79,10 @@ func Expand(s string) ([]int, error) {
 	return result, nil
 }
 
-var formatPattern *regexp.Regexp = regexp.MustCompile("{[^}]+}")
+var formatPattern = regexp.MustCompile("{[^}]+}")
 
+//Format accepts a string pattern of format "something {key}, something" and replaces
+//all occurences of {<key>} from the values map.
 func Format(pattern string, values map[string]interface{}) string {
 	return formatPattern.ReplaceAllStringFunc(pattern, func(m string) string {
 		key := strings.TrimRight(strings.TrimLeft(m, "{"), "}")
@@ -87,7 +90,7 @@ func Format(pattern string, values map[string]interface{}) string {
 	})
 }
 
-//Checks if x is in l
+//In checks if x is in l
 func In(l []int, x int) bool {
 	for i := 0; i < len(l); i++ {
 		if l[i] == x {
@@ -98,15 +101,17 @@ func In(l []int, x int) bool {
 	return false
 }
 
+//GetKeys returns the keys of map
 func GetKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
-	for key, _ := range m {
+	for key := range m {
 		keys = append(keys, key)
 	}
 
 	return keys
 }
 
+//InString checks if x is in l
 func InString(l []string, x string) bool {
 	for i := 0; i < len(l); i++ {
 		if l[i] == x {
@@ -117,6 +122,7 @@ func InString(l []string, x string) bool {
 	return false
 }
 
+//Update updates dst map from value in src
 func Update(dst map[string]interface{}, src map[string]interface{}) {
 	for k, v := range src {
 		dst[k] = v
