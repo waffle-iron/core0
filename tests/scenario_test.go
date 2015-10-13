@@ -198,8 +198,8 @@ func TestParallelExecution(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"1"}
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"1"}
 
 	gid := 1
 	cmd := &client.Command{
@@ -247,9 +247,9 @@ func TestSerialExecution(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"1"}
-	args[client.ARG_QUEUE] = "sleep-queue"
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"1"}
+	args[client.ArgQueue] = "sleep-queue"
 
 	gid := 1
 	cmd := &client.Command{
@@ -321,9 +321,9 @@ func TestMaxTime(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"5"}
-	args[client.ARG_MAX_TIME] = 1
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"5"}
+	args[client.ArgMaxTime] = 1
 
 	gid := 1
 	cmd := &client.Command{
