@@ -58,7 +58,7 @@ func main() {
 		controllers[key] = agent.NewControllerClient(&controllerCfg)
 	}
 
-	mgr := pm.NewPM(config.Main.MessageIdFile, config.Main.MaxJobs)
+	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
 
 	//configure logging handlers from configurations
 	logger.ConfigureLogging(mgr, controllers, config)

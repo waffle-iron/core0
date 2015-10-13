@@ -92,7 +92,7 @@ type PM struct {
 	msgHandlers         []MessageHandler
 	resultHandlers      []ResultHandler
 	statsFlushHandlers  []StatsFlushHandler
-	queueMgr            *CmdQueueManager
+	queueMgr            *cmdQueueManager
 }
 
 //NewPM creates a new PM
@@ -111,7 +111,7 @@ func NewPM(midfile string, maxJobs int) *PM {
 		msgHandlers:         make([]MessageHandler, 0, 3),
 		resultHandlers:      make([]ResultHandler, 0, 3),
 		statsFlushHandlers:  make([]StatsFlushHandler, 0, 3),
-		queueMgr:            NewCmdQueueManager(),
+		queueMgr:            newCmdQueueManager(),
 	}
 	return pm
 }
