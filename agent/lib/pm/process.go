@@ -58,15 +58,17 @@ const (
 	StateKilled = "KILLED"
 	//StateUnknownCmd unknown cmd exit status
 	StateUnknownCmd = "UNKNOWN_CMD"
-	//StateDuplicateId dublicate id exit status
-	StateDuplicateId = "DUPILICATE_ID"
+	//StateDuplicateID dublicate id exit status
+	StateDuplicateID = "DUPILICATE_ID"
 
+	//StreamBufferSize max number of lines to capture from a stream
 	StreamBufferSize = 1000 // keeps only last 1000 line of stream
 )
 
-var ResultMessageLevels []int = []int{LevelResultJSON,
+var resultMessageLevels = []int{LevelResultJSON,
 	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
 
+//ProcessStats holds process cpu and memory usage
 type ProcessStats struct {
 	Cmd  *Cmd    `json:"cmd"`
 	CPU  float64 `json:"cpu"`
@@ -75,6 +77,7 @@ type ProcessStats struct {
 	Swap uint64  `json:"swap"`
 }
 
+//Process interface
 type Process interface {
 	Cmd() *Cmd
 	Run(RunCfg)
@@ -82,6 +85,8 @@ type Process interface {
 	GetStats() *ProcessStats
 }
 
+//RunCfg holds configuration and callbacks to be passed to a running process so the process can feed the process manager with messages.
+//and results
 type RunCfg struct {
 	ProcessManager *PM
 	MeterHandler   MeterHandler
@@ -90,6 +95,7 @@ type RunCfg struct {
 	Signal         chan int
 }
 
+//JobResult represents a result of a job
 type JobResult struct {
 	ID        string   `json:"id"`
 	Gid       int      `json:"gid"`
@@ -105,6 +111,7 @@ type JobResult struct {
 	Time      int64    `json:"time"`
 }
 
+//NewBasicJobResult creates a new job result from command
 func NewBasicJobResult(cmd *Cmd) *JobResult {
 	return &JobResult{
 		ID:   cmd.ID,
@@ -115,6 +122,7 @@ func NewBasicJobResult(cmd *Cmd) *JobResult {
 	}
 }
 
+//Message is a message from running process
 type Message struct {
 	ID      uint32
 	Cmd     *Cmd
@@ -123,6 +131,7 @@ type Message struct {
 	Epoch   int64
 }
 
+//MarshalJSON serializes message to json
 func (msg *Message) MarshalJSON() ([]byte, error) {
 	data := make(map[string]interface{})
 	args := msg.Cmd.Args
@@ -137,10 +146,12 @@ func (msg *Message) MarshalJSON() ([]byte, error) {
 	return json.Marshal(data)
 }
 
+//String represents a message as a string
 func (msg *Message) String() string {
 	return fmt.Sprintf("%s|%d:%s", msg.Cmd, msg.Level, msg.Message)
 }
 
+//ExtProcess represents an external process
 type ExtProcess struct {
 	cmd     *Cmd
 	ctrl    chan int
@@ -149,6 +160,7 @@ type ExtProcess struct {
 	process *process.Process
 }
 
+//NewExtProcess creates a new external process from a command
 func NewExtProcess(cmd *Cmd) Process {
 	return &ExtProcess{
 		cmd:  cmd,
@@ -156,6 +168,7 @@ func NewExtProcess(cmd *Cmd) Process {
 	}
 }
 
+//Cmd returns the command
 func (ps *ExtProcess) Cmd() *Cmd {
 	return ps.cmd
 }
@@ -177,9 +190,9 @@ func joinCertPath(base string, relative string) string {
 
 	if path.IsAbs(relative) {
 		return relative
-	} else {
-		return path.Join(base, relative)
 	}
+
+	return path.Join(base, relative)
 }
 
 func (ps *ExtProcess) getExtraEnv() []string {
@@ -206,7 +219,7 @@ func (ps *ExtProcess) getExtraEnv() []string {
 	return env
 }
 
-//Start process, feed data over the process stdin, and start
+//Run starts process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
 func (ps *ExtProcess) Run(cfg RunCfg) {
@@ -263,14 +276,14 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	psProcess, _ := process.NewProcess(int32(ps.pid))
 	ps.process = psProcess
 
-	var result *Message = nil
+	var result *Message
 
 	stdoutBuffer := list.New()
 	stderrBuffer := list.New()
 	var critical string
 
 	msgInterceptor := func(msg *Message) {
-		if utils.In(ResultMessageLevels, msg.Level) {
+		if utils.In(resultMessageLevels, msg.Level) {
 			//process result message.
 			result = msg
 		}
@@ -378,7 +391,7 @@ loop:
 
 		//restarting due to failuer with max_restart set
 		if !success && args.GetInt("max_restart") > 0 {
-			ps.runs += 1
+			ps.runs++
 			if ps.runs < args.GetInt("max_restart") {
 				log.Println("Restarting", ps.cmd, "due to upnormal exit status, trials", ps.runs+1, "/", args.GetInt("max_restart"))
 				restarting = true
@@ -402,7 +415,7 @@ loop:
 					if success {
 						ps.runs = 0
 					} else {
-						ps.runs += 1
+						ps.runs++
 					}
 					//restarting.
 					ps.Run(cfg)
@@ -468,6 +481,7 @@ loop:
 	cfg.ResultHandler(jobresult)
 }
 
+//Kill stops an external process
 func (ps *ExtProcess) Kill() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -478,6 +492,7 @@ func (ps *ExtProcess) Kill() {
 	ps.ctrl <- 1
 }
 
+//GetStats gets stats of an external process
 func (ps *ExtProcess) GetStats() *ProcessStats {
 	stats := new(ProcessStats)
 	stats.Cmd = ps.cmd

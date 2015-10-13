@@ -208,7 +208,7 @@ func (pm *PM) Run() {
 			_, exists := pm.processes[cmd.ID]
 			if exists {
 				errResult := NewBasicJobResult(cmd)
-				errResult.State = StateDuplicateId
+				errResult.State = StateDuplicateID
 				errResult.Data = "A job exists with the same ID"
 				pm.resultCallback(errResult)
 				continue
