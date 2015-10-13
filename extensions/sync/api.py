@@ -7,6 +7,7 @@ import md5
 ENDPOINT_CONFIG = '/rest/system/config'
 ENDPOINT_RESTART = '/rest/system/restart'
 ENDPOINT_STATUS = '/rest/system/status'
+ENDPOINT_SCAN = '/rest/db/scan'
 
 
 class Syncthing(object):
@@ -99,3 +100,11 @@ class Syncthing(object):
 
     def folder_path_to_id(self, path):
         return md5.md5(path).hexdigest()
+
+    def scan(self, folder, sub=None):
+        data = {'folder': folder}
+        if sub:
+            data['sub'] = sub
+        response= self.post(ENDPOINT_SCAN, data)
+        if not response.ok:
+            raise Exception('Failed to scan folder %s' % folder, response.reason)
