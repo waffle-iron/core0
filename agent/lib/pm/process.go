@@ -15,35 +15,57 @@ import (
 )
 
 const (
-	LevelStdout     = 1  // stdout
-	LevelStderr     = 2  // stderr
-	LevelPublic     = 3  // message for endusers / public message
-	LevelOperator   = 4  // message for operator / internal message
-	LevelUnknown    = 5  // log msg (unstructured = level5, cat=unknown)
-	LevelStructured = 6  // log msg structured
-	LevelWarning    = 7  // warning message
-	LevelOpsError   = 8  // ops error
-	LevelCritical   = 9  // critical error
-	LevelStatsd     = 10 // statsd message(s) AVG
-	LevelDebug      = 11 // debug message
-	LevelResultJson = 20 // result message, json
-	LevelResultYaml = 21 // result message, yaml
-	LevelResultToml = 22 // result message, toml
-	LevelResultHrd  = 23 // result message, hrd
-	LevelResultJob  = 30 // job, json (full result of a job)
+	//LevelStdout stdout message
+	LevelStdout = 1 // stdout
+	//LevelStderr stderr message
+	LevelStderr = 2 // stderr
+	//LevelPublic public message
+	LevelPublic = 3 // message for endusers / public message
+	//LevelOperator operator message
+	LevelOperator = 4 // message for operator / internal message
+	//LevelUnknown unknown message
+	LevelUnknown = 5 // log msg (unstructured = level5, cat=unknown)
+	//LevelStructured structured message
+	LevelStructured = 6 // log msg structured
+	//LevelWarning warning message
+	LevelWarning = 7 // warning message
+	//LevelOpsError ops error message
+	LevelOpsError = 8 // ops error
+	//LevelCritical critical message
+	LevelCritical = 9 // critical error
+	//LevelStatsd statsd message
+	LevelStatsd = 10 // statsd message(s) AVG
+	//LevelDebug debug message
+	LevelDebug = 11 // debug message
+	//LevelResultJSON json result message
+	LevelResultJSON = 20 // result message, json
+	//LevelResultYAML yaml result message
+	LevelResultYAML = 21 // result message, yaml
+	//LevelResultTOML toml result message
+	LevelResultTOML = 22 // result message, toml
+	//LevelResultHRD hrd result message
+	LevelResultHRD = 23 // result message, hrd
+	//LevelResultJob job result message
+	LevelResultJob = 30 // job, json (full result of a job)
 
-	StateSuccess     = "SUCCESS"
-	StateError       = "ERROR"
-	StateTimeout     = "TIMEOUT"
-	StateKilled      = "KILLED"
-	StateUnknownCmd  = "UNKNOWN_CMD"
+	//StateSuccess successs exit status
+	StateSuccess = "SUCCESS"
+	//StateError error exist status
+	StateError = "ERROR"
+	//StateTimeout timeout exit status
+	StateTimeout = "TIMEOUT"
+	//StateKilled killed exit status
+	StateKilled = "KILLED"
+	//StateUnknownCmd unknown cmd exit status
+	StateUnknownCmd = "UNKNOWN_CMD"
+	//StateDuplicateId dublicate id exit status
 	StateDuplicateId = "DUPILICATE_ID"
 
 	StreamBufferSize = 1000 // keeps only last 1000 line of stream
 )
 
-var ResultMessageLevels []int = []int{LevelResultJson,
-	LevelResultYaml, LevelResultToml, LevelResultHrd, LevelResultJob}
+var ResultMessageLevels []int = []int{LevelResultJSON,
+	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
 
 type ProcessStats struct {
 	Cmd  *Cmd    `json:"cmd"`

@@ -16,7 +16,7 @@ func init() {
 
 func getMemInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.LevelResultJson
+	result.Level = pm.LevelResultJSON
 
 	info, err := mem.VirtualMemory()
 

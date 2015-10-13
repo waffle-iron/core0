@@ -132,7 +132,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		data, _ := json.Marshal(tunnelData)
 
 		result.Data = string(data)
-		result.Level = pm.LevelResultJson
+		result.Level = pm.LevelResultJSON
 		result.State = pm.StateSuccess
 
 		return result
@@ -197,7 +197,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 
 		data, _ := json.Marshal(tunnelsInfos)
 		result.Data = string(data)
-		result.Level = pm.LevelResultJson
+		result.Level = pm.LevelResultJSON
 		result.State = pm.StateSuccess
 
 		return result

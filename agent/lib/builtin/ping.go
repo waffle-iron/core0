@@ -14,7 +14,7 @@ func init() {
 
 func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.LevelResultJson
+	result.Level = pm.LevelResultJSON
 	result.State = pm.StateSuccess
 	result.Data = `"pong"`
 

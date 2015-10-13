@@ -41,7 +41,7 @@ func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
 		result.State = pm.StateSuccess
-		result.Level = pm.LevelResultJson
+		result.Level = pm.LevelResultJSON
 		result.Data = string(serialized)
 	}
 

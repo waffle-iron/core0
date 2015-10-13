@@ -16,7 +16,7 @@ func init() {
 
 func getCPUInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.LevelResultJson
+	result.Level = pm.LevelResultJSON
 
 	info, err := cpu.CPUInfo()
 

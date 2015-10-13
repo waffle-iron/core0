@@ -25,7 +25,7 @@ type Cmd struct {
 	Data  string   `json:"data"`
 }
 
-//Builds a cmd from a map.
+//NewMapCmd builds a cmd from a map.
 func NewMapCmd(data map[string]interface{}) *Cmd {
 	stdin, ok := data["data"]
 	if !ok {
@@ -43,7 +43,7 @@ func NewMapCmd(data map[string]interface{}) *Cmd {
 	return cmd
 }
 
-//loads cmd from json string.
+//LoadCmd loads cmd from json string.
 func LoadCmd(str []byte) (*Cmd, error) {
 	cmd := new(Cmd)
 	err := json.Unmarshal(str, cmd)
@@ -57,16 +57,27 @@ func LoadCmd(str []byte) (*Cmd, error) {
 	return cmd, err
 }
 
+//String represents cmd as a string
 func (cmd *Cmd) String() string {
 	return fmt.Sprintf("(%s# %s %s)", cmd.ID, cmd.Name, cmd.Args.GetString("name"))
 }
 
+//MeterHandler represents a callback type
 type MeterHandler func(cmd *Cmd, p *process.Process)
+
+//StatsdMeterHandler represents a callback type
 type StatsdMeterHandler func(statsd *stats.Statsd, cmd *Cmd, p *process.Process)
+
+//MessageHandler represents a callback type
 type MessageHandler func(msg *Message)
+
+//ResultHandler represents a callback type
 type ResultHandler func(result *JobResult)
+
+//StatsFlushHandler represents a callback type
 type StatsFlushHandler func(stats *stats.Stats)
 
+//PM is the main process manager.
 type PM struct {
 	mid       uint32
 	midfile   string
@@ -84,6 +95,7 @@ type PM struct {
 	queueMgr            *CmdQueueManager
 }
 
+//NewPM creates a new PM
 func NewPM(midfile string, maxJobs int) *PM {
 	pm := &PM{
 		cmds:      make(chan *Cmd),
@@ -122,12 +134,13 @@ func saveMid(midfile string, mid uint32) {
 	ioutil.WriteFile(midfile, []byte(fmt.Sprintf("%d", mid)), 0644)
 }
 
+//RunCmd runs and manage command
 func (pm *PM) RunCmd(cmd *Cmd) {
 	pm.cmds <- cmd
 }
 
-/**
-Same as RunCmd put will queue the command for later execution when there are no
+/*
+RunCmdQueued Same as RunCmd put will queue the command for later execution when there are no
 other commands runs on the same queue.
 
 The queue name is retrieved from cmd.Args[queue]
@@ -139,23 +152,28 @@ func (pm *PM) RunCmdQueued(cmd *Cmd) {
 func (pm *PM) getNextMsgID() uint32 {
 	pm.midMux.Lock()
 	defer pm.midMux.Unlock()
-	pm.mid += 1
+	pm.mid++
 	saveMid(pm.midfile, pm.mid)
 	return pm.mid
 }
 
+//AddMessageHandler adds handlers for messages that are captured from sub processes. Logger can use this to
+//process messages
 func (pm *PM) AddMessageHandler(handler MessageHandler) {
 	pm.msgHandlers = append(pm.msgHandlers, handler)
 }
 
+//AddResultHandler adds a handler that receives job results.
 func (pm *PM) AddResultHandler(handler ResultHandler) {
 	pm.resultHandlers = append(pm.resultHandlers, handler)
 }
 
+//AddStatsFlushHandler adds handler to stats flush.
 func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
+//Run starts the process manager.
 func (pm *PM) Run() {
 	//process and start all commands according to args.
 	go func() {
@@ -240,18 +258,21 @@ func (pm *PM) Run() {
 	}()
 }
 
+//Processes returs a list of running processes
 func (pm *PM) Processes() map[string]Process {
 	return pm.processes
 }
 
+//Killall kills all running processes.
 func (pm *PM) Killall() {
 	for _, v := range pm.processes {
 		go v.Kill()
 	}
 }
 
-func (pm *PM) Kill(cmdId string) {
-	v, o := pm.processes[cmdId]
+//Kill kills a process by the cmd ID
+func (pm *PM) Kill(cmdID string) {
+	v, o := pm.processes[cmdID]
 	if o {
 		v.Kill()
 	}

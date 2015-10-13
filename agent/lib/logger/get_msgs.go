@@ -145,7 +145,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		}
 
 		result.State = pm.StateSuccess
-		result.Level = pm.LevelResultJson
+		result.Level = pm.LevelResultJSON
 		result.Data = string(data)
 
 		return result
