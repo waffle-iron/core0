@@ -12,18 +12,26 @@ import (
 	"time"
 )
 
+/*
+Logger interface
+*/
 type Logger interface {
 	Log(msg *pm.Message)
 }
 
+/*
+DBLogger implements a logger that stores the message in a bold database.
+*/
 type DBLogger struct {
 	db       *bolt.DB
 	defaults []int
 }
 
-//Creates a new Database logger, it stores the logged message in database
-//factory: is the DB connection factory
-//defaults: default log levels to store in db if is not specificed by the logged message.
+/*
+NewDBLogger creates a new Database logger, it stores the logged message in database
+factory: is the DB connection factory
+defaults: default log levels to store in db if is not specificed by the logged message.
+*/
 func NewDBLogger(db *bolt.DB, defaults []int) (Logger, error) {
 	tx, err := db.Begin(true)
 
@@ -62,7 +70,7 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 
 	go logger.db.Batch(func(tx *bolt.Tx) error {
 		logs := tx.Bucket([]byte("logs"))
-		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.Id))
+		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.ID))
 		if err != nil {
 			log.Println("Logger:", err)
 			return err
@@ -79,18 +87,23 @@ func (logger *DBLogger) Log(msg *pm.Message) {
 	})
 }
 
+/*
+ACLogger buffers the messages, then send it to the agent controller in bulks
+*/
 type ACLogger struct {
 	endpoints map[string]*http.Client
 	buffer    utils.Buffer
 	defaults  []int
 }
 
-//Create a new AC logger. AC logger buffers log messages into bulks and batch send it to the given end points over HTTP (POST)
-//endpoints: list of URLs that the AC logger will post the batches to
-//bufsize: Max number of messages to keep before sending the data to the end points
-//flushInt: Max time to wait before sending data to the end points. So either a full buffer or flushInt can force flushing
-//   the messages
-//defaults: default log levels to store in db if is not specificed by the logged message.
+/*
+NewACLogger creates a new AC logger. AC logger buffers log messages into bulks and batch send it to the given end points over HTTP (POST)
+endpoints: list of URLs that the AC logger will post the batches to
+bufsize: Max number of messages to keep before sending the data to the end points
+flushInt: Max time to wait before sending data to the end points. So either a full buffer or flushInt can force flushing
+  the messages
+defaults: default log levels to store in db if is not specificed by the logged message.
+*/
 func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.Duration, defaults []int) Logger {
 	logger := &ACLogger{
 		endpoints: endpoints,
@@ -142,17 +155,21 @@ func (logger *ACLogger) send(objs []interface{}) {
 	}
 }
 
+/*
+ConsoleLogger log message to the console
+*/
 type ConsoleLogger struct {
 	defaults []int
 }
 
-//Simple console logger that prints log messages to Console.
+//NewConsoleLogger creates a simple console logger that prints log messages to Console.
 func NewConsoleLogger(defaults []int) Logger {
 	return &ConsoleLogger{
 		defaults: defaults,
 	}
 }
 
+//Log messages
 func (logger *ConsoleLogger) Log(msg *pm.Message) {
 	if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
 		return

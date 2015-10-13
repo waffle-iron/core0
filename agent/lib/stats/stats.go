@@ -9,11 +9,16 @@ import (
 )
 
 const (
+	//TypeKeyValue key value aggregator
 	TypeKeyValue = "kv"
-	TypeGauage   = "g"
-	TypeTimer    = "ms"
+	//TypeGauage gauage aggregator
+	TypeGauage = "g"
+	//TypeTimer timer aggregator
+	TypeTimer = "ms"
+	//TypeCounter counter aggregator
 	TypeCounter = "c"
-	TypeSet     = "s"
+	//TypeSet set aggregator
+	TypeSet = "s"
 )
 
 type msg struct {
@@ -23,13 +28,16 @@ type msg struct {
 	flag   string
 }
 
+//FlushHandler is a callback type for stats flush
 type FlushHandler func(*Stats)
 
+//Stats is the aggregated stats
 type Stats struct {
 	Timestamp int64           `json:"timestamp"`
 	Series    [][]interface{} `json:"series"`
 }
 
+//Statsd represents the statsd daemon
 type Statsd struct {
 	prefix   string
 	flushInt time.Duration
@@ -38,6 +46,7 @@ type Statsd struct {
 	queue    chan msg
 }
 
+//NewStatsd creats a new statsd daemon
 func NewStatsd(prefix string, flush time.Duration, onflush FlushHandler) *Statsd {
 	return &Statsd{
 		prefix:   prefix,
@@ -57,7 +66,7 @@ func (statsd *Statsd) op(optype string, key string, value string, flag string) {
 	}
 }
 
-/**
+/*
 Feed statsd with statsD message according to specs
 str is in format 'key:value|type[|@flag]'
 */
@@ -87,24 +96,27 @@ func (statsd *Statsd) Feed(str string) error {
 	return nil
 }
 
-//Gauage value
-//value can be formatted as \d, +\d, -\d
+//Gauage value change value, keep last on flush
 func (statsd *Statsd) Gauage(key string, value string) {
 	statsd.op(TypeGauage, key, value, "")
 }
 
+//Counter increments value, resets on flush
 func (statsd *Statsd) Counter(key string, value string) {
 	statsd.op(TypeCounter, key, value, "")
 }
 
+//KeyValue updates value to last, reset on flus
 func (statsd *Statsd) KeyValue(key string, value string) {
 	statsd.op(TypeKeyValue, key, value, "")
 }
 
+//Timer calcluates mean, median on time
 func (statsd *Statsd) Timer(key string, value string) {
 	statsd.op(TypeTimer, key, value, "")
 }
 
+//Set keeps the count of unique values.
 func (statsd *Statsd) Set(key string, value string) {
 	statsd.op(TypeSet, key, value, "")
 }
@@ -131,7 +143,7 @@ func (statsd *Statsd) flush() {
 		value := values.value()
 
 		stats.Series[i] = []interface{}{key, value}
-		i += 1
+		i++
 	}
 
 	if statsd.onflush != nil {
@@ -141,10 +153,10 @@ func (statsd *Statsd) flush() {
 	// statsd.buffer = make(map[string]buffer)
 }
 
-//starts the statsd routine
+//Run starts the statsd routine
 func (statsd *Statsd) Run() {
 	go func() {
-		var tick <-chan time.Time = time.After(statsd.flushInt)
+		var tick = time.After(statsd.flushInt)
 	loop:
 		for {
 			select {
@@ -185,6 +197,7 @@ func (statsd *Statsd) Run() {
 	}()
 }
 
+//Stop stops the stats rountine and force flushing
 func (statsd *Statsd) Stop() {
 	close(statsd.queue)
 	//last flush

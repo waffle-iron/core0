@@ -7,20 +7,20 @@ import (
 )
 
 /**
-Cmd queue manager is used for sequential cmds exectuions
+cmdQueueManager is used for sequential cmds exectuions
 */
-type CmdQueueManager struct {
+type cmdQueueManager struct {
 	queues   map[string]*list.List
 	signal   chan string
 	consumer chan *Cmd
 	producer chan *Cmd
 }
 
-/**
-Create a new instace of the queue manager. Normally only the PM should call this.
+/*
+NewCmdQueueManager creates a new instace of the queue manager. Normally only the PM should call this.
 */
-func NewCmdQueueManager() *CmdQueueManager {
-	mgr := &CmdQueueManager{
+func newCmdQueueManager() *cmdQueueManager {
+	mgr := &cmdQueueManager{
 		queues:   make(map[string]*list.List),
 		signal:   make(chan string),
 		consumer: make(chan *Cmd),
@@ -96,11 +96,11 @@ func NewCmdQueueManager() *CmdQueueManager {
 	return mgr
 }
 
-func (qm *CmdQueueManager) Push(cmd *Cmd) {
+func (qm *cmdQueueManager) Push(cmd *Cmd) {
 	qm.consumer <- cmd
 }
 
-func (qm *CmdQueueManager) Notify(cmd *Cmd) {
+func (qm *cmdQueueManager) Notify(cmd *Cmd) {
 	queueName := cmd.Args.GetString("queue")
 	if queueName == "" {
 		//nothing to do
@@ -110,6 +110,6 @@ func (qm *CmdQueueManager) Notify(cmd *Cmd) {
 	qm.signal <- queueName
 }
 
-func (qm *CmdQueueManager) Producer() <-chan *Cmd {
+func (qm *cmdQueueManager) Producer() <-chan *Cmd {
 	return qm.producer
 }

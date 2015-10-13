@@ -2,7 +2,6 @@ package settings
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"io"
@@ -12,10 +11,11 @@ import (
 )
 
 const (
+	//ConfigSuffix config file ext
 	ConfigSuffix = ".toml"
 )
 
-//logger settings
+//Logger settings
 type Logger struct {
 	//logger type, now only 'db' and 'ac' are supported
 	Type string
@@ -32,7 +32,7 @@ type Logger struct {
 	BatchSize int
 }
 
-//external cmd config
+//Extension cmd config
 type Extension struct {
 	//binary to execute
 	Binary string
@@ -44,23 +44,27 @@ type Extension struct {
 	Args []string
 }
 
+//Security certificate path
 type Security struct {
 	CertificateAuthority string
 	ClientCertificate    string
 	ClientCertificateKey string
 }
 
+//Controller url and certificates
 type Controller struct {
 	URL      string
 	Security Security
 }
 
+//StartupCmd startup command config
 type StartupCmd struct {
 	Name string
 	Data string
 	Args map[string]interface{}
 }
 
+//Hash calculates a hash for the startup command, identical commands should have identical hashes.
 func (up StartupCmd) Hash() string {
 	h := md5.New()
 
@@ -68,7 +72,7 @@ func (up StartupCmd) Hash() string {
 	io.WriteString(h, fmt.Sprintf("Data:%s,", up.Data))
 
 	keys := make([]string, 0, len(up.Args))
-	for key, _ := range up.Args {
+	for key := range up.Args {
 		keys = append(keys, key)
 	}
 
@@ -79,13 +83,13 @@ func (up StartupCmd) Hash() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-//main agent settings
+//Settings main agent settings
 type Settings struct {
 	Main struct {
 		Gid           int
 		Nid           int
 		MaxJobs       int
-		MessageIdFile string
+		MessageIDFile string
 		HistoryFile   string
 		Roles         []string
 		Include       string
@@ -113,13 +117,14 @@ type Settings struct {
 	Startup map[string]StartupCmd
 }
 
-//partial loadable settings
+//PartialSettings loadable settings
 type PartialSettings struct {
 	Extensions map[string]Extension
 
 	Startup map[string]StartupCmd
 }
 
+//GetPartialSettings loads partial settings according to main configurations
 func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 	partial := &PartialSettings{
 		Extensions: make(map[string]Extension),
@@ -161,7 +166,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 			_, m := settings.Extensions[key]
 			_, p := partial.Extensions[key]
 			if m || p {
-				return nil, errors.New(fmt.Sprintf("Extension override in '%s' name '%s'", partialPath, key))
+				return nil, fmt.Errorf("Extension override in '%s' name '%s'", partialPath, key)
 			}
 
 			partial.Extensions[key] = ext
@@ -171,7 +176,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 			_, m := settings.Startup[key]
 			_, p := partial.Startup[key]
 			if m || p {
-				return nil, errors.New(fmt.Sprintf("Startup command override in '%s' name '%s'", partialPath, key))
+				return nil, fmt.Errorf("Startup command override in '%s' name '%s'", partialPath, key)
 			}
 
 			partial.Startup[key] = startup
@@ -181,6 +186,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 	return partial, nil
 }
 
+//GetSettings loads main settings from a filename
 func GetSettings(filename string) *Settings {
 	settings := &Settings{}
 

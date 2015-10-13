@@ -5,17 +5,17 @@ import (
 )
 
 const (
-	CmdPing = "ping"
+	cmdPing = "ping"
 )
 
 func init() {
-	pm.CMD_MAP[CmdPing] = InternalProcessFactory(ping)
+	pm.CmdMap[cmdPing] = InternalProcessFactory(ping)
 }
 
 func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.L_RESULT_JSON
-	result.State = pm.S_SUCCESS
+	result.Level = pm.LevelResultJSON
+	result.State = pm.StateSuccess
 	result.Data = `"pong"`
 
 	return result

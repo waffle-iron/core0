@@ -7,23 +7,23 @@ import (
 )
 
 const (
-	CmdGetProcessesStats = "get_processes_stats"
+	cmdGetProcessesStats = "get_processes_stats"
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
+	pm.CmdMap[cmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
 }
 
-type GetStatsData struct {
-	Domain string `json:domain`
-	Name   string `json:name`
+type getStatsData struct {
+	Domain string `json:"domain"`
+	Name   string `json:"name"`
 }
 
 func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 
 	//load data
-	data := GetStatsData{}
+	data := getStatsData{}
 	json.Unmarshal([]byte(cmd.Data), &data)
 
 	stats := make([]*pm.ProcessStats, 0, len(cfg.ProcessManager.Processes()))
@@ -48,11 +48,11 @@ func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	serialized, err := json.Marshal(stats)
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJSON
 		result.Data = string(serialized)
 	}
 

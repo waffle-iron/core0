@@ -7,29 +7,29 @@ import (
 )
 
 const (
-	CmdGetProcessStats = "get_process_stats"
+	cmdGetProcessStats = "get_process_stats"
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetProcessStats] = InternalProcessFactory(getProcessStats)
+	pm.CmdMap[cmdGetProcessStats] = InternalProcessFactory(getProcessStats)
 }
 
-type GetProcessStatsData struct {
-	Id string `json:id`
+type getProcessStatsData struct {
+	ID string `json:"id"`
 }
 
 func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 
 	//load data
-	data := GetProcessStatsData{}
+	data := getProcessStatsData{}
 	json.Unmarshal([]byte(cmd.Data), &data)
 
-	process, ok := cfg.ProcessManager.Processes()[data.Id]
+	process, ok := cfg.ProcessManager.Processes()[data.ID]
 
 	if !ok {
-		result.State = pm.S_ERROR
-		result.Data = fmt.Sprintf("Process with id '%s' doesn't exist", data.Id)
+		result.State = pm.StateError
+		result.Data = fmt.Sprintf("Process with id '%s' doesn't exist", data.ID)
 		return result
 	}
 
@@ -37,11 +37,11 @@ func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 
 	serialized, err := json.Marshal(stats)
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		result.Data = fmt.Sprintf("%v", err)
 	} else {
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJSON
 		result.Data = string(serialized)
 	}
 

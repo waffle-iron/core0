@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	CmdRestart = "restart"
+	cmdRestart = "restart"
 )
 
 func init() {
-	pm.CMD_MAP[CmdRestart] = InternalProcessFactory(restart)
+	pm.CmdMap[cmdRestart] = InternalProcessFactory(restart)
 }
 
 func restart(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {

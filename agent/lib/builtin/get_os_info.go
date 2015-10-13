@@ -7,25 +7,25 @@ import (
 )
 
 const (
-	CmdGetOsInfo = "get_os_info"
+	cmdGetOsInfo = "get_os_info"
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetOsInfo] = InternalProcessFactory(getOsInfo)
+	pm.CmdMap[cmdGetOsInfo] = InternalProcessFactory(getOsInfo)
 }
 
 func getOsInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.L_RESULT_JSON
+	result.Level = pm.LevelResultJSON
 
 	info, err := host.HostInfo()
 
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		m, _ := json.Marshal(err)
 		result.Data = string(m)
 	} else {
-		result.State = pm.S_SUCCESS
+		result.State = pm.StateSuccess
 		m, _ := json.Marshal(info)
 
 		result.Data = string(m)

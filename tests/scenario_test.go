@@ -10,21 +10,22 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/Jumpscale/agentcontroller2/client"
 )
 
 const (
-	NUM_AGENT = 2
+	NumAgents = 2
 )
 
-var AGENT_TMP string = `
+var AgentCfgTmp = `
 [main]
 gid = {gid}
 nid = 1
 max_jobs = 100
-message_id_file = "./.mid"
+message_ID_file = "./.mid"
 history_file = "./.history"
 roles = {roles}
 
@@ -33,11 +34,13 @@ roles = {roles}
     url = "http://localhost:1221"
 `
 
-var CONTROLLER_TMP string = `
+var ControllerCfgTmp = `
 [main]
-listen = ":1221"
 redis_host =  "127.0.0.1:6379"
 redis_password = ""
+
+[[listen]]
+    address = ":1221"
 
 [influxdb]
 host = "127.0.0.1:8086"
@@ -59,7 +62,7 @@ cwd = "./handlers"
 
 `
 
-var AGENT_ROLES = map[int]string{
+var AgentRoles = map[int]string{
 	1: `["cpu"]`,
 	2: `["cpu", "storage"]`,
 }
@@ -90,9 +93,9 @@ func TestMain(m *testing.M) {
 
 	//start controller.
 	var wg sync.WaitGroup
-	wg.Add(NUM_AGENT + 1)
+	wg.Add(NumAgents + 1)
 
-	ctrlCfg := utils.Format(CONTROLLER_TMP, map[string]interface{}{})
+	ctrlCfg := utils.Format(ControllerCfgTmp, map[string]interface{}{})
 
 	ctrlCfgPath := "/tmp/ac.toml"
 
@@ -116,14 +119,14 @@ func TestMain(m *testing.M) {
 		log.Println("Controller exited")
 	}()
 
-	cmds := make([]*exec.Cmd, 0, NUM_AGENT)
+	cmds := make([]*exec.Cmd, 0, NumAgents)
 
 	//start agents.
-	for i := 0; i < NUM_AGENT; i++ {
+	for i := 0; i < NumAgents; i++ {
 		gid := i + 1
-		agentCfg := utils.Format(AGENT_TMP, map[string]interface{}{
+		agentCfg := utils.Format(AgentCfgTmp, map[string]interface{}{
 			"gid":   gid,
-			"roles": AGENT_ROLES[gid],
+			"roles": AgentRoles[gid],
 		})
 
 		agentCfgPath := fmt.Sprintf("/tmp/ag-%d.toml", gid)
@@ -149,6 +152,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log.Println("Starting tests")
+	time.Sleep(5 * time.Second)
 	code := m.Run()
 
 	log.Println("Cleaning up")
@@ -169,7 +173,6 @@ func TestPing(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 	for gid := 1; gid <= 2; gid++ {
 		cmd := &client.Command{
-			Id:  "test-ping",
 			Gid: gid,
 			Nid: 1,
 			Cmd: "ping",
@@ -180,7 +183,7 @@ func TestPing(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		result, err := ref.Result(5)
+		result, err := ref.GetNextResult(5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -195,8 +198,8 @@ func TestParallelExecution(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"1"}
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"1"}
 
 	gid := 1
 	cmd := &client.Command{
@@ -210,7 +213,6 @@ func TestParallelExecution(t *testing.T) {
 	refs := make([]*client.CommandReference, 0, count)
 
 	for i := 0; i < count; i++ {
-		cmd.Id = fmt.Sprintf("sleep-%d", i)
 		ref, err := clt.Run(cmd)
 		if err != nil {
 			t.Fatal(err)
@@ -221,7 +223,7 @@ func TestParallelExecution(t *testing.T) {
 	//get results
 	st := 0
 	for i, ref := range refs {
-		result, err := ref.Result(10)
+		result, err := ref.GetNextResult(10)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -245,9 +247,9 @@ func TestSerialExecution(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"1"}
-	args[client.ARG_QUEUE] = "sleep-queue"
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"1"}
+	args[client.ArgQueue] = "sleep-queue"
 
 	gid := 1
 	cmd := &client.Command{
@@ -261,7 +263,6 @@ func TestSerialExecution(t *testing.T) {
 	refs := make([]*client.CommandReference, 0, count)
 
 	for i := 0; i < count; i++ {
-		cmd.Id = fmt.Sprintf("sleep-%d", i)
 		ref, err := clt.Run(cmd)
 		if err != nil {
 			t.Fatal(err)
@@ -272,7 +273,7 @@ func TestSerialExecution(t *testing.T) {
 	//get results
 	st := 0
 	for i, ref := range refs {
-		result, err := ref.Result(10)
+		result, err := ref.GetNextResult(10)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -291,7 +292,6 @@ func TestWrongCmd(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 	for gid := 1; gid <= 2; gid++ {
 		cmd := &client.Command{
-			Id:  "test-ping",
 			Gid: gid,
 			Nid: 1,
 			Cmd: "unknown",
@@ -302,7 +302,7 @@ func TestWrongCmd(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		result, err := ref.Result(5)
+		result, err := ref.GetNextResult(5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,13 +321,12 @@ func TestMaxTime(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
 	args := client.NewDefaultRunArgs()
-	args[client.ARG_NAME] = "sleep"
-	args[client.ARG_CMD_ARGS] = []string{"5"}
-	args[client.ARG_MAX_TIME] = 1
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"5"}
+	args[client.ArgMaxTime] = 1
 
 	gid := 1
 	cmd := &client.Command{
-		Id:   "max-time",
 		Gid:  gid,
 		Nid:  1,
 		Cmd:  "execute",
@@ -339,7 +338,7 @@ func TestMaxTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := ref.Result(10)
+	result, err := ref.GetNextResult(10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,11 +356,10 @@ func TestRolesDistributed(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		cmd := &client.Command{
-			Id:   fmt.Sprintf("test-ping-%d", i),
-			Gid:  0,
-			Nid:  0,
-			Cmd:  "ping",
-			Role: "cpu",
+			Gid:   0,
+			Nid:   0,
+			Cmd:   "ping",
+			Roles: []string{"cpu"},
 		}
 
 		ref, err := clt.Run(cmd)
@@ -369,7 +367,7 @@ func TestRolesDistributed(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		result, err := ref.Result(1)
+		result, err := ref.GetNextResult(1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -377,7 +375,7 @@ func TestRolesDistributed(t *testing.T) {
 		counter[result.Gid] = counter[result.Gid] + 1
 	}
 
-	if len(counter) != NUM_AGENT {
+	if len(counter) != NumAgents {
 		t.Fatal("Role execution didn't distribute the task as expected")
 	}
 
@@ -392,11 +390,10 @@ func TestRolesSingle(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		cmd := &client.Command{
-			Id:   fmt.Sprintf("test-ping-%d", i),
-			Gid:  0,
-			Nid:  0,
-			Cmd:  "ping",
-			Role: "storage",
+			Gid:   0,
+			Nid:   0,
+			Cmd:   "ping",
+			Roles: []string{"storage"},
 		}
 
 		ref, err := clt.Run(cmd)
@@ -404,7 +401,7 @@ func TestRolesSingle(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		result, err := ref.Result(1)
+		result, err := ref.GetNextResult(1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -425,11 +422,10 @@ func TestRolesDistributedSingleGrid(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		cmd := &client.Command{
-			Id:   fmt.Sprintf("test-ping-%d", i),
-			Gid:  1,
-			Nid:  0,
-			Cmd:  "ping",
-			Role: "cpu",
+			Gid:   1,
+			Nid:   0,
+			Cmd:   "ping",
+			Roles: []string{"cpu"},
 		}
 
 		ref, err := clt.Run(cmd)
@@ -437,7 +433,7 @@ func TestRolesDistributedSingleGrid(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		result, err := ref.Result(1)
+		result, err := ref.GetNextResult(1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -452,14 +448,11 @@ func TestRolesDistributedSingleGrid(t *testing.T) {
 func TestRoleFanout(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
-	counter := make(map[int]bool)
-
 	cmd := &client.Command{
-		Id:     "test-ping-fanout",
 		Gid:    0,
 		Nid:    0,
 		Cmd:    "ping",
-		Role:   "cpu",
+		Roles:  []string{"cpu"},
 		Fanout: true,
 	}
 
@@ -468,35 +461,30 @@ func TestRoleFanout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//expecting NUM_AGENT results
-	for i := 0; i < NUM_AGENT; i++ {
-		result, err := ref.Result(1)
-		if err != nil {
+	jobs, err := ref.GetJobs(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(jobs) != NumAgents {
+		t.Fatal("Invalid number of jobs ", len(jobs), " expected", NumAgents)
+	}
+
+	for _, job := range jobs {
+		if err := job.Wait(1); err != nil {
 			t.Fatal(err)
 		}
-		if result != nil {
-			counter[result.Gid] = true
-		}
 	}
-
-	if len(counter) != 2 {
-		t.Fatal("Fanout execution didn't distribute the tasks as expected", len(counter))
-	}
-
-	log.Println("Role CPU counters", counter)
 }
 
 func TestRoleFanoutAll(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
-	counter := make(map[int]bool)
-
 	cmd := &client.Command{
-		Id:     "test-ping-all",
 		Gid:    0,
 		Nid:    0,
 		Cmd:    "ping",
-		Role:   "*",
+		Roles:  []string{"*"},
 		Fanout: true,
 	}
 
@@ -505,35 +493,31 @@ func TestRoleFanoutAll(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//expecting NUM_AGENT results
-	for i := 0; i < NUM_AGENT; i++ {
-		result, err := ref.Result(1)
-		if err != nil {
+	//expecting NumAgents results
+	jobs, err := ref.GetJobs(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(jobs) != NumAgents {
+		t.Fatal("Invalid number of jobs ", len(jobs), " expected", NumAgents)
+	}
+
+	for _, job := range jobs {
+		if err := job.Wait(1); err != nil {
 			t.Fatal(err)
 		}
-		if result != nil {
-			counter[result.Gid] = true
-		}
 	}
-
-	if len(counter) != 2 {
-		t.Fatal("Fanout execution didn't distribute the tasks as expected", len(counter))
-	}
-
-	log.Println("Role CPU counters", counter)
 }
 
 func TestRoleFanoutSingle(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
-	counter := make(map[int]bool)
-
 	cmd := &client.Command{
-		Id:     "test-ping-fanout-single",
 		Gid:    0,
 		Nid:    0,
 		Cmd:    "ping",
-		Role:   "storage",
+		Roles:  []string{"storage"},
 		Fanout: true,
 	}
 
@@ -542,23 +526,21 @@ func TestRoleFanoutSingle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//expecting NUM_AGENT results
-	for i := 0; i < NUM_AGENT; i++ {
-		result, err := ref.Result(1)
-		if err != nil && err != client.TIMEOUT {
-			t.Fatal(err)
-		}
-		if result != nil {
-			counter[result.Gid] = true
-		}
-
+	//expecting NumAgents results
+	jobs, err := ref.GetJobs(1)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if len(counter) != 1 {
-		t.Fatal("Fanout execution didn't distribute the tasks as expected")
+	if len(jobs) != 1 {
+		t.Fatal("Invalid number of jobs '", len(jobs), "' expected 1")
 	}
 
-	log.Println("Role CPU counters", counter)
+	job := jobs[0]
+	err = job.Wait(1)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPortForwarding(t *testing.T) {
@@ -566,7 +548,6 @@ func TestPortForwarding(t *testing.T) {
 
 	gid := 1
 	cmd := &client.Command{
-		Id:   "port-forward-open",
 		Gid:  gid,
 		Nid:  1,
 		Cmd:  "hubble_open_tunnel",
@@ -578,7 +559,7 @@ func TestPortForwarding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := ref.Result(10)
+	result, err := ref.GetNextResult(10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -587,21 +568,20 @@ func TestPortForwarding(t *testing.T) {
 		t.Fatal("Failed to open tunnel", result.Data)
 	}
 
-	//create test clt on new open port
-	tunnel_clt := client.New("localhost:9979", "")
+	//create test client on new open port
+	tunnelClient := client.New("localhost:9979", "")
 
 	ping := &client.Command{
-		Id:   "tunnel-ping",
-		Cmd:  "ping",
-		Role: "cpu",
+		Cmd:   "ping",
+		Roles: []string{"cpu"},
 	}
 
-	pref, err := tunnel_clt.Run(ping)
+	pref, err := tunnelClient.Run(ping)
 	if err != nil {
 		t.Fatal("Failed to send command over tunneled connection")
 	}
 
-	pong, err := pref.Result(10)
+	pong, err := pref.GetNextResult(10)
 	if err != nil {
 		t.Fatal("Failed to retrieve result over tunneled connection")
 	}
@@ -612,7 +592,6 @@ func TestPortForwarding(t *testing.T) {
 
 	//Closing the tunnel
 	cmd = &client.Command{
-		Id:   "port-forward-close",
 		Gid:  gid,
 		Nid:  1,
 		Cmd:  "hubble_close_tunnel",
@@ -620,14 +599,14 @@ func TestPortForwarding(t *testing.T) {
 	}
 
 	if ref, err := clt.Run(cmd); err == nil {
-		ref.Result(10)
+		ref.GetNextResult(10)
 	} else {
 		t.Fatal("Failed to close the tunnel")
 	}
 
 	//try using the tunnel clt
-	if ref, err := tunnel_clt.Run(ping); err == nil {
-		ref.Result(10)
+	if ref, err := tunnelClient.Run(ping); err == nil {
+		ref.GetNextResult(10)
 		t.Fatal("Expected an error, instead got success")
 	}
 }

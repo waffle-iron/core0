@@ -12,52 +12,52 @@ import (
 	"time"
 )
 
-type LogQuery struct {
+type logQuery struct {
 	JobID  string      `json:"jobid"`
 	Levels interface{} `json:"levels"`
 	Limit  int         `json:"limit"`
 }
 
 const (
-	CmdGetMsgs             = "get_msgs"
-	CmdGetMsgsDefaultLimit = 1000
+	cmdGetMsgs             = "get_msgs"
+	cmdGetMsgsDefaultLimit = 1000
 )
+
+func getLevels(levels interface{}) ([]int, error) {
+	var results []int
+
+	if levels == nil {
+		levels = "*"
+	}
+
+	//loading levels.
+	if levels != nil {
+		switch ls := levels.(type) {
+		case string:
+			var err error
+			results, err = utils.Expand(ls)
+			if err != nil {
+				return nil, err
+			}
+		case []int:
+			results = ls
+		case []float64:
+			//happens when unmarshaling from json
+			results = make([]int, len(ls))
+			for i := 0; i < len(ls); i++ {
+				results[i] = int(ls[i])
+			}
+		}
+	} else {
+		levels = make([]int, 0)
+	}
+
+	return results, nil
+}
 
 func registerGetMsgsFunction(db *bolt.DB) {
 
-	get_levels := func(levels interface{}) ([]int, error) {
-		var results []int
-
-		if levels == nil {
-			levels = "*"
-		}
-
-		//loading levels.
-		if levels != nil {
-			switch ls := levels.(type) {
-			case string:
-				var err error
-				results, err = utils.Expand(ls)
-				if err != nil {
-					return nil, err
-				}
-			case []int:
-				results = ls
-			case []float64:
-				//happens when unmarshaling from json
-				results = make([]int, len(ls))
-				for i := 0; i < len(ls); i++ {
-					results[i] = int(ls[i])
-				}
-			}
-		} else {
-			levels = make([]int, 0)
-		}
-
-		return results, nil
-	}
-
-	get_msgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+	getMsgs := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 		result := pm.NewBasicJobResult(cmd)
 		result.StartTime = int64(time.Duration(time.Now().UnixNano()) / time.Millisecond)
 
@@ -66,26 +66,26 @@ func registerGetMsgsFunction(db *bolt.DB) {
 			result.Time = int64(endtime) - result.StartTime
 		}()
 
-		query := LogQuery{}
+		query := logQuery{}
 
 		err := json.Unmarshal([]byte(cmd.Data), &query)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("Failed to parse get_msgs query: %s", err)
 
 			return result
 		}
 
 		if query.JobID == "" {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = "jobid is required"
 
 			return result
 		}
 
-		levels, err := get_levels(query.Levels)
+		levels, err := getLevels(query.Levels)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("Error parsing levels (%s): %s", query.Levels, err)
 
 			return result
@@ -96,12 +96,12 @@ func registerGetMsgsFunction(db *bolt.DB) {
 			limit = query.Limit
 		}
 
-		if limit > CmdGetMsgsDefaultLimit {
-			limit = CmdGetMsgsDefaultLimit
+		if limit > cmdGetMsgsDefaultLimit {
+			limit = cmdGetMsgsDefaultLimit
 		}
 
 		//we still can continue the query even if we have unmarshal errors.
-		records := make([]map[string]interface{}, 0, CmdGetMsgsDefaultLimit)
+		records := make([]map[string]interface{}, 0, cmdGetMsgsDefaultLimit)
 
 		err = db.View(func(tx *bolt.Tx) error {
 			logs := tx.Bucket([]byte("logs"))
@@ -130,7 +130,7 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		})
 
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("%v", err)
 
 			return result
@@ -138,18 +138,18 @@ func registerGetMsgsFunction(db *bolt.DB) {
 
 		data, err := json.Marshal(records)
 		if err != nil {
-			result.State = pm.S_ERROR
+			result.State = pm.StateError
 			result.Data = fmt.Sprintf("%v", err)
 
 			return result
 		}
 
-		result.State = pm.S_SUCCESS
-		result.Level = pm.L_RESULT_JSON
+		result.State = pm.StateSuccess
+		result.Level = pm.LevelResultJSON
 		result.Data = string(data)
 
 		return result
 	}
 
-	pm.CMD_MAP[CmdGetMsgs] = builtin.InternalProcessFactory(get_msgs)
+	pm.CmdMap[cmdGetMsgs] = builtin.InternalProcessFactory(getMsgs)
 }

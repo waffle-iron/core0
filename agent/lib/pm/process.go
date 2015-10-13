@@ -15,36 +15,60 @@ import (
 )
 
 const (
-	L_STDOUT      = 1  // stdout
-	L_STDERR      = 2  // stderr
-	L_PUBLIC      = 3  // message for endusers / public message
-	L_OPERATOR    = 4  // message for operator / internal message
-	L_UNKNOWN     = 5  // log msg (unstructured = level5, cat=unknown)
-	L_STRUCTURED  = 6  // log msg structured
-	L_WARNING     = 7  // warning message
-	L_OPS_ERROR   = 8  // ops error
-	L_CRITICAL    = 9  // critical error
-	L_STATSD      = 10 // statsd message(s) AVG
-	L_DEBUG       = 11 // debug message
-	L_RESULT_JSON = 20 // result message, json
-	L_RESULT_YAML = 21 // result message, yaml
-	L_RESULT_TOML = 22 // result message, toml
-	L_RESULT_HRD  = 23 // result message, hrd
-	L_RESULT_JOB  = 30 // job, json (full result of a job)
+	//LevelStdout stdout message
+	LevelStdout = 1 // stdout
+	//LevelStderr stderr message
+	LevelStderr = 2 // stderr
+	//LevelPublic public message
+	LevelPublic = 3 // message for endusers / public message
+	//LevelOperator operator message
+	LevelOperator = 4 // message for operator / internal message
+	//LevelUnknown unknown message
+	LevelUnknown = 5 // log msg (unstructured = level5, cat=unknown)
+	//LevelStructured structured message
+	LevelStructured = 6 // log msg structured
+	//LevelWarning warning message
+	LevelWarning = 7 // warning message
+	//LevelOpsError ops error message
+	LevelOpsError = 8 // ops error
+	//LevelCritical critical message
+	LevelCritical = 9 // critical error
+	//LevelStatsd statsd message
+	LevelStatsd = 10 // statsd message(s) AVG
+	//LevelDebug debug message
+	LevelDebug = 11 // debug message
+	//LevelResultJSON json result message
+	LevelResultJSON = 20 // result message, json
+	//LevelResultYAML yaml result message
+	LevelResultYAML = 21 // result message, yaml
+	//LevelResultTOML toml result message
+	LevelResultTOML = 22 // result message, toml
+	//LevelResultHRD hrd result message
+	LevelResultHRD = 23 // result message, hrd
+	//LevelResultJob job result message
+	LevelResultJob = 30 // job, json (full result of a job)
 
-	S_SUCCESS      = "SUCCESS"
-	S_ERROR        = "ERROR"
-	S_TIMEOUT      = "TIMEOUT"
-	S_KILLED       = "KILLED"
-	S_UNKNOWN_CMD  = "UNKNOWN_CMD"
-	S_DUPILCATE_ID = "DUPILICATE_ID"
+	//StateSuccess successs exit status
+	StateSuccess = "SUCCESS"
+	//StateError error exist status
+	StateError = "ERROR"
+	//StateTimeout timeout exit status
+	StateTimeout = "TIMEOUT"
+	//StateKilled killed exit status
+	StateKilled = "KILLED"
+	//StateUnknownCmd unknown cmd exit status
+	StateUnknownCmd = "UNKNOWN_CMD"
+	//StateDuplicateID dublicate id exit status
+	StateDuplicateID = "DUPILICATE_ID"
 
-	STREAM_BUFFER_SIZE = 1000 // keeps only last 1000 line of stream
+	//StreamBufferSize max number of lines to capture from a stream
+	StreamBufferSize = 1000 // keeps only last 1000 line of stream
 )
 
-var RESULT_MESSAGE_LEVELS []int = []int{L_RESULT_JSON,
-	L_RESULT_YAML, L_RESULT_TOML, L_RESULT_HRD, L_RESULT_JOB}
+var resultMessageLevels = []int{LevelResultJSON,
+	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
 
+//ProcessStats holds process cpu and memory usage
 type ProcessStats struct {
 	Cmd  *Cmd    `json:"cmd"`
 	CPU  float64 `json:"cpu"`
@@ -53,6 +77,7 @@ type ProcessStats struct {
 	Swap uint64  `json:"swap"`
 }
 
+//Process interface
 type Process interface {
 	Cmd() *Cmd
 	Run(RunCfg)
@@ -60,6 +85,8 @@ type Process interface {
 	GetStats() *ProcessStats
 }
 
+//RunCfg holds configuration and callbacks to be passed to a running process so the process can feed the process manager with messages.
+//and results
 type RunCfg struct {
 	ProcessManager *PM
 	MeterHandler   MeterHandler
@@ -68,8 +95,9 @@ type RunCfg struct {
 	Signal         chan int
 }
 
+//JobResult represents a result of a job
 type JobResult struct {
-	Id        string   `json:"id"`
+	ID        string   `json:"id"`
 	Gid       int      `json:"gid"`
 	Nid       int      `json:"nid"`
 	Cmd       string   `json:"cmd"`
@@ -83,9 +111,10 @@ type JobResult struct {
 	Time      int64    `json:"time"`
 }
 
+//NewBasicJobResult creates a new job result from command
 func NewBasicJobResult(cmd *Cmd) *JobResult {
 	return &JobResult{
-		Id:   cmd.Id,
+		ID:   cmd.ID,
 		Gid:  cmd.Gid,
 		Nid:  cmd.Nid,
 		Cmd:  cmd.Name,
@@ -93,32 +122,36 @@ func NewBasicJobResult(cmd *Cmd) *JobResult {
 	}
 }
 
+//Message is a message from running process
 type Message struct {
-	Id      uint32
+	ID      uint32
 	Cmd     *Cmd
 	Level   int
 	Message string
 	Epoch   int64
 }
 
+//MarshalJSON serializes message to json
 func (msg *Message) MarshalJSON() ([]byte, error) {
 	data := make(map[string]interface{})
 	args := msg.Cmd.Args
-	data["jobid"] = msg.Cmd.Id
+	data["jobid"] = msg.Cmd.ID
 	data["domain"] = args.GetString("domain")
 	data["name"] = args.GetString("name")
 	data["epoch"] = msg.Epoch / int64(time.Millisecond)
 	data["level"] = msg.Level
-	data["id"] = msg.Id
+	data["id"] = msg.ID
 	data["data"] = msg.Message
 
 	return json.Marshal(data)
 }
 
+//String represents a message as a string
 func (msg *Message) String() string {
 	return fmt.Sprintf("%s|%d:%s", msg.Cmd, msg.Level, msg.Message)
 }
 
+//ExtProcess represents an external process
 type ExtProcess struct {
 	cmd     *Cmd
 	ctrl    chan int
@@ -127,6 +160,7 @@ type ExtProcess struct {
 	process *process.Process
 }
 
+//NewExtProcess creates a new external process from a command
 func NewExtProcess(cmd *Cmd) Process {
 	return &ExtProcess{
 		cmd:  cmd,
@@ -134,6 +168,7 @@ func NewExtProcess(cmd *Cmd) Process {
 	}
 }
 
+//Cmd returns the command
 func (ps *ExtProcess) Cmd() *Cmd {
 	return ps.cmd
 }
@@ -155,9 +190,9 @@ func joinCertPath(base string, relative string) string {
 
 	if path.IsAbs(relative) {
 		return relative
-	} else {
-		return path.Join(base, relative)
 	}
+
+	return path.Join(base, relative)
 }
 
 func (ps *ExtProcess) getExtraEnv() []string {
@@ -184,7 +219,7 @@ func (ps *ExtProcess) getExtraEnv() []string {
 	return env
 }
 
-//Start process, feed data over the process stdin, and start
+//Run starts process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
 func (ps *ExtProcess) Run(cfg RunCfg) {
@@ -231,7 +266,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	if err != nil {
 		log.Println("Failed to start process", err)
 		jobresult := NewBasicJobResult(ps.cmd)
-		jobresult.State = S_ERROR
+		jobresult.State = StateError
 		jobresult.Data = fmt.Sprintf("%v", err)
 		cfg.ResultHandler(jobresult)
 		return
@@ -241,29 +276,29 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	psProcess, _ := process.NewProcess(int32(ps.pid))
 	ps.process = psProcess
 
-	var result *Message = nil
+	var result *Message
 
 	stdoutBuffer := list.New()
 	stderrBuffer := list.New()
 	var critical string
 
 	msgInterceptor := func(msg *Message) {
-		if utils.In(RESULT_MESSAGE_LEVELS, msg.Level) {
+		if utils.In(resultMessageLevels, msg.Level) {
 			//process result message.
 			result = msg
 		}
 
-		if msg.Level == L_STDOUT {
+		if msg.Level == LevelStdout {
 			stdoutBuffer.PushBack(msg.Message)
-			if stdoutBuffer.Len() > STREAM_BUFFER_SIZE {
+			if stdoutBuffer.Len() > StreamBufferSize {
 				stdoutBuffer.Remove(stdoutBuffer.Front())
 			}
-		} else if msg.Level == L_STDERR {
+		} else if msg.Level == LevelStderr {
 			stderrBuffer.PushBack(msg.Message)
-			if stderrBuffer.Len() > STREAM_BUFFER_SIZE {
+			if stderrBuffer.Len() > StreamBufferSize {
 				stderrBuffer.Remove(stderrBuffer.Front())
 			}
-		} else if msg.Level == L_CRITICAL {
+		} else if msg.Level == LevelCritical {
 			critical = msg.Message
 		}
 
@@ -271,10 +306,10 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	}
 
 	// start consuming outputs.
-	outConsumer := NewStreamConsumer(ps.cmd, stdout, 1)
+	outConsumer := newStreamConsumer(ps.cmd, stdout, 1)
 	outConsumer.Consume(msgInterceptor)
 
-	errConsumer := NewStreamConsumer(ps.cmd, stderr, 2)
+	errConsumer := newStreamConsumer(ps.cmd, stderr, 2)
 	errConsumer.Consume(msgInterceptor)
 
 	if ps.cmd.Data != "" {
@@ -356,7 +391,7 @@ loop:
 
 		//restarting due to failuer with max_restart set
 		if !success && args.GetInt("max_restart") > 0 {
-			ps.runs += 1
+			ps.runs++
 			if ps.runs < args.GetInt("max_restart") {
 				log.Println("Restarting", ps.cmd, "due to upnormal exit status, trials", ps.runs+1, "/", args.GetInt("max_restart"))
 				restarting = true
@@ -380,7 +415,7 @@ loop:
 					if success {
 						ps.runs = 0
 					} else {
-						ps.runs += 1
+						ps.runs++
 					}
 					//restarting.
 					ps.Run(cfg)
@@ -398,7 +433,7 @@ loop:
 						//and send the kill result.
 						jobresult := NewBasicJobResult(ps.cmd)
 
-						jobresult.State = S_KILLED
+						jobresult.State = StateKilled
 						jobresult.StartTime = int64(starttime)
 						jobresult.Time = int64(endtime - starttime)
 						cfg.ResultHandler(jobresult)
@@ -410,13 +445,13 @@ loop:
 
 	var state string
 	if success {
-		state = S_SUCCESS
+		state = StateSuccess
 	} else if timedout {
-		state = S_TIMEOUT
+		state = StateTimeout
 	} else if killed {
-		state = S_KILLED
+		state = StateKilled
 	} else {
-		state = S_ERROR
+		state = StateError
 	}
 
 	jobresult := NewBasicJobResult(ps.cmd)
@@ -446,6 +481,7 @@ loop:
 	cfg.ResultHandler(jobresult)
 }
 
+//Kill stops an external process
 func (ps *ExtProcess) Kill() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -456,6 +492,7 @@ func (ps *ExtProcess) Kill() {
 	ps.ctrl <- 1
 }
 
+//GetStats gets stats of an external process
 func (ps *ExtProcess) GetStats() *ProcessStats {
 	stats := new(ProcessStats)
 	stats.Cmd = ps.cmd

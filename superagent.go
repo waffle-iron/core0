@@ -19,7 +19,7 @@ import (
 
 func getKeys(m map[string]*agent.ControllerClient) []string {
 	keys := make([]string, 0, len(m))
-	for key, _ := range m {
+	for key := range m {
 		keys = append(keys, key)
 	}
 
@@ -58,7 +58,7 @@ func main() {
 		controllers[key] = agent.NewControllerClient(&controllerCfg)
 	}
 
-	mgr := pm.NewPM(config.Main.MessageIdFile, config.Main.MaxJobs)
+	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
 
 	//configure logging handlers from configurations
 	logger.ConfigureLogging(mgr, controllers, config)
@@ -100,7 +100,7 @@ func main() {
 			return
 		}
 
-		url := controller.BuildUrl(config.Main.Gid, config.Main.Nid, "result")
+		url := controller.BuildURL(config.Main.Gid, config.Main.Nid, "result")
 
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
@@ -125,7 +125,7 @@ func main() {
 		cmd := &pm.Cmd{
 			Gid:  config.Main.Gid,
 			Nid:  config.Main.Nid,
-			Id:   id,
+			ID:   id,
 			Name: startup.Name,
 			Data: startup.Data,
 			Args: pm.NewMapArgs(startup.Args),

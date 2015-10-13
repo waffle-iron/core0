@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+/*
+StatsBuffer implements a buffering and flushing mechanism to buffer statsd messages
+that are collected via the process manager. Flush happens when buffer is full or a certain time passes since last flush.
+
+The StatsBuffer.Handler should be registers as StatsFlushHandler on the process manager object.
+*/
 type StatsBuffer struct {
 	gid          int
 	nid          int
@@ -18,6 +24,9 @@ type StatsBuffer struct {
 	buffer       utils.Buffer
 }
 
+/*
+NewStatsBuffer creates new StatsBuffer
+*/
 func NewStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient,
 	config *settings.Settings) *StatsBuffer {
 	var destKeys []string
@@ -56,7 +65,7 @@ func (buffer *StatsBuffer) onflush(stats []interface{}) {
 
 	res, _ := json.Marshal(stats)
 	for _, controller := range buffer.destinations {
-		url := controller.BuildUrl(buffer.gid, buffer.nid, "stats")
+		url := controller.BuildURL(buffer.gid, buffer.nid, "stats")
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
 		if err != nil {
@@ -67,6 +76,10 @@ func (buffer *StatsBuffer) onflush(stats []interface{}) {
 	}
 }
 
+/*
+Handler should be used as a handler to manager stats messages. This method will buffer the feed messages
+to be flused on time.
+*/
 func (buffer *StatsBuffer) Handler(stats *stats.Stats) {
 	buffer.buffer.Append(stats)
 }

@@ -9,17 +9,17 @@ import (
 	"strings"
 )
 
-var PM_MESG_PATTERN, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
+var pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
 
-type StreamConsumer struct {
+type streamConsumer struct {
 	cmd    *Cmd
 	reader io.Reader
 	level  int
 	Signal chan int
 }
 
-func NewStreamConsumer(cmd *Cmd, reader io.Reader, level int) *StreamConsumer {
-	return &StreamConsumer{
+func newStreamConsumer(cmd *Cmd, reader io.Reader, level int) *streamConsumer {
+	return &streamConsumer{
 		cmd:    cmd,
 		reader: reader,
 		level:  level,
@@ -27,7 +27,7 @@ func NewStreamConsumer(cmd *Cmd, reader io.Reader, level int) *StreamConsumer {
 	}
 }
 
-func (consumer *StreamConsumer) Consume(handler MessageHandler) {
+func (consumer *streamConsumer) Consume(handler MessageHandler) {
 	// read input until the end (or closed)
 	// process all messages as speced x:: or x:::
 	// other messages that has no level are assumed of level consumer.level
@@ -35,7 +35,7 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
 		reader := bufio.NewReader(consumer.reader)
 		var level int
 		var message string
-		var multiline bool = false
+		var multiline = false
 
 		for {
 			line, err := reader.ReadString('\n')
@@ -49,7 +49,7 @@ func (consumer *StreamConsumer) Consume(handler MessageHandler) {
 
 			if line != "" {
 				if !multiline {
-					matches := PM_MESG_PATTERN.FindStringSubmatch(line)
+					matches := pmMsgPattern.FindStringSubmatch(line)
 					if matches == nil {
 						//use default level.
 						handler(&Message{

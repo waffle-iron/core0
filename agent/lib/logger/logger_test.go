@@ -16,7 +16,7 @@ func getFakeCmd(t *testing.T) *pm.Cmd {
 	if err != nil {
 		t.Error("Could not create fake command")
 	}
-	cmd.Id = "test-id"
+	cmd.ID = "test-id"
 	return cmd
 }
 
@@ -69,7 +69,7 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 	message1 := "Hello world"
 
 	msg1 := &pm.Message{
-		Id:      1,
+		ID:      1,
 		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
@@ -77,7 +77,7 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 	}
 
 	msg2 := &pm.Message{
-		Id:      2,
+		ID:      2,
 		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
@@ -147,7 +147,7 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 	message1 := "Hello world"
 
 	msg1 := &pm.Message{
-		Id:      1,
+		ID:      1,
 		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
@@ -155,7 +155,7 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 	}
 
 	msg2 := &pm.Message{
-		Id:      2,
+		ID:      2,
 		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
@@ -163,7 +163,7 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 	}
 
 	msg3 := &pm.Message{
-		Id:      2,
+		ID:      2,
 		Cmd:     getFakeCmd(t),
 		Level:   5,
 		Message: message1,

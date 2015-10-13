@@ -14,8 +14,9 @@ import (
 	"time"
 )
 
+//Cmd is an executable command
 type Cmd struct {
-	Id    string   `json:"id"`
+	ID    string   `json:"id"`
 	Gid   int      `json:"gid"`
 	Nid   int      `json:"nid"`
 	Roles []string `json:"roles"`
@@ -24,7 +25,7 @@ type Cmd struct {
 	Data  string   `json:"data"`
 }
 
-//Builds a cmd from a map.
+//NewMapCmd builds a cmd from a map.
 func NewMapCmd(data map[string]interface{}) *Cmd {
 	stdin, ok := data["data"]
 	if !ok {
@@ -33,7 +34,7 @@ func NewMapCmd(data map[string]interface{}) *Cmd {
 	cmd := &Cmd{
 		Gid:  data["gid"].(int),
 		Nid:  data["nid"].(int),
-		Id:   data["id"].(string),
+		ID:   data["id"].(string),
 		Name: data["name"].(string),
 		Data: stdin.(string),
 		Args: NewMapArgs(data["args"].(map[string]interface{})),
@@ -42,7 +43,7 @@ func NewMapCmd(data map[string]interface{}) *Cmd {
 	return cmd
 }
 
-//loads cmd from json string.
+//LoadCmd loads cmd from json string.
 func LoadCmd(str []byte) (*Cmd, error) {
 	cmd := new(Cmd)
 	err := json.Unmarshal(str, cmd)
@@ -56,16 +57,27 @@ func LoadCmd(str []byte) (*Cmd, error) {
 	return cmd, err
 }
 
+//String represents cmd as a string
 func (cmd *Cmd) String() string {
-	return fmt.Sprintf("(%s# %s %s)", cmd.Id, cmd.Name, cmd.Args.GetString("name"))
+	return fmt.Sprintf("(%s# %s %s)", cmd.ID, cmd.Name, cmd.Args.GetString("name"))
 }
 
+//MeterHandler represents a callback type
 type MeterHandler func(cmd *Cmd, p *process.Process)
+
+//StatsdMeterHandler represents a callback type
 type StatsdMeterHandler func(statsd *stats.Statsd, cmd *Cmd, p *process.Process)
+
+//MessageHandler represents a callback type
 type MessageHandler func(msg *Message)
+
+//ResultHandler represents a callback type
 type ResultHandler func(result *JobResult)
+
+//StatsFlushHandler represents a callback type
 type StatsFlushHandler func(stats *stats.Stats)
 
+//PM is the main process manager.
 type PM struct {
 	mid       uint32
 	midfile   string
@@ -80,9 +92,10 @@ type PM struct {
 	msgHandlers         []MessageHandler
 	resultHandlers      []ResultHandler
 	statsFlushHandlers  []StatsFlushHandler
-	queueMgr            *CmdQueueManager
+	queueMgr            *cmdQueueManager
 }
 
+//NewPM creates a new PM
 func NewPM(midfile string, maxJobs int) *PM {
 	pm := &PM{
 		cmds:      make(chan *Cmd),
@@ -98,7 +111,7 @@ func NewPM(midfile string, maxJobs int) *PM {
 		msgHandlers:         make([]MessageHandler, 0, 3),
 		resultHandlers:      make([]ResultHandler, 0, 3),
 		statsFlushHandlers:  make([]StatsFlushHandler, 0, 3),
-		queueMgr:            NewCmdQueueManager(),
+		queueMgr:            newCmdQueueManager(),
 	}
 	return pm
 }
@@ -121,12 +134,13 @@ func saveMid(midfile string, mid uint32) {
 	ioutil.WriteFile(midfile, []byte(fmt.Sprintf("%d", mid)), 0644)
 }
 
+//RunCmd runs and manage command
 func (pm *PM) RunCmd(cmd *Cmd) {
 	pm.cmds <- cmd
 }
 
-/**
-Same as RunCmd put will queue the command for later execution when there are no
+/*
+RunCmdQueued Same as RunCmd put will queue the command for later execution when there are no
 other commands runs on the same queue.
 
 The queue name is retrieved from cmd.Args[queue]
@@ -138,23 +152,28 @@ func (pm *PM) RunCmdQueued(cmd *Cmd) {
 func (pm *PM) getNextMsgID() uint32 {
 	pm.midMux.Lock()
 	defer pm.midMux.Unlock()
-	pm.mid += 1
+	pm.mid++
 	saveMid(pm.midfile, pm.mid)
 	return pm.mid
 }
 
+//AddMessageHandler adds handlers for messages that are captured from sub processes. Logger can use this to
+//process messages
 func (pm *PM) AddMessageHandler(handler MessageHandler) {
 	pm.msgHandlers = append(pm.msgHandlers, handler)
 }
 
+//AddResultHandler adds a handler that receives job results.
 func (pm *PM) AddResultHandler(handler ResultHandler) {
 	pm.resultHandlers = append(pm.resultHandlers, handler)
 }
 
+//AddStatsFlushHandler adds handler to stats flush.
 func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
+//Run starts the process manager.
 func (pm *PM) Run() {
 	//process and start all commands according to args.
 	go func() {
@@ -181,21 +200,21 @@ func (pm *PM) Run() {
 			if process == nil {
 				log.Println("Unknow command", cmd.Name)
 				errResult := NewBasicJobResult(cmd)
-				errResult.State = S_UNKNOWN_CMD
+				errResult.State = StateUnknownCmd
 				pm.resultCallback(errResult)
 				continue
 			}
 
-			_, exists := pm.processes[cmd.Id]
+			_, exists := pm.processes[cmd.ID]
 			if exists {
 				errResult := NewBasicJobResult(cmd)
-				errResult.State = S_DUPILCATE_ID
+				errResult.State = StateDuplicateID
 				errResult.Data = "A job exists with the same ID"
 				pm.resultCallback(errResult)
 				continue
 			}
 
-			pm.processes[cmd.Id] = process
+			pm.processes[cmd.ID] = process
 
 			statsInterval := cmd.Args.GetInt("stats_interval")
 
@@ -208,7 +227,7 @@ func (pm *PM) Run() {
 				pm.statsFlushCallback)
 
 			statsd.Run()
-			pm.statsdes[cmd.Id] = statsd
+			pm.statsdes[cmd.ID] = statsd
 
 			// A process must signal it's termination (that it's not going
 			// to restart) for the process manager to clean up it's reference
@@ -217,8 +236,8 @@ func (pm *PM) Run() {
 				<-signal
 				close(signal)
 				statsd.Stop()
-				delete(pm.processes, cmd.Id)
-				delete(pm.statsdes, cmd.Id)
+				delete(pm.processes, cmd.ID)
+				delete(pm.statsdes, cmd.ID)
 
 				//tell the queue that this command has finished so it prepares a
 				//new command to execute
@@ -239,25 +258,28 @@ func (pm *PM) Run() {
 	}()
 }
 
+//Processes returs a list of running processes
 func (pm *PM) Processes() map[string]Process {
 	return pm.processes
 }
 
+//Killall kills all running processes.
 func (pm *PM) Killall() {
 	for _, v := range pm.processes {
 		go v.Kill()
 	}
 }
 
-func (pm *PM) Kill(cmdId string) {
-	v, o := pm.processes[cmdId]
+//Kill kills a process by the cmd ID
+func (pm *PM) Kill(cmdID string) {
+	v, o := pm.processes[cmdID]
 	if o {
 		v.Kill()
 	}
 }
 
 func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
-	statsd, ok := pm.statsdes[cmd.Id]
+	statsd, ok := pm.statsdes[cmd.ID]
 	if !ok {
 		return
 	}
@@ -276,7 +298,7 @@ func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
 }
 
 func (pm *PM) handlStatsdMsgs(msg *Message) {
-	statsd, ok := pm.statsdes[msg.Cmd.Id]
+	statsd, ok := pm.statsdes[msg.Cmd.ID]
 	if !ok {
 		// there is no statsd configured for this process!! we shouldn't
 		// be here but just in case
@@ -286,7 +308,7 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
 	statsd.Feed(strings.Trim(msg.Message, " "))
 }
 func (pm *PM) msgCallback(msg *Message) {
-	if msg.Level == L_STATSD {
+	if msg.Level == LevelStatsd {
 		pm.handlStatsdMsgs(msg)
 	}
 
@@ -298,7 +320,7 @@ func (pm *PM) msgCallback(msg *Message) {
 	//stamp msg.
 	msg.Epoch = time.Now().UnixNano()
 	//add ID
-	msg.Id = pm.getNextMsgID()
+	msg.ID = pm.getNextMsgID()
 	for _, handler := range pm.msgHandlers {
 		handler(msg)
 	}

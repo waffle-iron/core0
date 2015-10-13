@@ -7,25 +7,25 @@ import (
 )
 
 const (
-	CmdGetCpuInfo = "get_cpu_info"
+	cmdGetCPUInfo = "get_cpu_info"
 )
 
 func init() {
-	pm.CMD_MAP[CmdGetCpuInfo] = InternalProcessFactory(getCPUInfo)
+	pm.CmdMap[cmdGetCPUInfo] = InternalProcessFactory(getCPUInfo)
 }
 
 func getCPUInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	result := pm.NewBasicJobResult(cmd)
-	result.Level = pm.L_RESULT_JSON
+	result.Level = pm.LevelResultJSON
 
 	info, err := cpu.CPUInfo()
 
 	if err != nil {
-		result.State = pm.S_ERROR
+		result.State = pm.StateError
 		m, _ := json.Marshal(err)
 		result.Data = string(m)
 	} else {
-		result.State = pm.S_SUCCESS
+		result.State = pm.StateSuccess
 		m, _ := json.Marshal(info)
 
 		result.Data = string(m)
