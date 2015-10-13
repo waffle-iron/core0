@@ -183,7 +183,7 @@ func (buffer *timerBuffer) append(value string) {
 	if err != nil {
 		return
 	}
-	buffer.count += 1
+	buffer.count++
 	buffer.sum += num
 }
 
@@ -196,7 +196,7 @@ func (buffer *timerBuffer) value() float64 {
 
 	if buffer.count > 0 {
 		return buffer.sum / buffer.count
-	} else {
-		return 0
 	}
+
+	return 0
 }
