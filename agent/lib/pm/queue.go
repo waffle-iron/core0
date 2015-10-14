@@ -101,20 +101,20 @@ func (mgr *cmdQueueManager) producerLoop() {
 	}
 }
 
-func (qm *cmdQueueManager) Push(cmd *Cmd) {
-	qm.consumer <- cmd
+func (mgr *cmdQueueManager) Push(cmd *Cmd) {
+	mgr.consumer <- cmd
 }
 
-func (qm *cmdQueueManager) Notify(cmd *Cmd) {
+func (mgr *cmdQueueManager) Notify(cmd *Cmd) {
 	queueName := cmd.Args.GetString("queue")
 	if queueName == "" {
 		//nothing to do
 		return
 	}
 
-	qm.signal <- queueName
+	mgr.signal <- queueName
 }
 
-func (qm *cmdQueueManager) Producer() <-chan *Cmd {
-	return qm.producer
+func (mgr *cmdQueueManager) Producer() <-chan *Cmd {
+	return mgr.producer
 }

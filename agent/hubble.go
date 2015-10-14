@@ -23,6 +23,134 @@ const (
 	cmdListTunnels = "hubble_list_tunnels"
 )
 
+type hubbleFunc struct {
+	name   string
+	agents map[string]hubble.Agent
+}
+
+type tunnelData struct {
+	Local   uint16 `json:"local"`
+	Gateway string `json:"gateway"`
+	IP      net.IP `json:"ip"`
+	Remote  uint16 `json:"remote"`
+	Tag     string `json:"controller,omitempty"`
+}
+
+func (fnc *hubbleFunc) openTunnle(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+	result := pm.NewBasicJobResult(cmd)
+	result.State = pm.StateError
+
+	var tunnelData tunnelData
+	err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
+	if err != nil {
+		result.Data = fmt.Sprintf("%v", err)
+
+		return result
+	}
+
+	if tunnelData.Gateway == fnc.name {
+		result.Data = "Can't open a tunnel to fnc"
+		return result
+	}
+
+	tag := cmd.Args.GetTag()
+	if tag == "" {
+		//this can only happing if the open tunnel command is coming from
+		//a startup config. So only support setting up tag from config and
+		//can't be set from normal commands for security.
+		tag = tunnelData.Tag
+	}
+
+	agent, ok := fnc.agents[tag]
+
+	if !ok {
+		result.Data = "Controller is not allowed to request for tunnels"
+		return result
+	}
+
+	tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
+	err = agent.AddTunnel(tunnel)
+
+	if err != nil {
+		result.Data = fmt.Sprintf("%v", err)
+		return result
+	}
+
+	tunnelData.Local = tunnel.Local()
+	data, _ := json.Marshal(tunnelData)
+
+	result.Data = string(data)
+	result.Level = pm.LevelResultJSON
+	result.State = pm.StateSuccess
+
+	return result
+}
+
+func (fnc *hubbleFunc) closeTunnel(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+	result := pm.NewBasicJobResult(cmd)
+	result.State = pm.StateError
+
+	var tunnelData tunnelData
+	err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
+	if err != nil {
+		result.Data = fmt.Sprintf("%v", err)
+
+		return result
+	}
+
+	tag := cmd.Args.GetTag()
+	if tag == "" {
+		//this can only happing if the open tunnel command is coming from
+		//a startup config. So only support setting up tag from config and
+		//can't be set from normal commands for security.
+		tag = tunnelData.Tag
+	}
+	agent, ok := fnc.agents[tag]
+
+	if !ok {
+		result.Data = "Controller is not allowed to request for tunnels"
+		return result
+	}
+
+	tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
+	agent.RemoveTunnel(tunnel)
+
+	result.State = pm.StateSuccess
+
+	return result
+}
+
+func (fnc *hubbleFunc) listTunnels(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+	result := pm.NewBasicJobResult(cmd)
+	result.State = pm.StateError
+
+	tag := cmd.Args.GetTag()
+	agent, ok := fnc.agents[tag]
+
+	if !ok {
+		result.Data = "Controller is not allowed to request for tunnels"
+		return result
+	}
+
+	tunnels := agent.Tunnels()
+	tunnelsInfos := make([]tunnelData, 0, len(tunnels))
+	for _, t := range tunnels {
+		tunnelsInfos = append(tunnelsInfos, tunnelData{
+			Local:   t.Local(),
+			IP:      t.IP(),
+			Gateway: t.Gateway(),
+			Remote:  t.Remote(),
+		})
+	}
+
+	data, _ := json.Marshal(tunnelsInfos)
+	result.Data = string(data)
+	result.Level = pm.LevelResultJSON
+	result.State = pm.StateSuccess
+
+	return result
+}
+
 /*
 RegisterHubbleFunctions Registers all the handlers for hubble commands this include
 - hubble_open_tunnel
@@ -80,130 +208,12 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		agent.Start(onExit)
 	}
 
-	type TunnelData struct {
-		Local   uint16 `json:"local"`
-		Gateway string `json:"gateway"`
-		IP      net.IP `json:"ip"`
-		Remote  uint16 `json:"remote"`
-		Tag     string `json:"controller,omitempty"`
+	fncs := &hubbleFunc{
+		name:   localName,
+		agents: agents,
 	}
 
-	openTunnle := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.StateError
-
-		var tunnelData TunnelData
-		err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
-		if err != nil {
-			result.Data = fmt.Sprintf("%v", err)
-
-			return result
-		}
-
-		if tunnelData.Gateway == localName {
-			result.Data = "Can't open a tunnel to self"
-			return result
-		}
-
-		tag := cmd.Args.GetTag()
-		if tag == "" {
-			//this can only happing if the open tunnel command is coming from
-			//a startup config. So only support setting up tag from config and
-			//can't be set from normal commands for security.
-			tag = tunnelData.Tag
-		}
-
-		agent, ok := agents[tag]
-
-		if !ok {
-			result.Data = "Controller is not allowed to request for tunnels"
-			return result
-		}
-
-		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
-		err = agent.AddTunnel(tunnel)
-
-		if err != nil {
-			result.Data = fmt.Sprintf("%v", err)
-			return result
-		}
-
-		tunnelData.Local = tunnel.Local()
-		data, _ := json.Marshal(tunnelData)
-
-		result.Data = string(data)
-		result.Level = pm.LevelResultJSON
-		result.State = pm.StateSuccess
-
-		return result
-	}
-
-	closeTunnel := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.StateError
-
-		var tunnelData TunnelData
-		err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
-		if err != nil {
-			result.Data = fmt.Sprintf("%v", err)
-
-			return result
-		}
-
-		tag := cmd.Args.GetTag()
-		if tag == "" {
-			//this can only happing if the open tunnel command is coming from
-			//a startup config. So only support setting up tag from config and
-			//can't be set from normal commands for security.
-			tag = tunnelData.Tag
-		}
-		agent, ok := agents[tag]
-
-		if !ok {
-			result.Data = "Controller is not allowed to request for tunnels"
-			return result
-		}
-
-		tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
-		agent.RemoveTunnel(tunnel)
-
-		result.State = pm.StateSuccess
-
-		return result
-	}
-
-	listTunnels := func(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-		result := pm.NewBasicJobResult(cmd)
-		result.State = pm.StateError
-
-		tag := cmd.Args.GetTag()
-		agent, ok := agents[tag]
-
-		if !ok {
-			result.Data = "Controller is not allowed to request for tunnels"
-			return result
-		}
-
-		tunnels := agent.Tunnels()
-		tunnelsInfos := make([]TunnelData, 0, len(tunnels))
-		for _, t := range tunnels {
-			tunnelsInfos = append(tunnelsInfos, TunnelData{
-				Local:   t.Local(),
-				IP:      t.IP(),
-				Gateway: t.Gateway(),
-				Remote:  t.Remote(),
-			})
-		}
-
-		data, _ := json.Marshal(tunnelsInfos)
-		result.Data = string(data)
-		result.Level = pm.LevelResultJSON
-		result.State = pm.StateSuccess
-
-		return result
-	}
-
-	pm.CmdMap[cmdOpenTunnel] = builtin.InternalProcessFactory(openTunnle)
-	pm.CmdMap[cmdCLoseTunnel] = builtin.InternalProcessFactory(closeTunnel)
-	pm.CmdMap[cmdListTunnels] = builtin.InternalProcessFactory(listTunnels)
+	pm.CmdMap[cmdOpenTunnel] = builtin.InternalProcessFactory(fncs.openTunnle)
+	pm.CmdMap[cmdCLoseTunnel] = builtin.InternalProcessFactory(fncs.closeTunnel)
+	pm.CmdMap[cmdListTunnels] = builtin.InternalProcessFactory(fncs.listTunnels)
 }
