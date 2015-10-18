@@ -102,14 +102,6 @@ controllers = [] # accept forwarding commands and connections from all controlle
         domain = "agent"
         name = "syncthing"
 
-    [startup.controller_syncthing_tunnel]
-    #open a tunnel from this agent to the controller syncthing instance.
-    #local port 33000
-    #remote port 22000
-    #this is used in case the controller is behind nat and syncthing can't reach it.
-    name = "hubble_open_tunnel"
-    data = '{"local": 33000, "gateway": "controller", "remote": 22000, "ip": "127.0.0.1", "controller": "main"}'
-
     [startup.jumpscript]
     name = "js_daemon"
         [startup.jumpscript.args]
