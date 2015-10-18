@@ -106,9 +106,9 @@ class WrapperThread(Process):
             self.con.close()
 
 
-class CleanerThread(threading.Thread):
-    def __init__(self, path):
-        super(CleanerThread, self).__init__()
+class CleanerThread(Process):
+    def __init__(self, path, **kwargs):
+        super(CleanerThread, self).__init__(**kwargs)
         self.path = path
 
     def run(self):
@@ -149,18 +149,19 @@ def daemon(data):
     except Exception, e:
         logging.error('Could not start listening: %s' % e)
 
-    def exit(n, f):
-        logging.info('Stopping daemon')
-        listner.close()
-        sys.exit(1)
-
     # make sure we create cache folder.
     j.system.fs.createDir(SCRIPTS_CACHE_DIR)
 
     # starting clean up thread.
-    cleaner = CleanerThread(SCRIPTS_CACHE_DIR)
+    cleaner = CleanerThread(SCRIPTS_CACHE_DIR, name='Cleaner Thread')
     logging.info('Starting the clean up thread')
     cleaner.start()
+
+    def exit(n, f):
+        logging.info('Stopping daemon')
+        cleaner.terminate()
+        listner.close()
+        sys.exit(1)
 
     for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
         signal.signal(s, exit)

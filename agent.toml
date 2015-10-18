@@ -64,7 +64,6 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../:/opt/jumpscale7/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
-        JUMPSCRIPTS_LEGACY_HOME = "/opt/jumpscale7/apps/agent2/legacy/"
 
     [extensions.bash]
     binary = "bash"
