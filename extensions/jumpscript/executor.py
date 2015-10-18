@@ -158,12 +158,12 @@ def daemon(data):
     cleaner.start()
 
     def exit(n, f):
-        logging.info('Stopping daemon')
+        logging.info('Stopping daemon %s' % n)
         cleaner.terminate()
         listner.close()
         sys.exit(1)
 
-    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
+    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT, signal.SIGINT):
         signal.signal(s, exit)
 
     while True:
