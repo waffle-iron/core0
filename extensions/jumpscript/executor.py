@@ -45,7 +45,7 @@ class WrapperThread(Process):
         path = os.path.join(jspath, agent_name, data['domain'], '%s.py' % data['name'])
 
         if not j.system.fs.exists(path):
-            raise ValueError('Jumpscript %s/%s does not exist %s' % (data['domain'], data['name'], path))
+            raise ValueError('Jumpscript %s/%s does not exist' % (data['domain'], data['name']))
 
         return self.run_path(path, data['data'])
 

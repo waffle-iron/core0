@@ -16,8 +16,15 @@ def list_shares(data):
 
     results = []
     for folder in folders:
-        if folder['path'] in INTERNAL:
+        skip = False
+        for internal_path in INTERNAL:
+            if folder['path'].startswith(internal_path):
+                skip = True
+                break
+
+        if skip:
             continue
+
         results.append(folder)
 
     return results
