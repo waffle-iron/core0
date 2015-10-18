@@ -12,6 +12,9 @@ def validate_data(data):
 
 
 def sync_folder(data):
+    """
+    This action is only (and should be only) used by the agent controller to setup the jumpscripts synching
+    """
     validate_data(data)
 
     syncthing = api.Syncthing(sync.SYNCTHING_URL)
@@ -36,6 +39,12 @@ def sync_folder(data):
 
         config['devices'].append(device)
         dirty = True
+    else:
+        device = devices[0]
+        # Compare address, in case device changed it's address
+        if device['addresses'][0] != remote_device_address:
+            device['addresses'] = [remote_device_address]
+            dirty = True
 
     # add device to shared folder.
     folders = filter(lambda f: f['id'] == data['folder_id'], config['folders'])
