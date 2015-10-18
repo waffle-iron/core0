@@ -41,7 +41,11 @@ class WrapperThread(Process):
 
     def run_with_domain_name(self, data):
         jspath = os.environ.get('JUMPSCRIPTS_HOME')
-        path = os.path.join(jspath, data['domain'], '%s.py' % data['name'])
+        agent_name = data['controller-name']
+        path = os.path.join(jspath, agent_name, data['domain'], '%s.py' % data['name'])
+
+        if not j.system.fs.exists(path):
+            raise ValueError('Jumpscript %s/%s does not exist %s' % (data['domain'], data['name'], path))
 
         return self.run_path(path, data['data'])
 

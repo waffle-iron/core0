@@ -13,8 +13,10 @@ def runner(data):
     domain, name = sys.argv[1:]
 
     socket = os.environ['SOCKET']
+    controller_name = os.environ['AGENT_CONTROLLER_NAME']
     con = connection.Client(socket)
     exec_data = {
+        'controller-name': controller_name,
         'data': data,  # script args
         'domain': domain,
         'name': name

@@ -49,7 +49,7 @@ def sync_folder(data):
     # add device to shared folder.
     folders = filter(lambda f: f['id'] == data['folder_id'], config['folders'])
 
-    folder_path = os.path.join(sync.settings['agent-home'], data['path'])
+    folder_path = os.path.join(sync.settings['agent-home'], data['path'], sync.settings['controller-name'])
     if not folders:
         # add folder.
         folder = {
