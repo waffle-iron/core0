@@ -74,7 +74,7 @@ func (args *MapArgs) GetInt(key string) int {
 func (args *MapArgs) GetString(key string) string {
 	s, ok := args.data[key]
 	if ok {
-		return s.(string)
+		return fmt.Sprintf("%v", s)
 	}
 	return ""
 }
