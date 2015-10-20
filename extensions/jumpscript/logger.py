@@ -2,6 +2,7 @@ import io
 import collections
 import os
 from StringIO import StringIO
+from JumpScale.core.logging.LogHandler import LogHandler
 
 LEVEL = collections.namedtuple('LEVEL', 'name level')
 STATS = collections.namedtuple('STATS', 'name op')
@@ -19,7 +20,7 @@ LEGACY_LOG_TRACING_5 = 9
 LEGACY_LOG_MARKER = 10
 
 
-class LogHandler(object):
+class PatchedLogHandler(LogHandler):
     """
     A LogHandler patch that implements agent logging interface.
 
@@ -65,6 +66,7 @@ class LogHandler(object):
     }
 
     def __init__(self, con):
+        super(PatchedLogHandler, self).__init__()
         self._con = con
 
     def log(self, msg, level=LOG_DEBUG, **kwargs):
@@ -76,12 +78,12 @@ class LogHandler(object):
                      The normal logger
         """
 
-        num_level = LogHandler.LOG_UNKNOWN.level
+        num_level = PatchedLogHandler.LOG_UNKNOWN.level
 
         if isinstance(level, LEVEL):
             num_level = level.level
         elif isinstance(level, int):
-            num_level = LogHandler._LMAP.get(level, LogHandler.LOG_UNKNOWN).level
+            num_level = PatchedLogHandler._LMAP.get(level, PatchedLogHandler.LOG_UNKNOWN).level
         else:
             raise ValueError('Unknown log level type')
 
@@ -100,7 +102,7 @@ class LogHandler(object):
         self._con.send((1, buff.getvalue()))
 
     def stats(self, key, value, op=STATS_GAUAGE):
-        self.log('%s:%g|%s' % (key, value, op.op), LogHandler.LOG_STATSD)
+        self.log('%s:%g|%s' % (key, value, op.op), PatchedLogHandler.LOG_STATSD)
 
 
 class StreamHandler(io.RawIOBase):

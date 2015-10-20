@@ -86,7 +86,7 @@ class WrapperThread(Process):
         try:
             data = self.con.recv()
 
-            j.logger = logger.LogHandler(self.con)
+            j.logger = logger.PatchedLogHandler(self.con)
             if 'domain' in data:
                 result = self.run_with_domain_name(data)
             elif 'hash' in data:
