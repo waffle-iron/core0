@@ -194,6 +194,66 @@ func TestPing(t *testing.T) {
 	}
 }
 
+func TestKill(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+
+	args := client.NewDefaultRunArgs()
+	args[client.ArgName] = "sleep"
+	args[client.ArgCmdArguments] = []string{"60"}
+
+	cmd := &client.Command{
+		Gid:  1,
+		Nid:  1,
+		Cmd:  "execute",
+		Args: args,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jobs, err := ref.GetJobs(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(jobs) != 1 {
+		t.Fatal("Invalid number of jobs")
+	}
+
+	job := jobs[0]
+
+	killCmd := &client.Command{
+		Gid:  1,
+		Nid:  1,
+		Cmd:  "kill",
+		Data: fmt.Sprintf("{\"id\": \"%s\"}", ref.ID),
+	}
+
+	killRef, err := clt.Run(killCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	killRes, err := killRef.GetNextResult(5)
+	if err != nil {
+		t.Fatal("Failed to kill job", err)
+	}
+
+	if killRes.State != "SUCCESS" {
+		t.Fatal("Kill job failed with error", killRes.Data)
+	}
+
+	err = job.Wait(5)
+	if err != nil {
+		t.Fatal("Failed while waiting for job", err)
+	}
+
+	if job.State != "KILLED" {
+		t.Fatal("Expected a KILLED status, got", job.State, "instead")
+	}
+}
+
 func TestParallelExecution(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 
