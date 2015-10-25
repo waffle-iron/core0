@@ -48,6 +48,13 @@ const (
 	//LevelResultJob job result message
 	LevelResultJob = 30 // job, json (full result of a job)
 
+	//LevelInternal specify the start of the internal log levels
+	LevelInternal = 100
+
+	//LevelInternalMonitorPid instruct the agent to consider the cpu and mem consumption
+	//of that PID (in the message body)
+	LevelInternalMonitorPid = 101
+
 	//StateSuccess successs exit status
 	StateSuccess = "SUCCESS"
 	//StateError error exist status
@@ -70,11 +77,12 @@ var resultMessageLevels = []int{LevelResultJSON,
 
 //ProcessStats holds process cpu and memory usage
 type ProcessStats struct {
-	Cmd  *Cmd    `json:"cmd"`
-	CPU  float64 `json:"cpu"`
-	RSS  uint64  `json:"rss"`
-	VMS  uint64  `json:"vms"`
-	Swap uint64  `json:"swap"`
+	Cmd   *Cmd    `json:"cmd"`
+	CPU   float64 `json:"cpu"`
+	RSS   uint64  `json:"rss"`
+	VMS   uint64  `json:"vms"`
+	Swap  uint64  `json:"swap"`
+	Debug string  `json:"debug,ommitempty"`
 }
 
 //Process interface
@@ -153,18 +161,20 @@ func (msg *Message) String() string {
 
 //ExtProcess represents an external process
 type ExtProcess struct {
-	cmd     *Cmd
-	ctrl    chan int
-	pid     int
-	runs    int
-	process *process.Process
+	cmd      *Cmd
+	ctrl     chan int
+	pid      int
+	runs     int
+	process  *process.Process
+	children []int
 }
 
 //NewExtProcess creates a new external process from a command
 func NewExtProcess(cmd *Cmd) Process {
 	return &ExtProcess{
-		cmd:  cmd,
-		ctrl: make(chan int),
+		cmd:      cmd,
+		ctrl:     make(chan int),
+		children: make([]int, 0),
 	}
 }
 
@@ -288,7 +298,9 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 			result = msg
 		}
 
-		if msg.Level == LevelStdout {
+		if msg.Level > LevelInternal {
+			ps.processInternalMessage(msg)
+		} else if msg.Level == LevelStdout {
 			stdoutBuffer.PushBack(msg.Message)
 			if stdoutBuffer.Len() > StreamBufferSize {
 				stdoutBuffer.Remove(stdoutBuffer.Front())
@@ -481,6 +493,19 @@ loop:
 	cfg.ResultHandler(jobresult)
 }
 
+func (ps *ExtProcess) processInternalMessage(msg *Message) {
+	if msg.Level == LevelInternalMonitorPid {
+		childPid := 0
+		_, err := fmt.Sscanf(msg.Message, "%d", &childPid)
+		if err != nil {
+			// wrong message format, just ignore.
+			return
+		}
+		log.Println("Tracking external process:", childPid)
+		ps.children = append(ps.children, childPid)
+	}
+}
+
 //Kill stops an external process
 func (ps *ExtProcess) Kill() {
 	defer func() {
@@ -507,6 +532,32 @@ func (ps *ExtProcess) GetStats() *ProcessStats {
 		stats.RSS = mem.RSS
 		stats.VMS = mem.VMS
 		stats.Swap = mem.Swap
+	}
+
+	stats.Debug = fmt.Sprintf("%d", ps.process.Pid)
+
+	for i := 0; i < len(ps.children); i++ {
+		if child, err := process.NewProcess(int32(ps.children[i])); err == nil {
+			childCPU, err := child.CPUPercent(0)
+			if err == nil {
+				stats.CPU += childCPU
+			} else {
+				log.Println(err)
+			}
+
+			childMem, err := child.MemoryInfo()
+			if err == nil {
+				stats.Debug = fmt.Sprintf("%s %d", stats.Debug, ps.children[i])
+				stats.RSS += childMem.RSS
+				stats.Swap += childMem.Swap
+				stats.VMS += childMem.VMS
+			} else {
+				log.Println(err)
+			}
+		} else {
+			//remove the dead process.
+			ps.children = append(ps.children[:i], ps.children[i+1:]...)
+		}
 	}
 
 	return stats

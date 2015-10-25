@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -32,6 +33,11 @@ roles = {roles}
 [controllers]
     [controllers.main]
     url = "http://localhost:1221"
+
+[extensions]
+	[extensions.bash]
+	    binary = "bash"
+	    args = ['-c', 'T=$(mktemp) && cat > $T && chmod +x $T && bash -c $T; EXIT=$?; rm -rf $T; exit $EXIT']
 `
 
 var ControllerCfgTmp = `
@@ -251,6 +257,118 @@ func TestKill(t *testing.T) {
 
 	if job.State != "KILLED" {
 		t.Fatal("Expected a KILLED status, got", job.State, "instead")
+	}
+}
+
+func TestStatsTrackingWithChildren(t *testing.T) {
+	//runs a script that forks, and then the child process
+	//start eating up memory. The main process will print the PID of the
+	//child in the expected format.
+	//Also the main process will wait for the child process to exit. before it
+	//terminates so we have enough time to query the memory multiple times.
+	script := `
+	set -e
+
+	function eatmemory {
+	        echo "Start allocating memory..."
+	        for index in $(seq 10000); do
+	                mem[$index]=$(seq -w -s '' 1000)
+	        done
+	        echo "Memory allocation done..."
+	}
+
+	eatmemory &
+
+	PID=$(jobs -l|awk '{print $2}')
+
+	echo "101::$PID"
+	echo "Waiting for $PID"
+	wait $PID
+	echo "Done"
+
+	exit 0
+	`
+
+	clt := client.New("localhost:6379", "")
+	cmd := &client.Command{
+		Gid:  1,
+		Nid:  1,
+		Cmd:  "bash",
+		Data: script,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jobs, err := ref.GetJobs(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(jobs) != 1 {
+		t.Fatal("Expected one job")
+	}
+
+	job := jobs[0]
+
+	var result struct {
+		VMS int `json:"vms"`
+	}
+
+	wait := make(chan int)
+	go func() {
+		err := job.Wait(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wait <- 1
+	}()
+
+	readings := make([]float64, 0)
+loop:
+	for {
+		statsCmd := &client.Command{
+			Gid:  1,
+			Nid:  1,
+			Cmd:  "get_process_stats",
+			Data: fmt.Sprintf("{\"id\": \"%s\"}", ref.ID),
+		}
+
+		statsRef, err := clt.Run(statsCmd)
+		stats, err := statsRef.GetNextResult(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal([]byte(stats.Data), &result); err != nil {
+			t.Fatal(err)
+		}
+
+		readings = append(readings, float64(result.VMS))
+
+		select {
+		case <-wait:
+			break loop
+		case <-time.After(time.Second):
+		}
+	}
+
+	//check readings growth.
+	growth := 0.0
+	for i := 0; i < len(readings)-1; i++ {
+		diff := readings[i+1] - readings[i]
+		growth += diff
+	}
+
+	avg := growth / float64(len(readings))
+	log.Println("Average memory growth is", avg)
+	if avg <= 0 {
+		t.Fatal("Memory doesn't grow as expected")
+	}
+
+	err = job.Wait(0)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
