@@ -1,5 +1,4 @@
 import os
-import threading
 import imp
 import sys
 import logging
@@ -8,7 +7,7 @@ import utils
 import json
 import requests
 import time
-from multiprocessing import Process, connection
+from multiprocessing import Process, connection, Pool, reduction
 import traceback
 
 # importing jumpscale
@@ -23,11 +22,13 @@ SCRIPTS_CACHE_DIR = '/tmp/jscache/'
 SCRIPTS_URL_PATH = '{gid}/{nid}/script'
 SCRIPTS_DELETE_OLDER_THAN = 86400  # A day
 
+POOL_SIZE = 10
+MAX_JOBS_PER_WORKER = 100
 
-class WrapperThread(Process):
+
+class WrapperThread(object):
     def __init__(self, con):
         # remember this is running inside a fork now. So monkey patching only affecting this process
-        super(WrapperThread, self).__init__()
         self.con = con
         sys.stdout = logger.StreamHandler(con, 1)
         sys.stderr = logger.StreamHandler(con, 2)
@@ -130,6 +131,12 @@ class CleanerThread(Process):
                 time.sleep(3600)  # run every hour.
 
 
+def poolWork(reduced_con):
+    func, args = reduced_con
+    con = func(*args)
+    WrapperThread(con).run()
+
+
 def daemon(data):
     assert 'SOCKET' in os.environ, 'SOCKET env var is not set'
     assert 'JUMPSCRIPTS_HOME' in os.environ, 'JUMPSCRIPTS_HOME env var is not set'
@@ -158,6 +165,8 @@ def daemon(data):
     logging.info('Starting the clean up thread')
     cleaner.start()
 
+    pool = Pool(POOL_SIZE, maxtasksperchild=MAX_JOBS_PER_WORKER)
+
     def exit(n, f):
         logging.info('Stopping daemon %s' % n)
         cleaner.terminate()
@@ -169,13 +178,9 @@ def daemon(data):
 
     while True:
         try:
-            c = listner.accept()
-            p = WrapperThread(c)
-            p.start()
-            # We need this (p.join) to avoid having zombi processes
-            # But we wait in a thread for the subporcess to exit to avoid
-            # blokcing the main loop.
-            threading.Thread(target=p.join).start()
+            con = listner.accept()
+            reduced = reduction.reduce_connection(con)
+            pool.apply_async(poolWork, args=(reduced,))
 
         except Exception, e:
             logging.error(e)
