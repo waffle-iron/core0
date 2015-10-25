@@ -84,6 +84,7 @@ class WrapperThread(Process):
 
     def run(self):
         try:
+            self.con.send((1, '101::%d\n' % os.getpid()))
             data = self.con.recv()
 
             j.logger = logger.PatchedLogHandler(self.con)
