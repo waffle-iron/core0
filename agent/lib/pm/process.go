@@ -514,6 +514,22 @@ func (ps *ExtProcess) Kill() {
 		}
 	}()
 
+	for _, child := range ps.children {
+		//kill grand-child process.
+		log.Println("Killing grandchild process", child)
+		process, err := os.FindProcess(child)
+		if err != nil {
+			//child is probably gone
+			log.Println("Can't find grandchild proces", child, err)
+			continue
+		}
+
+		err = process.Kill()
+		if err != nil {
+			log.Println("Failed to kill child process", err)
+		}
+	}
+	//signal child process to terminate
 	ps.ctrl <- 1
 }
 
