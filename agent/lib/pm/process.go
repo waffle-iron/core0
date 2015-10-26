@@ -564,6 +564,7 @@ func (ps *ExtProcess) GetStats() *ProcessStats {
 		stats.CPU += childCPU
 		childMem, err := child.MemoryInfo()
 		if err == nil {
+			stats.Debug = fmt.Sprintf("%s %d", stats.Debug, child.Pid)
 			stats.RSS += childMem.RSS
 			stats.Swap += childMem.Swap
 			stats.VMS += childMem.VMS
