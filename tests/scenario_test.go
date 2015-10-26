@@ -325,7 +325,7 @@ func TestStatsTrackingWithChildren(t *testing.T) {
 		wait <- 1
 	}()
 
-	readings := make([]float64, 0)
+	var readings = make([]float64, 0)
 loop:
 	for {
 		statsCmd := &client.Command{

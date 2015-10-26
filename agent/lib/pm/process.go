@@ -166,7 +166,7 @@ type ExtProcess struct {
 	pid      int
 	runs     int
 	process  *process.Process
-	children []int
+	children []*process.Process
 }
 
 //NewExtProcess creates a new external process from a command
@@ -174,7 +174,7 @@ func NewExtProcess(cmd *Cmd) Process {
 	return &ExtProcess{
 		cmd:      cmd,
 		ctrl:     make(chan int),
-		children: make([]int, 0),
+		children: make([]*process.Process, 0),
 	}
 }
 
@@ -502,7 +502,11 @@ func (ps *ExtProcess) processInternalMessage(msg *Message) {
 			return
 		}
 		log.Println("Tracking external process:", childPid)
-		ps.children = append(ps.children, childPid)
+		child, err := process.NewProcess(int32(childPid))
+		if err != nil {
+			log.Println(err)
+		}
+		ps.children = append(ps.children, child)
 	}
 }
 
@@ -516,15 +520,9 @@ func (ps *ExtProcess) Kill() {
 
 	for _, child := range ps.children {
 		//kill grand-child process.
-		log.Println("Killing grandchild process", child)
-		process, err := os.FindProcess(child)
-		if err != nil {
-			//child is probably gone
-			log.Println("Can't find grandchild proces", child, err)
-			continue
-		}
+		log.Println("Killing grandchild process", child.Pid)
 
-		err = process.Kill()
+		err := child.Kill()
 		if err != nil {
 			log.Println("Failed to kill child process", err)
 		}
@@ -553,26 +551,24 @@ func (ps *ExtProcess) GetStats() *ProcessStats {
 	stats.Debug = fmt.Sprintf("%d", ps.process.Pid)
 
 	for i := 0; i < len(ps.children); i++ {
-		if child, err := process.NewProcess(int32(ps.children[i])); err == nil {
-			childCPU, err := child.CPUPercent(0)
-			if err == nil {
-				stats.CPU += childCPU
-			} else {
-				log.Println(err)
-			}
+		child := ps.children[i]
 
-			childMem, err := child.MemoryInfo()
-			if err == nil {
-				stats.Debug = fmt.Sprintf("%s %d", stats.Debug, ps.children[i])
-				stats.RSS += childMem.RSS
-				stats.Swap += childMem.Swap
-				stats.VMS += childMem.VMS
-			} else {
-				log.Println(err)
-			}
-		} else {
+		childCPU, err := child.CPUPercent(0)
+		if err != nil {
+			log.Println(err)
 			//remove the dead process.
 			ps.children = append(ps.children[:i], ps.children[i+1:]...)
+			continue
+		}
+
+		stats.CPU += childCPU
+		childMem, err := child.MemoryInfo()
+		if err == nil {
+			stats.RSS += childMem.RSS
+			stats.Swap += childMem.Swap
+			stats.VMS += childMem.VMS
+		} else {
+			log.Println(err)
 		}
 	}
 
