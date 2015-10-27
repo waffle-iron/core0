@@ -369,6 +369,7 @@ loop:
 		case <-timeout:
 			//process timed out.
 			log.Println("process timed out")
+			ps.killChildren()
 			cmd.Process.Kill()
 			timedout = true
 		case s := <-ps.ctrl:
@@ -510,14 +511,7 @@ func (ps *ExtProcess) processInternalMessage(msg *Message) {
 	}
 }
 
-//Kill stops an external process
-func (ps *ExtProcess) Kill() {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("Killing job that is already gone", ps.cmd)
-		}
-	}()
-
+func (ps *ExtProcess) killChildren() {
 	for _, child := range ps.children {
 		//kill grand-child process.
 		log.Println("Killing grandchild process", child.Pid)
@@ -527,6 +521,17 @@ func (ps *ExtProcess) Kill() {
 			log.Println("Failed to kill child process", err)
 		}
 	}
+}
+
+//Kill stops an external process
+func (ps *ExtProcess) Kill() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Killing job that is already gone", ps.cmd)
+		}
+	}()
+
+	ps.killChildren()
 	//signal child process to terminate
 	ps.ctrl <- 1
 }
