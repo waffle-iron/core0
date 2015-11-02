@@ -23,6 +23,7 @@ type Cmd struct {
 	Name  string   `json:"cmd"`
 	Args  *MapArgs `json:"args"`
 	Data  string   `json:"data"`
+	Tags  string   `json:"tags"`
 }
 
 //NewMapCmd builds a cmd from a map.
@@ -72,7 +73,7 @@ type StatsdMeterHandler func(statsd *stats.Statsd, cmd *Cmd, p *process.Process)
 type MessageHandler func(msg *Message)
 
 //ResultHandler represents a callback type
-type ResultHandler func(result *JobResult)
+type ResultHandler func(cmd *Cmd, result *JobResult)
 
 //StatsFlushHandler represents a callback type
 type StatsFlushHandler func(stats *stats.Stats)
@@ -201,7 +202,7 @@ func (pm *PM) Run() {
 				log.Println("Unknow command", cmd.Name)
 				errResult := NewBasicJobResult(cmd)
 				errResult.State = StateUnknownCmd
-				pm.resultCallback(errResult)
+				pm.resultCallback(cmd, errResult)
 				continue
 			}
 
@@ -210,7 +211,7 @@ func (pm *PM) Run() {
 				errResult := NewBasicJobResult(cmd)
 				errResult.State = StateDuplicateID
 				errResult.Data = "A job exists with the same ID"
-				pm.resultCallback(errResult)
+				pm.resultCallback(cmd, errResult)
 				continue
 			}
 
@@ -326,9 +327,11 @@ func (pm *PM) msgCallback(msg *Message) {
 	}
 }
 
-func (pm *PM) resultCallback(result *JobResult) {
+func (pm *PM) resultCallback(cmd *Cmd, result *JobResult) {
+	result.Tags = cmd.Tags
+
 	for _, handler := range pm.resultHandlers {
-		handler(result)
+		handler(cmd, result)
 	}
 }
 

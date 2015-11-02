@@ -85,7 +85,7 @@ func main() {
 	mgr.AddStatsFlushHandler(statsBuffer.Handler)
 
 	//handle process results. Forwards the result to the correct controller.
-	mgr.AddResultHandler(func(result *pm.JobResult) {
+	mgr.AddResultHandler(func(cmd *pm.Cmd, result *pm.JobResult) {
 		//send result to AC.
 		//NOTE: we always force the real gid and nid on the result.
 		result.Gid = config.Main.Gid

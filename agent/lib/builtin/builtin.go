@@ -54,7 +54,7 @@ func (ps *InternalProcess) Run(cfg pm.RunCfg) {
 		result.StartTime = int64(starttime)
 		endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
 		result.Time = int64(endtime - starttime)
-		cfg.ResultHandler(result)
+		cfg.ResultHandler(ps.cmd, result)
 	}
 }
 

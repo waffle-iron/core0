@@ -67,6 +67,7 @@ func newExtensionProcess(exe string, workdir string, cmdargs []string, env []str
 			Nid:  cmd.Nid,
 			Name: cmdExecute,
 			Data: cmd.Data,
+			Tags: cmd.Tags,
 			Args: args,
 		}
 
@@ -95,14 +96,14 @@ func (ps *extensionProcess) Run(cfg RunCfg) {
 			msg.Cmd = ps.cmd
 			cfg.MessageHandler(msg)
 		},
-		ResultHandler: func(result *JobResult) {
+		ResultHandler: func(cmd *Cmd, result *JobResult) {
 			result.Args = ps.cmd.Args
 			result.Cmd = ps.cmd.Name
 			result.ID = ps.cmd.ID
 			result.Gid = ps.cmd.Gid
 			result.Nid = ps.cmd.Nid
 
-			cfg.ResultHandler(result)
+			cfg.ResultHandler(ps.cmd, result)
 		},
 		Signal: cfg.Signal,
 	}

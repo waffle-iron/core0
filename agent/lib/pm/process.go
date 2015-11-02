@@ -117,6 +117,7 @@ type JobResult struct {
 	State     string   `json:"state"`
 	StartTime int64    `json:"starttime"`
 	Time      int64    `json:"time"`
+	Tags      string   `json:"tags"`
 }
 
 //NewBasicJobResult creates a new job result from command
@@ -278,7 +279,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 		jobresult := NewBasicJobResult(ps.cmd)
 		jobresult.State = StateError
 		jobresult.Data = fmt.Sprintf("%v", err)
-		cfg.ResultHandler(jobresult)
+		cfg.ResultHandler(ps.cmd, jobresult)
 		return
 	}
 
@@ -449,7 +450,7 @@ loop:
 						jobresult.State = StateKilled
 						jobresult.StartTime = int64(starttime)
 						jobresult.Time = int64(endtime - starttime)
-						cfg.ResultHandler(jobresult)
+						cfg.ResultHandler(ps.cmd, jobresult)
 					}
 				}
 			}()
@@ -491,7 +492,7 @@ loop:
 
 	jobresult.Critical = critical
 	//delegating the result.
-	cfg.ResultHandler(jobresult)
+	cfg.ResultHandler(ps.cmd, jobresult)
 }
 
 func (ps *ExtProcess) processInternalMessage(msg *Message) {
