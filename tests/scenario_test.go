@@ -407,9 +407,9 @@ func TestParallelExecution(t *testing.T) {
 		}
 
 		if st == 0 {
-			st = result.Starttime
+			st = result.StartTime
 		} else {
-			if result.Starttime-st > 1000 {
+			if result.StartTime-st > 1000 {
 				t.Fatal("Sleep jobs startime are not overlapping for job", i)
 			}
 		}
@@ -457,12 +457,12 @@ func TestSerialExecution(t *testing.T) {
 		}
 
 		if st != 0 {
-			if result.Starttime-st < 1000 {
+			if result.StartTime-st < 1000 {
 				t.Fatal("Sleep jobs startime are overlapping for job", i)
 			}
 		}
 
-		st = result.Starttime
+		st = result.StartTime
 	}
 }
 
