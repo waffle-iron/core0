@@ -542,6 +542,12 @@ func (ps *ExtProcess) GetStats() *ProcessStats {
 	stats := new(ProcessStats)
 	stats.Cmd = ps.cmd
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("PSUtils panic", r)
+		}
+	}()
+
 	cpu, err := ps.process.CPUPercent(0)
 	if err == nil {
 		stats.CPU = cpu

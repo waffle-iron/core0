@@ -288,6 +288,7 @@ func TestStatsTrackingWithChildren(t *testing.T) {
 	//child in the expected format.
 	//Also the main process will wait for the child process to exit. before it
 	//terminates so we have enough time to query the memory multiple times.
+
 	script := `
 	set -e
 
@@ -365,7 +366,7 @@ loop:
 		if err := json.Unmarshal([]byte(stats.Data), &result); err != nil {
 			t.Fatal(err)
 		}
-
+		log.Println(result.VMS)
 		readings = append(readings, float64(result.VMS))
 
 		select {
