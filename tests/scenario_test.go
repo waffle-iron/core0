@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -142,15 +143,36 @@ func TestMain(m *testing.M) {
 		agent := exec.Command(agentPath, "-c", agentCfgPath)
 		cmds = append(cmds, agent)
 
-		err := agent.Start()
+		reader, err := agent.StderrPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = agent.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
 		log.Println("Starting agent", i, agent.Process.Pid)
-		go func() {
+		go func(gid int, agent *exec.Cmd, reader io.ReadCloser) {
 			defer wg.Done()
-			err := agent.Wait()
+			dst, err := os.Create(fmt.Sprintf("/tmp/agent-%d.log", gid))
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println("Copying log stream")
+			copied, err := io.Copy(dst, reader)
+			if err != nil {
+				log.Fatal(err)
+			}
+			reader.Close()
+			dst.Close()
+			log.Println("Log", copied)
+			log.Println("Waiting for agent to exit")
+			err = agent.Wait()
 			if err != nil {
 				log.Println("Agent", gid, err)
 			}
-		}()
+		}(gid, agent, reader)
 
 		if err != nil {
 			log.Fatal(err)
