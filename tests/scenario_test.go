@@ -55,17 +55,6 @@ db   = "agentcontroller"
 user = "ac"
 password = "acctrl"
 
-[handlers]
-binary = "python2.7"
-cwd = "./handlers"
-    [handlers.env]
-    PYTHONPATH = "/opt/jumpscale7/lib:../client"
-    SYNCTHING_URL = "http://localhost:8384/"
-    SYNCTHING_SHARED_FOLDER_ID = "jumpscripts"
-    #SYNCTHING_API_KEY = ""
-    REDIS_ADDRESS = "localhost"
-    REDIS_PORT = "6379"
-    #REDIS_PASSWORD = ""
 
 `
 
@@ -366,7 +355,7 @@ loop:
 		if err := json.Unmarshal([]byte(stats.Data), &result); err != nil {
 			t.Fatal(err)
 		}
-		log.Println(result.VMS)
+
 		readings = append(readings, float64(result.VMS))
 
 		select {
