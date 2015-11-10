@@ -329,6 +329,7 @@ func (pm *PM) msgCallback(msg *Message) {
 
 func (pm *PM) resultCallback(cmd *Cmd, result *JobResult) {
 	result.Tags = cmd.Tags
+	result.Args = cmd.Args
 
 	for _, handler := range pm.resultHandlers {
 		handler(cmd, result)
