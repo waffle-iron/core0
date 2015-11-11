@@ -8,7 +8,6 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	hubble "github.com/Jumpscale/hubble/agent"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -31,7 +30,7 @@ type hubbleFunc struct {
 type tunnelData struct {
 	Local   uint16 `json:"local"`
 	Gateway string `json:"gateway"`
-	IP      net.IP `json:"ip"`
+	IP      string `json:"ip"`
 	Remote  uint16 `json:"remote"`
 	Tag     string `json:"controller,omitempty"`
 }
@@ -137,9 +136,9 @@ func (fnc *hubbleFunc) listTunnels(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	for _, t := range tunnels {
 		tunnelsInfos = append(tunnelsInfos, tunnelData{
 			Local:   t.Local(),
-			IP:      t.IP(),
+			IP:      t.Host(),
 			Gateway: t.Gateway(),
-			Remote:  t.Remote(),
+			Remote:  t.RemotePort(),
 		})
 	}
 
