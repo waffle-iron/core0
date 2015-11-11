@@ -9,7 +9,7 @@
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "b08456f213008d59d6591324f7841e2f93e8fbac"
+			"Rev": "a315e2d116511d7343ec59a111b779b0ee9dcc6c"
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
