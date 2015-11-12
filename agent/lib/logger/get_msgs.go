@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/builtin"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/boltdb/bolt"
 	"log"
@@ -59,8 +60,8 @@ func getLevels(levels interface{}) ([]int, error) {
 	return results, nil
 }
 
-func (fnc *getMsgsFunc) getMsgs(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.StartTime = int64(time.Duration(time.Now().UnixNano()) / time.Millisecond)
 
 	defer func() {

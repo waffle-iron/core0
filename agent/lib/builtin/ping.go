@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 )
 
 const (
@@ -12,8 +13,8 @@ func init() {
 	pm.CmdMap[cmdPing] = InternalProcessFactory(ping)
 }
 
-func ping(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func ping(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.Level = pm.LevelResultJSON
 	result.State = pm.StateSuccess
 	result.Data = `"pong"`

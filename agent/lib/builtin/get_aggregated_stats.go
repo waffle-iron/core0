@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/shirou/gopsutil/process"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
+	psutil "github.com/shirou/gopsutil/process"
 	"log"
 	"os"
 )
@@ -19,9 +20,9 @@ func init() {
 }
 
 func getAggregatedStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+	result := core.NewBasicJobResult(cmd)
 
-	var stat pm.ProcessStats
+	var stat process.ProcessStats
 
 	for _, process := range cfg.ProcessManager.Processes() {
 		processStats := process.GetStats()
@@ -32,7 +33,7 @@ func getAggregatedStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 	}
 
 	//also get agent cpu and memory consumption.
-	if agent, err := process.NewProcess(int32(os.Getpid())); err == nil {
+	if agent, err := psutil.NewProcess(int32(os.Getpid())); err == nil {
 		agentCPU, err := agent.CPUPercent(0)
 		if err == nil {
 			stat.CPU += agentCPU

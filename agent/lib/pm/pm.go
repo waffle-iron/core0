@@ -1,10 +1,10 @@
 package pm
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
+	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
@@ -16,46 +16,11 @@ import (
 	"time"
 )
 
-//NewMapCmd builds a cmd from a map.
-func NewMapCmd(data map[string]interface{}) *core.Cmd {
-	stdin, ok := data["data"]
-	if !ok {
-		stdin = ""
-	}
-	cmd := &core.Cmd{
-		Gid:  data["gid"].(int),
-		Nid:  data["nid"].(int),
-		ID:   data["id"].(string),
-		Name: data["name"].(string),
-		Data: stdin.(string),
-		Args: core.NewMapArgs(data["args"].(map[string]interface{})),
-	}
-
-	return cmd
-}
-
-//LoadCmd loads cmd from json string.
-func LoadCmd(str []byte) (*core.Cmd, error) {
-	cmd := new(core.Cmd)
-	err := json.Unmarshal(str, cmd)
-	if err != nil {
-		return nil, err
-	}
-	if cmd.Args == nil || cmd.Args.Data() == nil {
-		cmd.Args = core.NewMapArgs(map[string]interface{}{})
-	}
-
-	return cmd, err
-}
-
 //MeterHandler represents a callback type
 type MeterHandler func(cmd *core.Cmd, p *psutil.Process)
 
 //StatsdMeterHandler represents a callback type
 type StatsdMeterHandler func(statsd *stats.Statsd, cmd *core.Cmd, p *psutil.Process)
-
-//MessageHandler represents a callback type
-type MessageHandler func(msg *Message)
 
 //ResultHandler represents a callback type
 type ResultHandler func(cmd *core.Cmd, result *core.JobResult)
@@ -75,7 +40,7 @@ type PM struct {
 	jobsCond  *sync.Cond
 
 	statsdMeterHandlers []StatsdMeterHandler
-	msgHandlers         []MessageHandler
+	msgHandlers         []stream.MessageHandler
 	resultHandlers      []ResultHandler
 	statsFlushHandlers  []StatsFlushHandler
 	queueMgr            *cmdQueueManager
@@ -94,7 +59,7 @@ func NewPM(midfile string, maxJobs int) *PM {
 		jobsCond:  sync.NewCond(&sync.Mutex{}),
 
 		statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
-		msgHandlers:         make([]MessageHandler, 0, 3),
+		msgHandlers:         make([]stream.MessageHandler, 0, 3),
 		resultHandlers:      make([]ResultHandler, 0, 3),
 		statsFlushHandlers:  make([]StatsFlushHandler, 0, 3),
 		queueMgr:            newCmdQueueManager(),
@@ -145,7 +110,7 @@ func (pm *PM) getNextMsgID() uint32 {
 
 //AddMessageHandler adds handlers for messages that are captured from sub processes. Logger can use this to
 //process messages
-func (pm *PM) AddMessageHandler(handler MessageHandler) {
+func (pm *PM) AddMessageHandler(handler stream.MessageHandler) {
 	pm.msgHandlers = append(pm.msgHandlers, handler)
 }
 
@@ -185,16 +150,16 @@ func (pm *PM) Run() {
 
 			if process == nil {
 				log.Println("Unknow command", cmd.Name)
-				errResult := NewBasicJobResult(cmd)
-				errResult.State = StateUnknownCmd
+				errResult := core.NewBasicJobResult(cmd)
+				errResult.State = core.StateUnknownCmd
 				pm.resultCallback(cmd, errResult)
 				continue
 			}
 
 			_, exists := pm.processes[cmd.ID]
 			if exists {
-				errResult := NewBasicJobResult(cmd)
-				errResult.State = StateDuplicateID
+				errResult := core.NewBasicJobResult(cmd)
+				errResult.State = core.StateDuplicateID
 				errResult.Data = "A job exists with the same ID"
 				pm.resultCallback(cmd, errResult)
 				continue
@@ -285,7 +250,7 @@ func (pm *PM) meterCallback(cmd *core.Cmd, ps *psutil.Process) {
 	}
 }
 
-func (pm *PM) handlStatsdMsgs(msg *Message) {
+func (pm *PM) handlStatsdMsgs(msg *stream.Message) {
 	statsd, ok := pm.statsdes[msg.Cmd.ID]
 	if !ok {
 		// there is no statsd configured for this process!! we shouldn't
@@ -295,8 +260,8 @@ func (pm *PM) handlStatsdMsgs(msg *Message) {
 
 	statsd.Feed(strings.Trim(msg.Message, " "))
 }
-func (pm *PM) msgCallback(msg *Message) {
-	if msg.Level == LevelStatsd {
+func (pm *PM) msgCallback(msg *stream.Message) {
+	if msg.Level == stream.LevelStatsd {
 		pm.handlStatsdMsgs(msg)
 	}
 

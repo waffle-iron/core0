@@ -1,130 +1,91 @@
 package pm
 
 import (
-	"bytes"
-	"container/list"
-	"encoding/json"
-	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/Jumpscale/agent2/agent/lib/pm/process"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
-	psutil "github.com/shirou/gopsutil/process"
-	"log"
-	"os"
-	"os/exec"
-	"path"
-	"time"
+// "bytes"
+// "container/list"
+// "fmt"
+// "github.com/Jumpscale/agent2/agent/lib/pm/core"
+// "github.com/Jumpscale/agent2/agent/lib/pm/process"
+// "github.com/Jumpscale/agent2/agent/lib/pm/stream"
+// "github.com/Jumpscale/agent2/agent/lib/utils"
+// psutil "github.com/shirou/gopsutil/process"
+// "log"
+// "os"
+// "os/exec"
+// "path"
+// "time"
 )
 
 const (
-	//LevelStdout stdout message
-	LevelStdout = 1 // stdout
-	//LevelStderr stderr message
-	LevelStderr = 2 // stderr
-	//LevelPublic public message
-	LevelPublic = 3 // message for endusers / public message
-	//LevelOperator operator message
-	LevelOperator = 4 // message for operator / internal message
-	//LevelUnknown unknown message
-	LevelUnknown = 5 // log msg (unstructured = level5, cat=unknown)
-	//LevelStructured structured message
-	LevelStructured = 6 // log msg structured
-	//LevelWarning warning message
-	LevelWarning = 7 // warning message
-	//LevelOpsError ops error message
-	LevelOpsError = 8 // ops error
-	//LevelCritical critical message
-	LevelCritical = 9 // critical error
-	//LevelStatsd statsd message
-	LevelStatsd = 10 // statsd message(s) AVG
-	//LevelDebug debug message
-	LevelDebug = 11 // debug message
-	//LevelResultJSON json result message
-	LevelResultJSON = 20 // result message, json
-	//LevelResultYAML yaml result message
-	LevelResultYAML = 21 // result message, yaml
-	//LevelResultTOML toml result message
-	LevelResultTOML = 22 // result message, toml
-	//LevelResultHRD hrd result message
-	LevelResultHRD = 23 // result message, hrd
-	//LevelResultJob job result message
-	LevelResultJob = 30 // job, json (full result of a job)
+	// //LevelStdout stdout message
+	// LevelStdout = 1 // stdout
+	// //LevelStderr stderr message
+	// LevelStderr = 2 // stderr
+	// //LevelPublic public message
+	// LevelPublic = 3 // message for endusers / public message
+	// //LevelOperator operator message
+	// LevelOperator = 4 // message for operator / internal message
+	// //LevelUnknown unknown message
+	// LevelUnknown = 5 // log msg (unstructured = level5, cat=unknown)
+	// //LevelStructured structured message
+	// LevelStructured = 6 // log msg structured
+	// //LevelWarning warning message
+	// LevelWarning = 7 // warning message
+	// //LevelOpsError ops error message
+	// LevelOpsError = 8 // ops error
+	// //LevelCritical critical message
+	// LevelCritical = 9 // critical error
+	// //LevelStatsd statsd message
+	// LevelStatsd = 10 // statsd message(s) AVG
+	// //LevelDebug debug message
+	// LevelDebug = 11 // debug message
+	// //LevelResultJSON json result message
+	// LevelResultJSON = 20 // result message, json
+	// //LevelResultYAML yaml result message
+	// LevelResultYAML = 21 // result message, yaml
+	// //LevelResultTOML toml result message
+	// LevelResultTOML = 22 // result message, toml
+	// //LevelResultHRD hrd result message
+	// LevelResultHRD = 23 // result message, hrd
+	// //LevelResultJob job result message
+	// LevelResultJob = 30 // job, json (full result of a job)
 
-	//LevelInternal specify the start of the internal log levels
-	LevelInternal = 100
+	// //LevelInternal specify the start of the internal log levels
+	// LevelInternal = 100
 
-	//LevelInternalMonitorPid instruct the agent to consider the cpu and mem consumption
-	//of that PID (in the message body)
-	LevelInternalMonitorPid = 101
+	// //LevelInternalMonitorPid instruct the agent to consider the cpu and mem consumption
+	// //of that PID (in the message body)
+	// LevelInternalMonitorPid = 101
 
-	//StateSuccess successs exit status
-	StateSuccess = "SUCCESS"
-	//StateError error exist status
-	StateError = "ERROR"
-	//StateTimeout timeout exit status
-	StateTimeout = "TIMEOUT"
-	//StateKilled killed exit status
-	StateKilled = "KILLED"
-	//StateUnknownCmd unknown cmd exit status
-	StateUnknownCmd = "UNKNOWN_CMD"
-	//StateDuplicateID dublicate id exit status
-	StateDuplicateID = "DUPILICATE_ID"
+	// //StateSuccess successs exit status
+	// StateSuccess = "SUCCESS"
+	// //StateError error exist status
+	// StateError = "ERROR"
+	// //StateTimeout timeout exit status
+	// StateTimeout = "TIMEOUT"
+	// //StateKilled killed exit status
+	// StateKilled = "KILLED"
+	// //StateUnknownCmd unknown cmd exit status
+	// StateUnknownCmd = "UNKNOWN_CMD"
+	// //StateDuplicateID dublicate id exit status
+	// StateDuplicateID = "DUPILICATE_ID"
 
 	//StreamBufferSize max number of lines to capture from a stream
 	StreamBufferSize = 1000 // keeps only last 1000 line of stream
 )
 
-var resultMessageLevels = []int{LevelResultJSON,
-	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
+// var resultMessageLevels = []int{LevelResultJSON,
+// 	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
 
+/*
 //RunCfg holds configuration and callbacks to be passed to a running process so the process can feed the process manager with messages.
 //and results
 type RunCfg struct {
 	ProcessManager *PM
 	MeterHandler   MeterHandler
-	MessageHandler MessageHandler
+	MessageHandler stream.MessageHandler
 	ResultHandler  ResultHandler
 	Signal         chan int
-}
-
-//NewBasicJobResult creates a new job result from command
-func NewBasicJobResult(cmd *core.Cmd) *core.JobResult {
-	return &core.JobResult{
-		ID:   cmd.ID,
-		Gid:  cmd.Gid,
-		Nid:  cmd.Nid,
-		Cmd:  cmd.Name,
-		Args: cmd.Args,
-	}
-}
-
-//Message is a message from running process
-type Message struct {
-	ID      uint32
-	Cmd     *core.Cmd
-	Level   int
-	Message string
-	Epoch   int64
-}
-
-//MarshalJSON serializes message to json
-func (msg *Message) MarshalJSON() ([]byte, error) {
-	data := make(map[string]interface{})
-	args := msg.Cmd.Args
-	data["jobid"] = msg.Cmd.ID
-	data["domain"] = args.GetString("domain")
-	data["name"] = args.GetString("name")
-	data["epoch"] = msg.Epoch / int64(time.Millisecond)
-	data["level"] = msg.Level
-	data["id"] = msg.ID
-	data["data"] = msg.Message
-
-	return json.Marshal(data)
-}
-
-//String represents a message as a string
-func (msg *Message) String() string {
-	return fmt.Sprintf("%s|%d:%s", msg.Cmd, msg.Level, msg.Message)
 }
 
 //ExtProcess represents an external process
@@ -246,7 +207,7 @@ func (ps *ExtProcess) Run() {
 	err = cmd.Start()
 	if err != nil {
 		log.Println("Failed to start process", err)
-		jobresult := NewBasicJobResult(ps.cmd)
+		jobresult := core.NewBasicJobResult(ps.cmd)
 		jobresult.State = StateError
 		jobresult.Data = fmt.Sprintf("%v", err)
 		cfg.ResultHandler(ps.cmd, jobresult)
@@ -257,13 +218,13 @@ func (ps *ExtProcess) Run() {
 	psProcess, _ := psutil.NewProcess(int32(ps.pid))
 	ps.process = psProcess
 
-	var result *Message
+	var result *stream.Message
 
 	stdoutBuffer := list.New()
 	stderrBuffer := list.New()
 	var critical string
 
-	msgInterceptor := func(msg *Message) {
+	msgInterceptor := func(msg *stream.Message) {
 		if utils.In(resultMessageLevels, msg.Level) {
 			//process result message.
 			result = msg
@@ -289,10 +250,10 @@ func (ps *ExtProcess) Run() {
 	}
 
 	// start consuming outputs.
-	outConsumer := newStreamConsumer(ps.cmd, stdout, 1)
+	outConsumer := stream.NewConsumer(ps.cmd, stdout, 1)
 	outConsumer.Consume(msgInterceptor)
 
-	errConsumer := newStreamConsumer(ps.cmd, stderr, 2)
+	errConsumer := stream.NewConsumer(ps.cmd, stderr, 2)
 	errConsumer.Consume(msgInterceptor)
 
 	if ps.cmd.Data != "" {
@@ -310,8 +271,8 @@ func (ps *ExtProcess) Run() {
 	go func() {
 		//make sure all outputs are closed before waiting for the process
 		//to exit.
-		<-outConsumer.Signal
-		<-errConsumer.Signal
+		<-outConsumer.Signal()
+		<-errConsumer.Signal()
 
 		err := cmd.Wait()
 		if err != nil {
@@ -415,7 +376,7 @@ loop:
 							cfg.Signal <- 1 //forces the PM to clean up
 						}()
 						//and send the kill result.
-						jobresult := NewBasicJobResult(ps.cmd)
+						jobresult := core.NewBasicJobResult(ps.cmd)
 
 						jobresult.State = StateKilled
 						jobresult.StartTime = int64(starttime)
@@ -438,7 +399,7 @@ loop:
 		state = StateError
 	}
 
-	jobresult := NewBasicJobResult(ps.cmd)
+	jobresult := core.NewBasicJobResult(ps.cmd)
 
 	jobresult.State = state
 	jobresult.StartTime = int64(starttime)
@@ -465,7 +426,7 @@ loop:
 	cfg.ResultHandler(ps.cmd, jobresult)
 }
 
-func (ps *ExtProcess) processInternalMessage(msg *Message) {
+func (ps *ExtProcess) processInternalMessage(msg *stream.Message) {
 	if msg.Level == LevelInternalMonitorPid {
 		childPid := 0
 		_, err := fmt.Sscanf(msg.Message, "%d", &childPid)
@@ -557,3 +518,4 @@ func (ps *ExtProcess) GetStats() *process.ProcessStats {
 
 	return stats
 }
+*/

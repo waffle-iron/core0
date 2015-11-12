@@ -16,7 +16,7 @@ func init() {
 }
 
 func getDiskInfo(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+	result := core.NewBasicJobResult(cmd)
 	result.Level = pm.LevelResultJSON
 
 	info, err := disk.DiskPartitions(true)

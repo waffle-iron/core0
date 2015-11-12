@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 )
 
 const (
@@ -18,8 +19,8 @@ type getProcessStatsData struct {
 	ID string `json:"id"`
 }
 
-func getProcessStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func getProcessStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 
 	//load data
 	data := getProcessStatsData{}

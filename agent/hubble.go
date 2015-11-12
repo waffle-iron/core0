@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/builtin"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	hubble "github.com/Jumpscale/hubble/agent"
 	"log"
@@ -35,8 +36,8 @@ type tunnelData struct {
 	Tag     string `json:"controller,omitempty"`
 }
 
-func (fnc *hubbleFunc) openTunnle(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func (fnc *hubbleFunc) openTunnle(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.State = pm.StateError
 
 	var tunnelData tunnelData
@@ -85,8 +86,8 @@ func (fnc *hubbleFunc) openTunnle(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	return result
 }
 
-func (fnc *hubbleFunc) closeTunnel(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func (fnc *hubbleFunc) closeTunnel(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.State = pm.StateError
 
 	var tunnelData tunnelData
@@ -119,8 +120,8 @@ func (fnc *hubbleFunc) closeTunnel(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
 	return result
 }
 
-func (fnc *hubbleFunc) listTunnels(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func (fnc *hubbleFunc) listTunnels(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.State = pm.StateError
 
 	tag := cmd.Args.GetTag()

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 )
 
 const (
@@ -19,14 +21,14 @@ type getStatsData struct {
 	Name   string `json:"name"`
 }
 
-func getProcessesStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func getProcessesStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 
 	//load data
 	data := getStatsData{}
 	json.Unmarshal([]byte(cmd.Data), &data)
 
-	stats := make([]*pm.ProcessStats, 0, len(cfg.ProcessManager.Processes()))
+	stats := make([]*process.ProcessStats, 0, len(cfg.ProcessManager.Processes()))
 
 	for _, process := range cfg.ProcessManager.Processes() {
 		cmd := process.Cmd()

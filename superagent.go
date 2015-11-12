@@ -14,6 +14,7 @@ import (
 	_ "github.com/Jumpscale/agent2/agent/lib/builtin"
 	"github.com/Jumpscale/agent2/agent/lib/logger"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 )
 
@@ -85,7 +86,7 @@ func main() {
 	mgr.AddStatsFlushHandler(statsBuffer.Handler)
 
 	//handle process results. Forwards the result to the correct controller.
-	mgr.AddResultHandler(func(cmd *pm.Cmd, result *pm.JobResult) {
+	mgr.AddResultHandler(func(cmd *core.Cmd, result *core.JobResult) {
 		//send result to AC.
 		//NOTE: we always force the real gid and nid on the result.
 		result.Gid = config.Main.Gid
@@ -122,13 +123,13 @@ func main() {
 			startup.Args = make(map[string]interface{})
 		}
 
-		cmd := &pm.Cmd{
+		cmd := &core.Cmd{
 			Gid:  config.Main.Gid,
 			Nid:  config.Main.Nid,
 			ID:   id,
 			Name: startup.Name,
 			Data: startup.Data,
-			Args: pm.NewMapArgs(startup.Args),
+			Args: core.NewMapArgs(startup.Args),
 		}
 
 		meterInt := cmd.Args.GetInt("stats_interval")

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -19,4 +20,36 @@ type Cmd struct {
 //String represents cmd as a string
 func (cmd *Cmd) String() string {
 	return fmt.Sprintf("(%s# %s %s)", cmd.ID, cmd.Name, cmd.Args.GetString("name"))
+}
+
+//NewMapCmd builds a cmd from a map.
+func NewMapCmd(data map[string]interface{}) *Cmd {
+	stdin, ok := data["data"]
+	if !ok {
+		stdin = ""
+	}
+	cmd := &Cmd{
+		Gid:  data["gid"].(int),
+		Nid:  data["nid"].(int),
+		ID:   data["id"].(string),
+		Name: data["name"].(string),
+		Data: stdin.(string),
+		Args: NewMapArgs(data["args"].(map[string]interface{})),
+	}
+
+	return cmd
+}
+
+//LoadCmd loads cmd from json string.
+func LoadCmd(str []byte) (*Cmd, error) {
+	var cmd Cmd
+	err := json.Unmarshal(str, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	if cmd.Args == nil || cmd.Args.Data() == nil {
+		cmd.Args = NewMapArgs(map[string]interface{}{})
+	}
+
+	return &cmd, err
 }

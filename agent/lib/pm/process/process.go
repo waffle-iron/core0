@@ -2,6 +2,11 @@ package process
 
 import (
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
+)
+
+const (
+	CommandExecute = "execute"
 )
 
 //ProcessStats holds process cpu and memory usage
@@ -17,7 +22,9 @@ type ProcessStats struct {
 //Process interface
 type Process interface {
 	Cmd() *core.Cmd
-	Run()
+	Run() (<-chan *stream.Message, error)
 	Kill()
 	GetStats() *ProcessStats
 }
+
+type ProcessFactory func(*core.Cmd) Process

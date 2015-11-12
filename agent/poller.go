@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"io/ioutil"
 	"log"
@@ -105,7 +106,7 @@ func (poll *poller) longPoll() {
 			continue
 		}
 
-		cmd, err := pm.LoadCmd(body)
+		cmd, err := core.LoadCmd(body)
 		if err != nil {
 			log.Println("Failed to load cmd", err, string(body))
 			continue

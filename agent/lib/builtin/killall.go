@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 )
 
 const (
@@ -12,8 +13,8 @@ func init() {
 	pm.CmdMap[cmdKillAll] = InternalProcessFactory(killall)
 }
 
-func killall(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func killall(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 
 	cfg.ProcessManager.Killall()
 

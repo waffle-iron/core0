@@ -24,7 +24,7 @@ type InternalProcess struct {
 InternalProcessFactory factory to build Runnable processes
 */
 func InternalProcessFactory(runable Runable) pm.ProcessConstructor {
-	constructor := func(cmd *pm.Cmd) pm.Process {
+	constructor := func(cmd *core.Cmd) process.Process {
 		return &InternalProcess{
 			runable: runable,
 			cmd:     cmd,
@@ -44,7 +44,8 @@ func (ps *InternalProcess) Cmd() *core.Cmd {
 /*
 Run runs the internal process
 */
-func (ps *InternalProcess) Run(cfg pm.RunCfg) {
+func (ps *InternalProcess) Run() {
+	var cfg pm.RunCfg
 	defer func() {
 		cfg.Signal <- 1
 	}()

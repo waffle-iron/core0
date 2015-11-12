@@ -1,4 +1,4 @@
-package pm
+package stream
 
 import (
 	"bufio"
@@ -12,30 +12,40 @@ import (
 
 var pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
 
-type streamConsumer struct {
+type Consumer interface {
+	Consume(MessageHandler)
+	Signal() <-chan int
+}
+
+type consumerImpl struct {
 	cmd    *core.Cmd
 	reader io.Reader
 	level  int
-	Signal chan int
+	signal chan int
 }
 
-func newStreamConsumer(cmd *core.Cmd, reader io.Reader, level int) *streamConsumer {
-	return &streamConsumer{
+func NewConsumer(cmd *core.Cmd, reader io.Reader, level int) Consumer {
+	return &consumerImpl{
 		cmd:    cmd,
 		reader: reader,
 		level:  level,
-		Signal: make(chan int),
+		signal: make(chan int),
 	}
 }
 
 // read input until the end (or closed)
 // process all messages as speced x:: or x:::
 // other messages that has no level are assumed of level consumer.level
-func (consumer *streamConsumer) consume(handler MessageHandler) {
+func (consumer *consumerImpl) consume(handler MessageHandler) {
 	reader := bufio.NewReader(consumer.reader)
 	var level int
 	var message string
 	var multiline = false
+
+	defer func() {
+		consumer.signal <- 1
+		close(consumer.signal)
+	}()
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -94,13 +104,15 @@ func (consumer *streamConsumer) consume(handler MessageHandler) {
 		}
 
 		if err == io.EOF {
-			consumer.Signal <- 1
-			close(consumer.Signal)
 			return
 		}
 	}
 }
 
-func (consumer *streamConsumer) Consume(handler MessageHandler) {
+func (consumer *consumerImpl) Consume(handler MessageHandler) {
 	go consumer.consume(handler)
+}
+
+func (consumer *consumerImpl) Signal() <-chan int {
+	return consumer.signal
 }

@@ -3,6 +3,7 @@ package builtin
 import (
 	"encoding/json"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/shirou/gopsutil/host"
 )
 
@@ -14,8 +15,8 @@ func init() {
 	pm.CmdMap[cmdGetOsInfo] = InternalProcessFactory(getOsInfo)
 }
 
-func getOsInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
-	result := pm.NewBasicJobResult(cmd)
+func getOsInfo(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+	result := core.NewBasicJobResult(cmd)
 	result.Level = pm.LevelResultJSON
 
 	info, err := host.HostInfo()
