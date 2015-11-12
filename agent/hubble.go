@@ -3,9 +3,9 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/builtin"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	hubble "github.com/Jumpscale/hubble/agent"
 	"log"
@@ -36,21 +36,15 @@ type tunnelData struct {
 	Tag     string `json:"controller,omitempty"`
 }
 
-func (fnc *hubbleFunc) openTunnle(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-	result.State = pm.StateError
-
+func (fnc *hubbleFunc) openTunnle(cmd *core.Cmd) (interface{}, error) {
 	var tunnelData tunnelData
 	err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
 	if err != nil {
-		result.Data = fmt.Sprintf("%v", err)
-
-		return result
+		return nil, err
 	}
 
 	if tunnelData.Gateway == fnc.name {
-		result.Data = "Can't open a tunnel to fnc"
-		return result
+		return nil, fmt.Errorf("Can't open a tunnel to self")
 	}
 
 	tag := cmd.Args.GetTag()
@@ -64,38 +58,25 @@ func (fnc *hubbleFunc) openTunnle(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult 
 	agent, ok := fnc.agents[tag]
 
 	if !ok {
-		result.Data = "Controller is not allowed to request for tunnels"
-		return result
+		return nil, fmt.Errorf("Controller is not allowed to request for tunnels")
 	}
 
 	tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
 	err = agent.AddTunnel(tunnel)
 
 	if err != nil {
-		result.Data = fmt.Sprintf("%v", err)
-		return result
+		return nil, err
 	}
 
 	tunnelData.Local = tunnel.Local()
-	data, _ := json.Marshal(tunnelData)
-
-	result.Data = string(data)
-	result.Level = pm.LevelResultJSON
-	result.State = pm.StateSuccess
-
-	return result
+	return tunnelData, nil
 }
 
-func (fnc *hubbleFunc) closeTunnel(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-	result.State = pm.StateError
-
+func (fnc *hubbleFunc) closeTunnel(cmd *core.Cmd) (interface{}, error) {
 	var tunnelData tunnelData
 	err := json.Unmarshal([]byte(cmd.Data), &tunnelData)
 	if err != nil {
-		result.Data = fmt.Sprintf("%v", err)
-
-		return result
+		return nil, err
 	}
 
 	tag := cmd.Args.GetTag()
@@ -108,28 +89,21 @@ func (fnc *hubbleFunc) closeTunnel(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult
 	agent, ok := fnc.agents[tag]
 
 	if !ok {
-		result.Data = "Controller is not allowed to request for tunnels"
-		return result
+		return nil, fmt.Errorf("Controller is not allowed to request for tunnels")
 	}
 
 	tunnel := hubble.NewTunnel(tunnelData.Local, tunnelData.Gateway, "", tunnelData.IP, tunnelData.Remote)
 	agent.RemoveTunnel(tunnel)
 
-	result.State = pm.StateSuccess
-
-	return result
+	return true, nil
 }
 
-func (fnc *hubbleFunc) listTunnels(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-	result.State = pm.StateError
-
+func (fnc *hubbleFunc) listTunnels(cmd *core.Cmd) (interface{}, error) {
 	tag := cmd.Args.GetTag()
 	agent, ok := fnc.agents[tag]
 
 	if !ok {
-		result.Data = "Controller is not allowed to request for tunnels"
-		return result
+		return nil, fmt.Errorf("Controller is not allowed to request for tunnels")
 	}
 
 	tunnels := agent.Tunnels()
@@ -143,12 +117,7 @@ func (fnc *hubbleFunc) listTunnels(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult
 		})
 	}
 
-	data, _ := json.Marshal(tunnelsInfos)
-	result.Data = string(data)
-	result.Level = pm.LevelResultJSON
-	result.State = pm.StateSuccess
-
-	return result
+	return tunnelsInfos, nil
 }
 
 /*
@@ -213,7 +182,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		agents: agents,
 	}
 
-	pm.CmdMap[cmdOpenTunnel] = builtin.InternalProcessFactory(fncs.openTunnle)
-	pm.CmdMap[cmdCLoseTunnel] = builtin.InternalProcessFactory(fncs.closeTunnel)
-	pm.CmdMap[cmdListTunnels] = builtin.InternalProcessFactory(fncs.listTunnels)
+	pm.CmdMap[cmdOpenTunnel] = process.NewInternalProcessFactory(fncs.openTunnle)
+	pm.CmdMap[cmdCLoseTunnel] = process.NewInternalProcessFactory(fncs.closeTunnel)
+	pm.CmdMap[cmdListTunnels] = process.NewInternalProcessFactory(fncs.listTunnels)
 }

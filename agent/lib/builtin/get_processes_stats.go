@@ -2,7 +2,6 @@ package builtin
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
@@ -13,7 +12,7 @@ const (
 )
 
 func init() {
-	pm.CmdMap[cmdGetProcessesStats] = InternalProcessFactory(getProcessesStats)
+	pm.CmdMap[cmdGetProcessesStats] = process.NewInternalProcessFactory(getProcessesStats)
 }
 
 type getStatsData struct {
@@ -21,16 +20,17 @@ type getStatsData struct {
 	Name   string `json:"name"`
 }
 
-func getProcessesStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-
+func getProcessesStats(cmd *core.Cmd) (interface{}, error) {
 	//load data
 	data := getStatsData{}
-	json.Unmarshal([]byte(cmd.Data), &data)
+	err := json.Unmarshal([]byte(cmd.Data), &data)
+	if err != nil {
+		return nil, err
+	}
 
-	stats := make([]*process.ProcessStats, 0, len(cfg.ProcessManager.Processes()))
+	stats := make([]*process.ProcessStats, 0, len(pm.GetManager().Processes()))
 
-	for _, process := range cfg.ProcessManager.Processes() {
+	for _, process := range pm.GetManager().Processes() {
 		cmd := process.Cmd()
 
 		if data.Domain != "" {
@@ -48,15 +48,5 @@ func getProcessesStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 		stats = append(stats, process.GetStats())
 	}
 
-	serialized, err := json.Marshal(stats)
-	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-	} else {
-		result.State = pm.StateSuccess
-		result.Level = pm.LevelResultJSON
-		result.Data = string(serialized)
-	}
-
-	return result
+	return stats, nil
 }

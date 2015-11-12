@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 )
 
 const (
@@ -12,39 +13,26 @@ const (
 )
 
 func init() {
-	pm.CmdMap[cmdGetProcessStats] = InternalProcessFactory(getProcessStats)
+	pm.CmdMap[cmdGetProcessStats] = process.NewInternalProcessFactory(getProcessStats)
 }
 
 type getProcessStatsData struct {
 	ID string `json:"id"`
 }
 
-func getProcessStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-
+func getProcessStats(cmd *core.Cmd) (interface{}, error) {
 	//load data
 	data := getProcessStatsData{}
-	json.Unmarshal([]byte(cmd.Data), &data)
+	err := json.Unmarshal([]byte(cmd.Data), &data)
+	if err != nil {
+		return nil, err
+	}
 
-	process, ok := cfg.ProcessManager.Processes()[data.ID]
+	process, ok := pm.GetManager().Processes()[data.ID]
 
 	if !ok {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("Process with id '%s' doesn't exist", data.ID)
-		return result
+		return nil, fmt.Errorf("Process with id '%s' doesn't exist", data.ID)
 	}
 
-	stats := process.GetStats()
-
-	serialized, err := json.Marshal(stats)
-	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-	} else {
-		result.State = pm.StateSuccess
-		result.Level = pm.LevelResultJSON
-		result.Data = string(serialized)
-	}
-
-	return result
+	return process.GetStats(), nil
 }

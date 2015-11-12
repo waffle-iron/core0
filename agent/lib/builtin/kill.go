@@ -2,9 +2,9 @@ package builtin
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 )
 
 const (
@@ -12,27 +12,22 @@ const (
 )
 
 func init() {
-	pm.CmdMap[cmdKill] = InternalProcessFactory(kill)
+	pm.CmdMap[cmdKill] = process.NewInternalProcessFactory(kill)
 }
 
 type killData struct {
 	ID string `json:"id"`
 }
 
-func kill(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-
+func kill(cmd *core.Cmd) (interface{}, error) {
 	//load data
 	data := killData{}
 	err := json.Unmarshal([]byte(cmd.Data), &data)
 
 	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-	} else {
-		cfg.ProcessManager.Kill(data.ID)
-		result.State = pm.StateSuccess
+		return nil, err
 	}
 
-	return result
+	pm.GetManager().Kill(data.ID)
+	return true, nil
 }

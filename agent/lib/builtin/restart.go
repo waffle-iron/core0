@@ -3,6 +3,7 @@ package builtin
 import (
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"os"
 )
 
@@ -11,10 +12,10 @@ const (
 )
 
 func init() {
-	pm.CmdMap[cmdRestart] = InternalProcessFactory(restart)
+	pm.CmdMap[cmdRestart] = process.NewInternalProcessFactory(restart)
 }
 
-func restart(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
+func restart(cmd *core.Cmd) (interface{}, error) {
 	os.Exit(0)
-	return nil
+	return nil, nil
 }

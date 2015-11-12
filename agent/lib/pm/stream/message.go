@@ -3,7 +3,6 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"time"
 )
 
@@ -41,6 +40,10 @@ const (
 	//LevelResultJob job result message
 	LevelResultJob = 30 // job, json (full result of a job)
 
+	//Exit message (this message must be sent by all processes as a last message)
+	//other wise the PM will assume ERROR exit status.
+	LevelExitState = 50
+
 	//LevelInternal specify the start of the internal log levels
 	LevelInternal = 100
 
@@ -49,28 +52,35 @@ const (
 	LevelInternalMonitorPid = 101
 )
 
-var ResultMessageLevels = []int{LevelResultJSON,
-	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
+var (
+	ResultMessageLevels = []int{LevelResultJSON,
+		LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
+
+	MessageExitSuccess = &Message{
+		Level:   LevelExitState,
+		Message: "SUCCESS",
+	}
+
+	MessageExitError = &Message{
+		Level:   LevelExitState,
+		Message: "ERROR",
+	}
+)
 
 //Message is a message from running process
 type Message struct {
 	ID      uint32
-	Cmd     *core.Cmd
 	Level   int
 	Message string
 	Epoch   int64
 }
 
 //MessageHandler represents a callback type
-type MessageHandler func(msg *Message)
+type MessageHandler func(*Message)
 
 //MarshalJSON serializes message to json
 func (msg *Message) MarshalJSON() ([]byte, error) {
 	data := make(map[string]interface{})
-	args := msg.Cmd.Args
-	data["jobid"] = msg.Cmd.ID
-	data["domain"] = args.GetString("domain")
-	data["name"] = args.GetString("name")
 	data["epoch"] = msg.Epoch / int64(time.Millisecond)
 	data["level"] = msg.Level
 	data["id"] = msg.ID
@@ -81,5 +91,5 @@ func (msg *Message) MarshalJSON() ([]byte, error) {
 
 //String represents a message as a string
 func (msg *Message) String() string {
-	return fmt.Sprintf("%s|%d:%s", msg.Cmd, msg.Level, msg.Message)
+	return fmt.Sprintf("%d|%s", msg.Level, msg.Message)
 }

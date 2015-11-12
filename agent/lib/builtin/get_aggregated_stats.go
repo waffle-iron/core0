@@ -1,8 +1,6 @@
 package builtin
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
@@ -16,15 +14,15 @@ const (
 )
 
 func init() {
-	pm.CmdMap[cmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
+	pm.CmdMap[cmdGetAggregatedStats] = process.NewInternalProcessFactory(getAggregatedStats)
 }
 
-func getAggregatedStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
+func getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
+	return nil, nil
 
 	var stat process.ProcessStats
 
-	for _, process := range cfg.ProcessManager.Processes() {
+	for _, process := range pm.GetManager().Processes() {
 		processStats := process.GetStats()
 		stat.CPU += processStats.CPU
 		stat.RSS += processStats.RSS
@@ -47,21 +45,11 @@ func getAggregatedStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 			stat.Swap += agentMem.Swap
 			stat.VMS += agentMem.VMS
 		} else {
-			log.Println(err)
+			return nil, err
 		}
 	} else {
-		log.Println("Getting agent process error:", err)
+		return nil, err
 	}
 
-	serialized, err := json.Marshal(stat)
-	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-	} else {
-		result.State = pm.StateSuccess
-		result.Level = pm.LevelResultJSON
-		result.Data = string(serialized)
-	}
-
-	return result
+	return stat, nil
 }

@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/builtin"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/boltdb/bolt"
 	"log"
-	"time"
 )
 
 type logQuery struct {
@@ -60,38 +59,21 @@ func getLevels(levels interface{}) ([]int, error) {
 	return results, nil
 }
 
-func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
-	result := core.NewBasicJobResult(cmd)
-	result.StartTime = int64(time.Duration(time.Now().UnixNano()) / time.Millisecond)
-
-	defer func() {
-		endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
-		result.Time = int64(endtime) - result.StartTime
-	}()
-
+func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd) (interface{}, error) {
 	query := logQuery{}
 
 	err := json.Unmarshal([]byte(cmd.Data), &query)
 	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("Failed to parse get_msgs query: %s", err)
-
-		return result
+		return nil, fmt.Errorf("Failed to parse get_msgs query: %s", err)
 	}
 
 	if query.JobID == "" {
-		result.State = pm.StateError
-		result.Data = "jobid is required"
-
-		return result
+		return nil, fmt.Errorf("jobid is required")
 	}
 
 	levels, err := getLevels(query.Levels)
 	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("Error parsing levels (%s): %s", query.Levels, err)
-
-		return result
+		return nil, err
 	}
 
 	var limit int
@@ -133,25 +115,10 @@ func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 	})
 
 	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-
-		return result
+		return nil, err
 	}
 
-	data, err := json.Marshal(records)
-	if err != nil {
-		result.State = pm.StateError
-		result.Data = fmt.Sprintf("%v", err)
-
-		return result
-	}
-
-	result.State = pm.StateSuccess
-	result.Level = pm.LevelResultJSON
-	result.Data = string(data)
-
-	return result
+	return records, nil
 }
 
 func registerGetMsgsFunction(db *bolt.DB) {
@@ -159,5 +126,5 @@ func registerGetMsgsFunction(db *bolt.DB) {
 		db: db,
 	}
 
-	pm.CmdMap[cmdGetMsgs] = builtin.InternalProcessFactory(fnc.getMsgs)
+	pm.CmdMap[cmdGetMsgs] = process.NewInternalProcessFactory(fnc.getMsgs)
 }

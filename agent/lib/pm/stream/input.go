@@ -2,7 +2,6 @@ package stream
 
 import (
 	"bufio"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"io"
 	"log"
 	"regexp"
@@ -18,15 +17,13 @@ type Consumer interface {
 }
 
 type consumerImpl struct {
-	cmd    *core.Cmd
 	reader io.Reader
 	level  int
 	signal chan int
 }
 
-func NewConsumer(cmd *core.Cmd, reader io.Reader, level int) Consumer {
+func NewConsumer(reader io.Reader, level int) Consumer {
 	return &consumerImpl{
-		cmd:    cmd,
 		reader: reader,
 		level:  level,
 		signal: make(chan int),
@@ -63,7 +60,6 @@ func (consumer *consumerImpl) consume(handler MessageHandler) {
 				if matches == nil {
 					//use default level.
 					handler(&Message{
-						Cmd:     consumer.cmd,
 						Level:   consumer.level,
 						Message: line,
 					})
@@ -77,7 +73,6 @@ func (consumer *consumerImpl) consume(handler MessageHandler) {
 					} else {
 						//single line message
 						handler(&Message{
-							Cmd:     consumer.cmd,
 							Level:   level,
 							Message: message,
 						})
@@ -93,7 +88,6 @@ func (consumer *consumerImpl) consume(handler MessageHandler) {
 					multiline = false
 					//flush message
 					handler(&Message{
-						Cmd:     consumer.cmd,
 						Level:   level,
 						Message: message,
 					})

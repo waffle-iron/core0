@@ -152,9 +152,6 @@ func (process *systemProcessImpl) killChildren() {
 
 func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 
-	channel := make(chan *stream.Message)
-	defer close(channel)
-
 	args := process.cmd.Args
 	cmd := exec.Command(args.GetString("name"),
 		args.GetStringArray("args")...)
@@ -191,6 +188,8 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 		return nil, err
 	}
 
+	channel := make(chan *stream.Message)
+
 	process.pid = cmd.Process.Pid
 	psProcess, _ := psutil.NewProcess(int32(process.pid))
 	process.process = psProcess
@@ -205,10 +204,10 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 	}
 
 	// start consuming outputs.
-	outConsumer := stream.NewConsumer(process.cmd, stdout, 1)
+	outConsumer := stream.NewConsumer(stdout, 1)
 	outConsumer.Consume(msgInterceptor)
 
-	errConsumer := stream.NewConsumer(process.cmd, stderr, 2)
+	errConsumer := stream.NewConsumer(stderr, 2)
 	errConsumer.Consume(msgInterceptor)
 
 	if process.cmd.Data != "" {

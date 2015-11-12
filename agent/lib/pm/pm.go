@@ -6,18 +6,19 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
+	//	"github.com/Jumpscale/agent2/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
 //MeterHandler represents a callback type
 type MeterHandler func(cmd *core.Cmd, p *psutil.Process)
+
+type MessageHandler func(*core.Cmd, *stream.Message)
 
 //StatsdMeterHandler represents a callback type
 type StatsdMeterHandler func(statsd *stats.Statsd, cmd *core.Cmd, p *psutil.Process)
@@ -40,15 +41,17 @@ type PM struct {
 	jobsCond  *sync.Cond
 
 	statsdMeterHandlers []StatsdMeterHandler
-	msgHandlers         []stream.MessageHandler
+	msgHandlers         []MessageHandler
 	resultHandlers      []ResultHandler
 	statsFlushHandlers  []StatsFlushHandler
 	queueMgr            *cmdQueueManager
 }
 
+var pm *PM
+
 //NewPM creates a new PM
 func NewPM(midfile string, maxJobs int) *PM {
-	pm := &PM{
+	pm = &PM{
 		cmds:      make(chan *core.Cmd),
 		midfile:   midfile,
 		mid:       loadMid(midfile),
@@ -59,11 +62,18 @@ func NewPM(midfile string, maxJobs int) *PM {
 		jobsCond:  sync.NewCond(&sync.Mutex{}),
 
 		statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
-		msgHandlers:         make([]stream.MessageHandler, 0, 3),
+		msgHandlers:         make([]MessageHandler, 0, 3),
 		resultHandlers:      make([]ResultHandler, 0, 3),
 		statsFlushHandlers:  make([]StatsFlushHandler, 0, 3),
 		queueMgr:            newCmdQueueManager(),
 	}
+
+	return pm
+}
+
+//TODO: That's not clean, find another way to make this available for other
+//code
+func GetManager() *PM {
 	return pm
 }
 
@@ -110,7 +120,7 @@ func (pm *PM) getNextMsgID() uint32 {
 
 //AddMessageHandler adds handlers for messages that are captured from sub processes. Logger can use this to
 //process messages
-func (pm *PM) AddMessageHandler(handler stream.MessageHandler) {
+func (pm *PM) AddMessageHandler(handler MessageHandler) {
 	pm.msgHandlers = append(pm.msgHandlers, handler)
 }
 
@@ -250,33 +260,34 @@ func (pm *PM) meterCallback(cmd *core.Cmd, ps *psutil.Process) {
 	}
 }
 
-func (pm *PM) handlStatsdMsgs(msg *stream.Message) {
-	statsd, ok := pm.statsdes[msg.Cmd.ID]
-	if !ok {
-		// there is no statsd configured for this process!! we shouldn't
-		// be here but just in case
-		return
-	}
+// func (pm *PM) handlStatsdMsgs(msg *stream.Message) {
+// 	statsd, ok := pm.statsdes[msg.Cmd.ID]
+// 	if !ok {
+// 		// there is no statsd configured for this process!! we shouldn't
+// 		// be here but just in case
+// 		return
+// 	}
 
-	statsd.Feed(strings.Trim(msg.Message, " "))
-}
+// 	statsd.Feed(strings.Trim(msg.Message, " "))
+// }
+
 func (pm *PM) msgCallback(msg *stream.Message) {
-	if msg.Level == stream.LevelStatsd {
-		pm.handlStatsdMsgs(msg)
-	}
+	// if msg.Level == stream.LevelStatsd {
+	// 	pm.handlStatsdMsgs(msg)
+	// }
 
-	levels := msg.Cmd.Args.GetIntArray("loglevels")
-	if len(levels) > 0 && !utils.In(levels, msg.Level) {
-		return
-	}
+	// levels := msg.Cmd.Args.GetIntArray("loglevels")
+	// if len(levels) > 0 && !utils.In(levels, msg.Level) {
+	// 	return
+	// }
 
-	//stamp msg.
-	msg.Epoch = time.Now().UnixNano()
-	//add ID
-	msg.ID = pm.getNextMsgID()
-	for _, handler := range pm.msgHandlers {
-		handler(msg)
-	}
+	// //stamp msg.
+	// msg.Epoch = time.Now().UnixNano()
+	// //add ID
+	// msg.ID = pm.getNextMsgID()
+	// for _, handler := range pm.msgHandlers {
+	// 	handler(msg)
+	// }
 }
 
 func (pm *PM) resultCallback(cmd *core.Cmd, result *core.JobResult) {

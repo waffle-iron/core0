@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/boltdb/bolt"
@@ -16,7 +17,7 @@ import (
 Logger interface
 */
 type Logger interface {
-	Log(msg *stream.Message)
+	Log(*core.Cmd, *stream.Message)
 }
 
 /*
@@ -56,9 +57,9 @@ func NewDBLogger(db *bolt.DB, defaults []int) (Logger, error) {
 }
 
 //Log message
-func (logger *DBLogger) Log(msg *stream.Message) {
+func (logger *DBLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 	levels := logger.defaults
-	msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+	msgLevels := cmd.Args.GetIntArray("loglevels_db")
 
 	if len(msgLevels) > 0 {
 		levels = msgLevels
@@ -70,7 +71,7 @@ func (logger *DBLogger) Log(msg *stream.Message) {
 
 	go logger.db.Batch(func(tx *bolt.Tx) error {
 		logs := tx.Bucket([]byte("logs"))
-		jobBucket, err := logs.CreateBucketIfNotExists([]byte(msg.Cmd.ID))
+		jobBucket, err := logs.CreateBucketIfNotExists([]byte(cmd.ID))
 		if err != nil {
 			log.Println("Logger:", err)
 			return err
@@ -116,9 +117,9 @@ func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.D
 }
 
 //Log message
-func (logger *ACLogger) Log(msg *stream.Message) {
+func (logger *ACLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 	levels := logger.defaults
-	msgLevels := msg.Cmd.Args.GetIntArray("loglevels_db")
+	msgLevels := cmd.Args.GetIntArray("loglevels_db")
 
 	if len(msgLevels) > 0 {
 		levels = msgLevels
@@ -170,10 +171,10 @@ func NewConsoleLogger(defaults []int) Logger {
 }
 
 //Log messages
-func (logger *ConsoleLogger) Log(msg *stream.Message) {
+func (logger *ConsoleLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 	if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
 		return
 	}
 
-	log.Println(msg)
+	log.Println(cmd, msg)
 }
