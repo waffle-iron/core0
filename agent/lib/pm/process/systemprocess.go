@@ -220,8 +220,6 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 
 	stdin.Close()
 
-	//psexit := make(chan bool)
-
 	go func(channel chan *stream.Message) {
 		//make sure all outputs are closed before waiting for the process
 		//to exit.
@@ -233,8 +231,12 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 			log.Println(err)
 		}
 
-		//TODO: may be send a 'terminataion' message before closing the
-		//channel.
+		if cmd.ProcessState.Success() {
+			channel <- stream.MessageExitSuccess
+		} else {
+			channel <- stream.MessageExitError
+		}
+
 		close(channel)
 	}(channel)
 
