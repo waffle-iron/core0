@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"github.com/pborman/uuid"
@@ -77,13 +78,13 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 
 			id := uuid.New()
 
-			cmd := &pm.Cmd{
+			cmd := &core.Cmd{
 				Gid:  cfg.Main.Gid,
 				Nid:  cfg.Main.Nid,
 				ID:   id,
 				Name: startup.Name,
 				Data: startup.Data,
-				Args: pm.NewMapArgs(startup.Args),
+				Args: core.NewMapArgs(startup.Args),
 			}
 
 			meterInt := cmd.Args.GetInt("stats_interval")

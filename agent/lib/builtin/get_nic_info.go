@@ -3,6 +3,7 @@ package builtin
 import (
 	"encoding/json"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -14,7 +15,7 @@ func init() {
 	pm.CmdMap[cmdGetNicInfo] = InternalProcessFactory(getNicInfo)
 }
 
-func getNicInfo(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+func getNicInfo(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 	result.Level = pm.LevelResultJSON
 

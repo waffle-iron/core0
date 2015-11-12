@@ -2,6 +2,7 @@ package pm
 
 import (
 	"container/list"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"log"
 	"sync"
 )
@@ -12,8 +13,8 @@ cmdQueueManager is used for sequential cmds exectuions
 type cmdQueueManager struct {
 	queues   map[string]*list.List
 	signal   chan string
-	consumer chan *Cmd
-	producer chan *Cmd
+	consumer chan *core.Cmd
+	producer chan *core.Cmd
 	lock     sync.Mutex
 }
 
@@ -24,8 +25,8 @@ func newCmdQueueManager() *cmdQueueManager {
 	mgr := &cmdQueueManager{
 		queues:   make(map[string]*list.List),
 		signal:   make(chan string),
-		consumer: make(chan *Cmd),
-		producer: make(chan *Cmd),
+		consumer: make(chan *core.Cmd),
+		producer: make(chan *core.Cmd),
 	}
 
 	//start queue dispatcher
@@ -96,16 +97,16 @@ func (mgr *cmdQueueManager) producerLoop() {
 
 		mgr.lock.Unlock()
 
-		next := queue.Remove(queue.Front()).(*Cmd)
+		next := queue.Remove(queue.Front()).(*core.Cmd)
 		mgr.producer <- next
 	}
 }
 
-func (mgr *cmdQueueManager) Push(cmd *Cmd) {
+func (mgr *cmdQueueManager) Push(cmd *core.Cmd) {
 	mgr.consumer <- cmd
 }
 
-func (mgr *cmdQueueManager) Notify(cmd *Cmd) {
+func (mgr *cmdQueueManager) Notify(cmd *core.Cmd) {
 	queueName := cmd.Args.GetString("queue")
 	if queueName == "" {
 		//nothing to do
@@ -115,6 +116,6 @@ func (mgr *cmdQueueManager) Notify(cmd *Cmd) {
 	mgr.signal <- queueName
 }
 
-func (mgr *cmdQueueManager) Producer() <-chan *Cmd {
+func (mgr *cmdQueueManager) Producer() <-chan *core.Cmd {
 	return mgr.producer
 }

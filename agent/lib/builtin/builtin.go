@@ -2,20 +2,22 @@ package builtin
 
 import (
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"time"
 )
 
 /*
 Runable represents a runnable built in function that can be managed by the process manager.
 */
-type Runable func(*pm.Cmd, pm.RunCfg) *pm.JobResult
+type Runable func(*core.Cmd, pm.RunCfg) *core.JobResult
 
 /*
 InternalProcess implements a Procss interface and represents an internal (go) process that can be managed by the process manager
 */
 type InternalProcess struct {
 	runable Runable
-	cmd     *pm.Cmd
+	cmd     *core.Cmd
 }
 
 /*
@@ -35,7 +37,7 @@ func InternalProcessFactory(runable Runable) pm.ProcessConstructor {
 /*
 Cmd returns the internal process command
 */
-func (ps *InternalProcess) Cmd() *pm.Cmd {
+func (ps *InternalProcess) Cmd() *core.Cmd {
 	return ps.cmd
 }
 
@@ -68,11 +70,11 @@ func (ps *InternalProcess) Kill() {
 /*
 GetStats gets cpu, mem, etc.. consumption of internal process (not implemented)
 */
-func (ps *InternalProcess) GetStats() *pm.ProcessStats {
+func (ps *InternalProcess) GetStats() *process.ProcessStats {
 	//can't provide values for the internal process, but
 	//we have to return the correct data struct for interface completenss
 	//also indication of running internal commands.
-	return &pm.ProcessStats{
+	return &process.ProcessStats{
 		Cmd:  ps.cmd,
 		CPU:  0,
 		RSS:  0,

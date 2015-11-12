@@ -3,9 +3,11 @@ package pm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/shirou/gopsutil/process"
+	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -14,66 +16,49 @@ import (
 	"time"
 )
 
-//Cmd is an executable command
-type Cmd struct {
-	ID    string   `json:"id"`
-	Gid   int      `json:"gid"`
-	Nid   int      `json:"nid"`
-	Roles []string `json:"roles"`
-	Name  string   `json:"cmd"`
-	Args  *MapArgs `json:"args"`
-	Data  string   `json:"data"`
-	Tags  string   `json:"tags"`
-}
-
 //NewMapCmd builds a cmd from a map.
-func NewMapCmd(data map[string]interface{}) *Cmd {
+func NewMapCmd(data map[string]interface{}) *core.Cmd {
 	stdin, ok := data["data"]
 	if !ok {
 		stdin = ""
 	}
-	cmd := &Cmd{
+	cmd := &core.Cmd{
 		Gid:  data["gid"].(int),
 		Nid:  data["nid"].(int),
 		ID:   data["id"].(string),
 		Name: data["name"].(string),
 		Data: stdin.(string),
-		Args: NewMapArgs(data["args"].(map[string]interface{})),
+		Args: core.NewMapArgs(data["args"].(map[string]interface{})),
 	}
 
 	return cmd
 }
 
 //LoadCmd loads cmd from json string.
-func LoadCmd(str []byte) (*Cmd, error) {
-	cmd := new(Cmd)
+func LoadCmd(str []byte) (*core.Cmd, error) {
+	cmd := new(core.Cmd)
 	err := json.Unmarshal(str, cmd)
 	if err != nil {
 		return nil, err
 	}
-	if cmd.Args == nil || cmd.Args.data == nil {
-		cmd.Args = NewMapArgs(map[string]interface{}{})
+	if cmd.Args == nil || cmd.Args.Data() == nil {
+		cmd.Args = core.NewMapArgs(map[string]interface{}{})
 	}
 
 	return cmd, err
 }
 
-//String represents cmd as a string
-func (cmd *Cmd) String() string {
-	return fmt.Sprintf("(%s# %s %s)", cmd.ID, cmd.Name, cmd.Args.GetString("name"))
-}
-
 //MeterHandler represents a callback type
-type MeterHandler func(cmd *Cmd, p *process.Process)
+type MeterHandler func(cmd *core.Cmd, p *psutil.Process)
 
 //StatsdMeterHandler represents a callback type
-type StatsdMeterHandler func(statsd *stats.Statsd, cmd *Cmd, p *process.Process)
+type StatsdMeterHandler func(statsd *stats.Statsd, cmd *core.Cmd, p *psutil.Process)
 
 //MessageHandler represents a callback type
 type MessageHandler func(msg *Message)
 
 //ResultHandler represents a callback type
-type ResultHandler func(cmd *Cmd, result *JobResult)
+type ResultHandler func(cmd *core.Cmd, result *core.JobResult)
 
 //StatsFlushHandler represents a callback type
 type StatsFlushHandler func(stats *stats.Stats)
@@ -83,8 +68,8 @@ type PM struct {
 	mid       uint32
 	midfile   string
 	midMux    *sync.Mutex
-	cmds      chan *Cmd
-	processes map[string]Process
+	cmds      chan *core.Cmd
+	processes map[string]process.Process
 	statsdes  map[string]*stats.Statsd
 	maxJobs   int
 	jobsCond  *sync.Cond
@@ -99,11 +84,11 @@ type PM struct {
 //NewPM creates a new PM
 func NewPM(midfile string, maxJobs int) *PM {
 	pm := &PM{
-		cmds:      make(chan *Cmd),
+		cmds:      make(chan *core.Cmd),
 		midfile:   midfile,
 		mid:       loadMid(midfile),
 		midMux:    &sync.Mutex{},
-		processes: make(map[string]Process),
+		processes: make(map[string]process.Process),
 		statsdes:  make(map[string]*stats.Statsd),
 		maxJobs:   maxJobs,
 		jobsCond:  sync.NewCond(&sync.Mutex{}),
@@ -136,7 +121,7 @@ func saveMid(midfile string, mid uint32) {
 }
 
 //RunCmd runs and manage command
-func (pm *PM) RunCmd(cmd *Cmd) {
+func (pm *PM) RunCmd(cmd *core.Cmd) {
 	pm.cmds <- cmd
 }
 
@@ -146,7 +131,7 @@ other commands runs on the same queue.
 
 The queue name is retrieved from cmd.Args[queue]
 */
-func (pm *PM) RunCmdQueued(cmd *Cmd) {
+func (pm *PM) RunCmdQueued(cmd *core.Cmd) {
 	pm.queueMgr.Push(cmd)
 }
 
@@ -186,7 +171,7 @@ func (pm *PM) Run() {
 			}
 			pm.jobsCond.L.Unlock()
 
-			var cmd *Cmd
+			var cmd *core.Cmd
 
 			//we have 2 possible sources of cmds.
 			//1- cmds that doesn't require waiting on a queue, those can run immediately
@@ -248,19 +233,21 @@ func (pm *PM) Run() {
 				pm.jobsCond.Broadcast()
 			}()
 
-			go process.Run(RunCfg{
-				ProcessManager: pm,
-				MeterHandler:   pm.meterCallback,
-				MessageHandler: pm.msgCallback,
-				ResultHandler:  pm.resultCallback,
-				Signal:         signal,
-			})
+			// RunCfg{
+			// 	ProcessManager: pm,
+			// 	MeterHandler:   pm.meterCallback,
+			// 	MessageHandler: pm.msgCallback,
+			// 	ResultHandler:  pm.resultCallback,
+			// 	Signal:         signal,
+			// }
+
+			go process.Run()
 		}
 	}()
 }
 
 //Processes returs a list of running processes
-func (pm *PM) Processes() map[string]Process {
+func (pm *PM) Processes() map[string]process.Process {
 	return pm.processes
 }
 
@@ -279,7 +266,7 @@ func (pm *PM) Kill(cmdID string) {
 	}
 }
 
-func (pm *PM) meterCallback(cmd *Cmd, ps *process.Process) {
+func (pm *PM) meterCallback(cmd *core.Cmd, ps *psutil.Process) {
 	statsd, ok := pm.statsdes[cmd.ID]
 	if !ok {
 		return
@@ -327,7 +314,7 @@ func (pm *PM) msgCallback(msg *Message) {
 	}
 }
 
-func (pm *PM) resultCallback(cmd *Cmd, result *JobResult) {
+func (pm *PM) resultCallback(cmd *core.Cmd, result *core.JobResult) {
 	result.Tags = cmd.Tags
 	result.Args = cmd.Args
 

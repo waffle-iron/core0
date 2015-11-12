@@ -5,8 +5,10 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/shirou/gopsutil/process"
+	psutil "github.com/shirou/gopsutil/process"
 	"log"
 	"os"
 	"os/exec"
@@ -75,24 +77,6 @@ const (
 var resultMessageLevels = []int{LevelResultJSON,
 	LevelResultYAML, LevelResultTOML, LevelResultHRD, LevelResultJob}
 
-//ProcessStats holds process cpu and memory usage
-type ProcessStats struct {
-	Cmd   *Cmd    `json:"cmd"`
-	CPU   float64 `json:"cpu"`
-	RSS   uint64  `json:"rss"`
-	VMS   uint64  `json:"vms"`
-	Swap  uint64  `json:"swap"`
-	Debug string  `json:"debug,ommitempty"`
-}
-
-//Process interface
-type Process interface {
-	Cmd() *Cmd
-	Run(RunCfg)
-	Kill()
-	GetStats() *ProcessStats
-}
-
 //RunCfg holds configuration and callbacks to be passed to a running process so the process can feed the process manager with messages.
 //and results
 type RunCfg struct {
@@ -103,26 +87,9 @@ type RunCfg struct {
 	Signal         chan int
 }
 
-//JobResult represents a result of a job
-type JobResult struct {
-	ID        string   `json:"id"`
-	Gid       int      `json:"gid"`
-	Nid       int      `json:"nid"`
-	Cmd       string   `json:"cmd"`
-	Args      *MapArgs `json:"args"`
-	Data      string   `json:"data"`
-	Streams   []string `json:"streams,omitempty"`
-	Critical  string   `json:"critical,omitempty"`
-	Level     int      `json:"level"`
-	State     string   `json:"state"`
-	StartTime int64    `json:"starttime"`
-	Time      int64    `json:"time"`
-	Tags      string   `json:"tags"`
-}
-
 //NewBasicJobResult creates a new job result from command
-func NewBasicJobResult(cmd *Cmd) *JobResult {
-	return &JobResult{
+func NewBasicJobResult(cmd *core.Cmd) *core.JobResult {
+	return &core.JobResult{
 		ID:   cmd.ID,
 		Gid:  cmd.Gid,
 		Nid:  cmd.Nid,
@@ -134,7 +101,7 @@ func NewBasicJobResult(cmd *Cmd) *JobResult {
 //Message is a message from running process
 type Message struct {
 	ID      uint32
-	Cmd     *Cmd
+	Cmd     *core.Cmd
 	Level   int
 	Message string
 	Epoch   int64
@@ -162,25 +129,25 @@ func (msg *Message) String() string {
 
 //ExtProcess represents an external process
 type ExtProcess struct {
-	cmd      *Cmd
+	cmd      *core.Cmd
 	ctrl     chan int
 	pid      int
 	runs     int
-	process  *process.Process
-	children []*process.Process
+	process  *psutil.Process
+	children []*psutil.Process
 }
 
 //NewExtProcess creates a new external process from a command
-func NewExtProcess(cmd *Cmd) Process {
+func NewExtProcess(cmd *core.Cmd) process.Process {
 	return &ExtProcess{
 		cmd:      cmd,
 		ctrl:     make(chan int),
-		children: make([]*process.Process, 0),
+		children: make([]*psutil.Process, 0),
 	}
 }
 
 //Cmd returns the command
-func (ps *ExtProcess) Cmd() *Cmd {
+func (ps *ExtProcess) Cmd() *core.Cmd {
 	return ps.cmd
 }
 
@@ -233,7 +200,10 @@ func (ps *ExtProcess) getExtraEnv() []string {
 //Run starts process, feed data over the process stdin, and start
 //consuming both stdout, and stderr.
 //All messages from the subprocesses are
-func (ps *ExtProcess) Run(cfg RunCfg) {
+func (ps *ExtProcess) Run() {
+
+	//TODO: fix me
+	var cfg RunCfg
 	args := ps.cmd.Args
 	cmd := exec.Command(args.GetString("name"),
 		args.GetStringArray("args")...)
@@ -284,7 +254,7 @@ func (ps *ExtProcess) Run(cfg RunCfg) {
 	}
 
 	ps.pid = cmd.Process.Pid
-	psProcess, _ := process.NewProcess(int32(ps.pid))
+	psProcess, _ := psutil.NewProcess(int32(ps.pid))
 	ps.process = psProcess
 
 	var result *Message
@@ -432,7 +402,7 @@ loop:
 						ps.runs++
 					}
 					//restarting.
-					ps.Run(cfg)
+					ps.Run()
 				case s := <-ps.ctrl:
 					//process killed while waiting.
 					//since the waiting was done inside a go routine. we need to do
@@ -504,7 +474,7 @@ func (ps *ExtProcess) processInternalMessage(msg *Message) {
 			return
 		}
 		log.Println("Tracking external process:", childPid)
-		child, err := process.NewProcess(int32(childPid))
+		child, err := psutil.NewProcess(int32(childPid))
 		if err != nil {
 			log.Println(err)
 		}
@@ -538,8 +508,8 @@ func (ps *ExtProcess) Kill() {
 }
 
 //GetStats gets stats of an external process
-func (ps *ExtProcess) GetStats() *ProcessStats {
-	stats := new(ProcessStats)
+func (ps *ExtProcess) GetStats() *process.ProcessStats {
+	stats := new(process.ProcessStats)
 	stats.Cmd = ps.cmd
 
 	defer func() {

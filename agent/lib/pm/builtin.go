@@ -3,8 +3,10 @@ package pm
 //implement internal processes
 
 import (
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/shirou/gopsutil/process"
+	//psutil "github.com/shirou/gopsutil/process"
 )
 
 const (
@@ -14,7 +16,7 @@ const (
 /*
 ProcessConstructor represnts a function that returns a Process
 */
-type ProcessConstructor func(cmd *Cmd) Process
+type ProcessConstructor func(cmd *core.Cmd) process.Process
 
 /*
 Global command ProcessConstructor registery
@@ -26,7 +28,7 @@ var CmdMap = map[string]ProcessConstructor{
 /*
 NewProcess creates a new process from a command
 */
-func NewProcess(cmd *Cmd) Process {
+func NewProcess(cmd *core.Cmd) process.Process {
 	constructor, ok := CmdMap[cmd.Name]
 	if !ok {
 		return nil
@@ -36,13 +38,13 @@ func NewProcess(cmd *Cmd) Process {
 }
 
 type extensionProcess struct {
-	extps Process
-	cmd   *Cmd
+	extps process.Process
+	cmd   *core.Cmd
 }
 
 func newExtensionProcess(exe string, workdir string, cmdargs []string, env []string) ProcessConstructor {
 	//create a new execute process with python2.7 or lua as executors.
-	constructor := func(cmd *Cmd) Process {
+	constructor := func(cmd *core.Cmd) process.Process {
 		args := cmd.Args.Clone(false)
 		args.Set("name", exe)
 
@@ -61,7 +63,7 @@ func newExtensionProcess(exe string, workdir string, cmdargs []string, env []str
 			args.Set("working_dir", workdir)
 		}
 
-		extcmd := &Cmd{
+		extcmd := &core.Cmd{
 			ID:   cmd.ID,
 			Gid:  cmd.Gid,
 			Nid:  cmd.Nid,
@@ -80,42 +82,46 @@ func newExtensionProcess(exe string, workdir string, cmdargs []string, env []str
 	return constructor
 }
 
-func (ps *extensionProcess) Cmd() *Cmd {
+func (ps *extensionProcess) Cmd() *core.Cmd {
 	return ps.cmd
 }
 
-func (ps *extensionProcess) Run(cfg RunCfg) {
+func (ps *extensionProcess) Run() {
 	//intercept all the messages from the 'execute' command and
 	//change it to it's original value.
-	extcfg := RunCfg{
-		ProcessManager: cfg.ProcessManager,
-		MeterHandler: func(cmd *Cmd, p *process.Process) {
-			cfg.MeterHandler(ps.cmd, p)
-		},
-		MessageHandler: func(msg *Message) {
-			msg.Cmd = ps.cmd
-			cfg.MessageHandler(msg)
-		},
-		ResultHandler: func(cmd *Cmd, result *JobResult) {
-			result.Args = ps.cmd.Args
-			result.Cmd = ps.cmd.Name
-			result.ID = ps.cmd.ID
-			result.Gid = ps.cmd.Gid
-			result.Nid = ps.cmd.Nid
 
-			cfg.ResultHandler(ps.cmd, result)
-		},
-		Signal: cfg.Signal,
-	}
+	//TODO: fix me! I will build but not work
+	// var cfg RunCfg
 
-	ps.extps.Run(extcfg)
+	// extcfg := RunCfg{
+	// 	ProcessManager: cfg.ProcessManager,
+	// 	MeterHandler: func(cmd *core.Cmd, p *psutil.Process) {
+	// 		cfg.MeterHandler(ps.cmd, p)
+	// 	},
+	// 	MessageHandler: func(msg *Message) {
+	// 		msg.Cmd = ps.cmd
+	// 		cfg.MessageHandler(msg)
+	// 	},
+	// 	ResultHandler: func(cmd *core.Cmd, result *core.JobResult) {
+	// 		result.Args = ps.cmd.Args
+	// 		result.Cmd = ps.cmd.Name
+	// 		result.ID = ps.cmd.ID
+	// 		result.Gid = ps.cmd.Gid
+	// 		result.Nid = ps.cmd.Nid
+
+	// 		cfg.ResultHandler(ps.cmd, result)
+	// 	},
+	// 	Signal: cfg.Signal,
+	// }
+
+	ps.extps.Run()
 }
 
 func (ps *extensionProcess) Kill() {
 	ps.extps.Kill()
 }
 
-func (ps *extensionProcess) GetStats() *ProcessStats {
+func (ps *extensionProcess) GetStats() *process.ProcessStats {
 	return ps.extps.GetStats()
 }
 

@@ -2,6 +2,7 @@ package pm
 
 import (
 	"bufio"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"io"
 	"log"
 	"regexp"
@@ -12,13 +13,13 @@ import (
 var pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
 
 type streamConsumer struct {
-	cmd    *Cmd
+	cmd    *core.Cmd
 	reader io.Reader
 	level  int
 	Signal chan int
 }
 
-func newStreamConsumer(cmd *Cmd, reader io.Reader, level int) *streamConsumer {
+func newStreamConsumer(cmd *core.Cmd, reader io.Reader, level int) *streamConsumer {
 	return &streamConsumer{
 		cmd:    cmd,
 		reader: reader,

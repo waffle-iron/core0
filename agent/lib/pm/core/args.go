@@ -1,4 +1,4 @@
-package pm
+package core
 
 import (
 	"encoding/json"

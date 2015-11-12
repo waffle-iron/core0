@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/shirou/gopsutil/process"
 	"log"
 	"os"
@@ -17,7 +18,7 @@ func init() {
 	pm.CmdMap[cmdGetAggregatedStats] = InternalProcessFactory(getAggregatedStats)
 }
 
-func getAggregatedStats(cmd *pm.Cmd, cfg pm.RunCfg) *pm.JobResult {
+func getAggregatedStats(cmd *core.Cmd, cfg pm.RunCfg) *core.JobResult {
 	result := pm.NewBasicJobResult(cmd)
 
 	var stat pm.ProcessStats
