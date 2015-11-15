@@ -32,6 +32,8 @@ func (process *systemProcessImpl) Cmd() *core.Cmd {
 
 func (process *systemProcessImpl) Kill() {
 	//should force system process to exit.
+	process.process.Kill()
+	process.killChildren()
 }
 
 //GetStats gets stats of an external process
@@ -223,6 +225,8 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 	go func(channel chan *stream.Message) {
 		//make sure all outputs are closed before waiting for the process
 		//to exit.
+		defer close(channel)
+
 		<-outConsumer.Signal()
 		<-errConsumer.Signal()
 
@@ -231,13 +235,13 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 			log.Println(err)
 		}
 
+		log.Println("Process ", process.cmd, " exited with state", cmd.ProcessState.Success())
+
 		if cmd.ProcessState.Success() {
 			channel <- stream.MessageExitSuccess
 		} else {
 			channel <- stream.MessageExitError
 		}
-
-		close(channel)
 	}(channel)
 
 	return channel, nil

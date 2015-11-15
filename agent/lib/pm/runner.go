@@ -1,8 +1,6 @@
 package pm
 
 import (
-	"bytes"
-	"container/list"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
@@ -27,36 +25,6 @@ type runnerImpl struct {
 	kill    chan int
 
 	process process.Process
-}
-
-type limitedBuffer struct {
-	size   int
-	buffer *list.List
-}
-
-func newLimitedBuffer(size int) *limitedBuffer {
-	return &limitedBuffer{
-		size:   size,
-		buffer: list.New(),
-	}
-}
-
-func (buffer *limitedBuffer) String() string {
-	var strbuf bytes.Buffer
-	for l := buffer.buffer.Front(); l != nil; l = l.Next() {
-		strbuf.WriteString(l.Value.(string))
-		strbuf.WriteString("\n")
-	}
-
-	return strbuf.String()
-}
-
-func (buffer *limitedBuffer) Append(line string) {
-	list := buffer.buffer
-	list.PushBack(line)
-	if list.Len() > buffer.size {
-		list.Remove(list.Front())
-	}
 }
 
 func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) Runner {
@@ -93,8 +61,8 @@ func (runner *runnerImpl) run() {
 	}
 
 	var result *stream.Message
-	stdoutBuffer := newLimitedBuffer(StreamBufferSize)
-	stderrBuffer := newLimitedBuffer(StreamBufferSize)
+	stdoutBuffer := stream.NewBuffer(StreamBufferSize)
+	stderrBuffer := stream.NewBuffer(StreamBufferSize)
 
 loop:
 	for {
@@ -102,6 +70,7 @@ loop:
 		case <-runner.kill:
 			process.Kill()
 			jobresult.State = core.StateKilled
+			break loop
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
 				result = message
@@ -122,6 +91,11 @@ loop:
 	}
 
 	runner.process = nil
+
+	//consume channel to the end to allow process to cleanup probabry
+	for _ = range channel {
+		//noop.
+	}
 
 	if result != nil {
 		jobresult.Level = result.Level
