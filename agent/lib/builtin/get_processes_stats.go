@@ -28,9 +28,14 @@ func getProcessesStats(cmd *core.Cmd) (interface{}, error) {
 		return nil, err
 	}
 
-	stats := make([]*process.ProcessStats, 0, len(pm.GetManager().Processes()))
+	stats := make([]*process.ProcessStats, 0, len(pm.GetManager().Runners()))
 
-	for _, process := range pm.GetManager().Processes() {
+	for _, runner := range pm.GetManager().Runners() {
+		process := runner.Process()
+		if process == nil {
+			continue
+		}
+
 		cmd := process.Cmd()
 
 		if data.Domain != "" {

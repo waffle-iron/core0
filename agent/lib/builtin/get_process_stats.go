@@ -28,11 +28,17 @@ func getProcessStats(cmd *core.Cmd) (interface{}, error) {
 		return nil, err
 	}
 
-	process, ok := pm.GetManager().Processes()[data.ID]
+	runner, ok := pm.GetManager().Runners()[data.ID]
 
 	if !ok {
 		return nil, fmt.Errorf("Process with id '%s' doesn't exist", data.ID)
 	}
 
-	return process.GetStats(), nil
+	ps := runner.Process()
+	if ps != nil {
+		return ps.GetStats(), nil
+	} else {
+		return &process.ProcessStats{}, nil
+	}
+
 }

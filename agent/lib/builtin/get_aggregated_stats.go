@@ -22,7 +22,12 @@ func getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
 
 	var stat process.ProcessStats
 
-	for _, process := range pm.GetManager().Processes() {
+	for _, runner := range pm.GetManager().Runners() {
+		process := runner.Process()
+		if process == nil {
+			continue
+		}
+
 		processStats := process.GetStats()
 		stat.CPU += processStats.CPU
 		stat.RSS += processStats.RSS

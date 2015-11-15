@@ -3,7 +3,7 @@ package pm
 import (
 	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/Jumpscale/agent2/agent/lib/pm/process"
+	//"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	//	"github.com/Jumpscale/agent2/agent/lib/utils"
@@ -31,14 +31,14 @@ type StatsFlushHandler func(stats *stats.Stats)
 
 //PM is the main process manager.
 type PM struct {
-	mid       uint32
-	midfile   string
-	midMux    *sync.Mutex
-	cmds      chan *core.Cmd
-	processes map[string]process.Process
-	statsdes  map[string]*stats.Statsd
-	maxJobs   int
-	jobsCond  *sync.Cond
+	mid      uint32
+	midfile  string
+	midMux   *sync.Mutex
+	cmds     chan *core.Cmd
+	runners  map[string]Runner
+	statsdes map[string]*stats.Statsd
+	maxJobs  int
+	jobsCond *sync.Cond
 
 	statsdMeterHandlers []StatsdMeterHandler
 	msgHandlers         []MessageHandler
@@ -52,14 +52,14 @@ var pm *PM
 //NewPM creates a new PM
 func NewPM(midfile string, maxJobs int) *PM {
 	pm = &PM{
-		cmds:      make(chan *core.Cmd),
-		midfile:   midfile,
-		mid:       loadMid(midfile),
-		midMux:    &sync.Mutex{},
-		processes: make(map[string]process.Process),
-		statsdes:  make(map[string]*stats.Statsd),
-		maxJobs:   maxJobs,
-		jobsCond:  sync.NewCond(&sync.Mutex{}),
+		cmds:     make(chan *core.Cmd),
+		midfile:  midfile,
+		mid:      loadMid(midfile),
+		midMux:   &sync.Mutex{},
+		runners:  make(map[string]Runner),
+		statsdes: make(map[string]*stats.Statsd),
+		maxJobs:  maxJobs,
+		jobsCond: sync.NewCond(&sync.Mutex{}),
 
 		statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
 		msgHandlers:         make([]MessageHandler, 0, 3),
@@ -141,7 +141,7 @@ func (pm *PM) Run() {
 		for {
 			pm.jobsCond.L.Lock()
 
-			for len(pm.processes) >= pm.maxJobs {
+			for len(pm.runners) >= pm.maxJobs {
 				pm.jobsCond.Wait()
 			}
 			pm.jobsCond.L.Unlock()
@@ -156,9 +156,10 @@ func (pm *PM) Run() {
 			case cmd = <-pm.queueMgr.Producer():
 			}
 
-			process := NewProcess(cmd)
+			factory := GetProcessFactory(cmd)
+			//process := NewProcess(cmd)
 
-			if process == nil {
+			if factory == nil {
 				log.Println("Unknow command", cmd.Name)
 				errResult := core.NewBasicJobResult(cmd)
 				errResult.State = core.StateUnknownCmd
@@ -166,7 +167,7 @@ func (pm *PM) Run() {
 				continue
 			}
 
-			_, exists := pm.processes[cmd.ID]
+			_, exists := pm.runners[cmd.ID]
 			if exists {
 				errResult := core.NewBasicJobResult(cmd)
 				errResult.State = core.StateDuplicateID
@@ -175,7 +176,8 @@ func (pm *PM) Run() {
 				continue
 			}
 
-			pm.processes[cmd.ID] = process
+			runner := NewRunner(pm, cmd, factory)
+			pm.runners[cmd.ID] = runner
 
 			statsInterval := cmd.Args.GetInt("stats_interval")
 
@@ -197,7 +199,7 @@ func (pm *PM) Run() {
 				<-signal
 				close(signal)
 				statsd.Stop()
-				delete(pm.processes, cmd.ID)
+				delete(pm.runners, cmd.ID)
 				delete(pm.statsdes, cmd.ID)
 
 				//tell the queue that this command has finished so it prepares a
@@ -208,34 +210,26 @@ func (pm *PM) Run() {
 				pm.jobsCond.Broadcast()
 			}()
 
-			// RunCfg{
-			// 	ProcessManager: pm,
-			// 	MeterHandler:   pm.meterCallback,
-			// 	MessageHandler: pm.msgCallback,
-			// 	ResultHandler:  pm.resultCallback,
-			// 	Signal:         signal,
-			// }
-
-			go process.Run()
+			go runner.Run()
 		}
 	}()
 }
 
 //Processes returs a list of running processes
-func (pm *PM) Processes() map[string]process.Process {
-	return pm.processes
+func (pm *PM) Runners() map[string]Runner {
+	return pm.runners
 }
 
 //Killall kills all running processes.
 func (pm *PM) Killall() {
-	for _, v := range pm.processes {
+	for _, v := range pm.runners {
 		go v.Kill()
 	}
 }
 
 //Kill kills a process by the cmd ID
 func (pm *PM) Kill(cmdID string) {
-	v, o := pm.processes[cmdID]
+	v, o := pm.runners[cmdID]
 	if o {
 		v.Kill()
 	}

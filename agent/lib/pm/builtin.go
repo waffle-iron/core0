@@ -17,13 +17,8 @@ var CmdMap = map[string]process.ProcessFactory{
 /*
 NewProcess creates a new process from a command
 */
-func NewProcess(cmd *core.Cmd) process.Process {
-	constructor, ok := CmdMap[cmd.Name]
-	if !ok {
-		return nil
-	}
-
-	return constructor(cmd)
+func GetProcessFactory(cmd *core.Cmd) process.ProcessFactory {
+	return CmdMap[cmd.Name]
 }
 
 /*
