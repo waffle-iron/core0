@@ -197,6 +197,12 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 	process.process = psProcess
 
 	msgInterceptor := func(msg *stream.Message) {
+		if msg.Level == stream.LevelExitState {
+			//the level exit state is for internal use only, shouldn't
+			//be sent by the app itself, if found, we change the level to err.
+			msg.Level = stream.LevelStderr
+		}
+
 		if msg.Level > stream.LevelInternal {
 			process.processInternalMessage(msg)
 			return

@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -41,11 +40,10 @@ type PM struct {
 	maxJobs  int
 	jobsCond *sync.Cond
 
-	statsdMeterHandlers []StatsdMeterHandler
-	msgHandlers         []MessageHandler
-	resultHandlers      []ResultHandler
-	statsFlushHandlers  []StatsFlushHandler
-	queueMgr            *cmdQueueManager
+	msgHandlers        []MessageHandler
+	resultHandlers     []ResultHandler
+	statsFlushHandlers []StatsFlushHandler
+	queueMgr           *cmdQueueManager
 }
 
 var pm *PM
@@ -58,15 +56,13 @@ func NewPM(midfile string, maxJobs int) *PM {
 		mid:      loadMid(midfile),
 		midMux:   &sync.Mutex{},
 		runners:  make(map[string]Runner),
-		statsdes: make(map[string]*stats.Statsd),
 		maxJobs:  maxJobs,
 		jobsCond: sync.NewCond(&sync.Mutex{}),
 
-		statsdMeterHandlers: make([]StatsdMeterHandler, 0, 3),
-		msgHandlers:         make([]MessageHandler, 0, 3),
-		resultHandlers:      make([]ResultHandler, 0, 3),
-		statsFlushHandlers:  make([]StatsFlushHandler, 0, 3),
-		queueMgr:            newCmdQueueManager(),
+		msgHandlers:        make([]MessageHandler, 0, 3),
+		resultHandlers:     make([]ResultHandler, 0, 3),
+		statsFlushHandlers: make([]StatsFlushHandler, 0, 3),
+		queueMgr:           newCmdQueueManager(),
 	}
 
 	return pm
@@ -180,26 +176,12 @@ func (pm *PM) Run() {
 			runner := NewRunner(pm, cmd, factory)
 			pm.runners[cmd.ID] = runner
 
-			statsInterval := cmd.Args.GetInt("stats_interval")
-
-			prefix := fmt.Sprintf("%d.%d.%s.%s.%s", cmd.Gid, cmd.Nid, cmd.Name,
-				cmd.Args.GetString("domain"), cmd.Args.GetString("name"))
-
-			statsd := stats.NewStatsd(
-				prefix,
-				time.Duration(statsInterval)*time.Second,
-				pm.statsFlushCallback)
-
-			statsd.Run()
-			pm.statsdes[cmd.ID] = statsd
-
 			// A process must signal it's termination (that it's not going
 			// to restart) for the process manager to clean up it's reference
 			signal := make(chan int)
 			go func() {
 				<-signal
 				close(signal)
-				statsd.Stop()
 				delete(pm.runners, cmd.ID)
 				delete(pm.statsdes, cmd.ID)
 
@@ -236,41 +218,7 @@ func (pm *PM) Kill(cmdID string) {
 	}
 }
 
-func (pm *PM) meterCallback(cmd *core.Cmd, ps *psutil.Process) {
-	statsd, ok := pm.statsdes[cmd.ID]
-	if !ok {
-		return
-	}
-
-	cpu, err := ps.CPUPercent(0)
-	if err == nil {
-		statsd.Gauage("_cpu_", fmt.Sprintf("%f", cpu))
-	}
-
-	mem, err := ps.MemoryInfo()
-	if err == nil {
-		statsd.Gauage("_rss_", fmt.Sprintf("%d", mem.RSS))
-		statsd.Gauage("_vms_", fmt.Sprintf("%d", mem.VMS))
-		statsd.Gauage("_swap_", fmt.Sprintf("%d", mem.Swap))
-	}
-}
-
-func (pm *PM) handlStatsdMsgs(cmd *core.Cmd, msg *stream.Message) {
-	statsd, ok := pm.statsdes[cmd.ID]
-	if !ok {
-		// there is no statsd configured for this process!! we shouldn't
-		// be here but just in case
-		return
-	}
-
-	statsd.Feed(strings.Trim(msg.Message, " "))
-}
-
 func (pm *PM) msgCallback(cmd *core.Cmd, msg *stream.Message) {
-	if msg.Level == stream.LevelStatsd {
-		pm.handlStatsdMsgs(cmd, msg)
-	}
-
 	levels := cmd.Args.GetIntArray("loglevels")
 	if len(levels) > 0 && !utils.In(levels, msg.Level) {
 		return

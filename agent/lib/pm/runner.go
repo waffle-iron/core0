@@ -1,16 +1,21 @@
 package pm
 
 import (
+	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
+	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"log"
+	"strings"
 	"time"
 )
 
 const (
 	StreamBufferSize = 1000
+
+	meterPeriod = 30 * time.Second
 )
 
 type Runner interface {
@@ -26,14 +31,24 @@ type runnerImpl struct {
 	kill    chan int
 
 	process process.Process
+	statsd  *stats.Statsd
 }
 
 func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) Runner {
+	statsInterval := command.Args.GetInt("stats_interval")
+
+	prefix := fmt.Sprintf("%d.%d.%s.%s.%s", command.Gid, command.Nid, command.Name,
+		command.Args.GetString("domain"), command.Args.GetString("name"))
+
 	return &runnerImpl{
 		manager: manager,
 		command: command,
 		factory: factory,
 		kill:    make(chan int),
+		statsd: stats.NewStatsd(
+			prefix,
+			time.Duration(statsInterval)*time.Second,
+			manager.statsFlushCallback),
 	}
 }
 
@@ -44,6 +59,21 @@ func (runner *runnerImpl) timeout() <-chan time.Time {
 		timeout = time.After(time.Duration(t) * time.Second)
 	}
 	return timeout
+}
+
+func (runner *runnerImpl) meter() {
+	process := runner.process
+	if process == nil {
+		return
+	}
+
+	stats := process.GetStats()
+	//feed statsd
+	statsd := runner.statsd
+	statsd.Gauage("_cpu_", fmt.Sprintf("%f", stats.CPU))
+	statsd.Gauage("_rss_", fmt.Sprintf("%d", stats.RSS))
+	statsd.Gauage("_vms_", fmt.Sprintf("%d", stats.VMS))
+	statsd.Gauage("_swap_", fmt.Sprintf("%d", stats.Swap))
 }
 
 func (runner *runnerImpl) run() *core.JobResult {
@@ -75,6 +105,7 @@ func (runner *runnerImpl) run() *core.JobResult {
 	stderrBuffer := stream.NewBuffer(StreamBufferSize)
 
 	timeout := runner.timeout()
+	meter := time.After(meterPeriod)
 loop:
 	for {
 		select {
@@ -86,6 +117,9 @@ loop:
 			process.Kill()
 			jobresult.State = core.StateTimeout
 			break loop
+		case <-meter:
+			runner.meter()
+			meter = time.After(meterPeriod)
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
 				result = message
@@ -94,10 +128,13 @@ loop:
 				break loop
 			}
 
+			//handly different messagtes types
 			if message.Level == stream.LevelStdout {
 				stdoutBuffer.Append(message.Message)
 			} else if message.Level == stream.LevelStderr {
 				stderrBuffer.Append(message.Message)
+			} else if message.Level == stream.LevelStatsd {
+				runner.statsd.Feed(strings.Trim(message.Message, " "))
 			}
 
 			//by default, all messages are forwarded to the manager for further processing.
@@ -129,11 +166,14 @@ func (runner *runnerImpl) Run() {
 	runs := 0
 	var result *core.JobResult
 	defer func() {
+		runner.statsd.Stop()
 		if result != nil {
 			runner.manager.resultCallback(runner.command, result)
 		}
 	}()
 
+	//start statsd
+	runner.statsd.Run()
 loop:
 	for {
 		result = runner.run()
