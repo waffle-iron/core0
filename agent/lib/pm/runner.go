@@ -5,6 +5,7 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"log"
 	"time"
 )
 
@@ -36,7 +37,16 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 	}
 }
 
-func (runner *runnerImpl) run() {
+func (runner *runnerImpl) timeout() <-chan time.Time {
+	var timeout <-chan time.Time
+	t := runner.command.Args.GetInt("max_time")
+	if t > 0 {
+		timeout = time.After(time.Duration(t) * time.Second)
+	}
+	return timeout
+}
+
+func (runner *runnerImpl) run() *core.JobResult {
 	starttime := time.Duration(time.Now().UnixNano()) / time.Millisecond // start time in msec
 
 	jobresult := core.NewBasicJobResult(runner.command)
@@ -64,12 +74,17 @@ func (runner *runnerImpl) run() {
 	stdoutBuffer := stream.NewBuffer(StreamBufferSize)
 	stderrBuffer := stream.NewBuffer(StreamBufferSize)
 
+	timeout := runner.timeout()
 loop:
 	for {
 		select {
 		case <-runner.kill:
 			process.Kill()
 			jobresult.State = core.StateKilled
+			break loop
+		case <-timeout:
+			process.Kill()
+			jobresult.State = core.StateTimeout
 			break loop
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
@@ -107,11 +122,62 @@ loop:
 		stderrBuffer.String(),
 	}
 
-	runner.manager.resultCallback(runner.command, jobresult)
+	return jobresult
 }
 
 func (runner *runnerImpl) Run() {
-	runner.run()
+	runs := 0
+	var result *core.JobResult
+	defer func() {
+		if result != nil {
+			runner.manager.resultCallback(runner.command, result)
+		}
+	}()
+
+loop:
+	for {
+		result = runner.run()
+		if result.State == core.StateKilled {
+			//we never restart a killed process.
+			break
+		}
+
+		args := runner.command.Args
+
+		//recurring
+		maxRestart := args.GetInt("max_restart")
+		restarting := false
+		var restartIn time.Duration
+
+		if result.State != core.StateSuccess && maxRestart > 0 {
+			runs++
+			if runs < maxRestart {
+				log.Println("Restarting", runner.command, "due to upnormal exit status, trials", runs+1, "/", maxRestart)
+				restarting = true
+				restartIn = 1 * time.Second
+			}
+		}
+
+		recurringPeriod := args.GetInt("recurring_period")
+		if recurringPeriod > 0 {
+			restarting = true
+			restartIn = time.Duration(recurringPeriod) * time.Second
+		}
+
+		if restarting {
+			log.Println("Recurring", runner.command, "in", restartIn)
+			//TODO: respect the kill signal.
+			select {
+			case <-time.After(restartIn):
+			case <-runner.kill:
+				log.Println("Command ", runner.command, "Killed during scheduler sleep")
+				result.State = core.StateKilled
+				break loop
+			}
+		} else {
+			break
+		}
+	}
 }
 
 func (runner *runnerImpl) Kill() {
