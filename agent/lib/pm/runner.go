@@ -106,6 +106,8 @@ func (runner *runnerImpl) run() *core.JobResult {
 	}
 
 	var result *stream.Message
+	var critical string
+
 	stdoutBuffer := stream.NewBuffer(StreamBufferSize)
 	stderrBuffer := stream.NewBuffer(StreamBufferSize)
 
@@ -131,15 +133,14 @@ loop:
 			} else if message.Level == stream.LevelExitState {
 				jobresult.State = message.Message
 				break loop
-			}
-
-			//handly different messagtes types
-			if message.Level == stream.LevelStdout {
+			} else if message.Level == stream.LevelStdout {
 				stdoutBuffer.Append(message.Message)
 			} else if message.Level == stream.LevelStderr {
 				stderrBuffer.Append(message.Message)
 			} else if message.Level == stream.LevelStatsd {
 				runner.statsd.Feed(strings.Trim(message.Message, " "))
+			} else if message.Level == stream.LevelCritical {
+				critical = message.Message
 			}
 
 			//by default, all messages are forwarded to the manager for further processing.
@@ -163,6 +164,8 @@ loop:
 		stdoutBuffer.String(),
 		stderrBuffer.String(),
 	}
+
+	jobresult.Critical = critical
 
 	return jobresult
 }
