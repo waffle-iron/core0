@@ -6,11 +6,12 @@ import (
 	//"github.com/Jumpscale/agent2/agent/lib/pm/process"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
-	//	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/Jumpscale/agent2/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -254,34 +255,34 @@ func (pm *PM) meterCallback(cmd *core.Cmd, ps *psutil.Process) {
 	}
 }
 
-// func (pm *PM) handlStatsdMsgs(msg *stream.Message) {
-// 	statsd, ok := pm.statsdes[msg.Cmd.ID]
-// 	if !ok {
-// 		// there is no statsd configured for this process!! we shouldn't
-// 		// be here but just in case
-// 		return
-// 	}
+func (pm *PM) handlStatsdMsgs(cmd *core.Cmd, msg *stream.Message) {
+	statsd, ok := pm.statsdes[cmd.ID]
+	if !ok {
+		// there is no statsd configured for this process!! we shouldn't
+		// be here but just in case
+		return
+	}
 
-// 	statsd.Feed(strings.Trim(msg.Message, " "))
-// }
+	statsd.Feed(strings.Trim(msg.Message, " "))
+}
 
-func (pm *PM) msgCallback(msg *stream.Message) {
-	// if msg.Level == stream.LevelStatsd {
-	// 	pm.handlStatsdMsgs(msg)
-	// }
+func (pm *PM) msgCallback(cmd *core.Cmd, msg *stream.Message) {
+	if msg.Level == stream.LevelStatsd {
+		pm.handlStatsdMsgs(cmd, msg)
+	}
 
-	// levels := msg.Cmd.Args.GetIntArray("loglevels")
-	// if len(levels) > 0 && !utils.In(levels, msg.Level) {
-	// 	return
-	// }
+	levels := cmd.Args.GetIntArray("loglevels")
+	if len(levels) > 0 && !utils.In(levels, msg.Level) {
+		return
+	}
 
-	// //stamp msg.
-	// msg.Epoch = time.Now().UnixNano()
-	// //add ID
-	// msg.ID = pm.getNextMsgID()
-	// for _, handler := range pm.msgHandlers {
-	// 	handler(msg)
-	// }
+	//stamp msg.
+	msg.Epoch = time.Now().UnixNano()
+	//add ID
+	msg.ID = pm.getNextMsgID()
+	for _, handler := range pm.msgHandlers {
+		handler(cmd, msg)
+	}
 }
 
 func (pm *PM) resultCallback(cmd *core.Cmd, result *core.JobResult) {

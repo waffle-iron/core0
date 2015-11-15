@@ -101,7 +101,7 @@ loop:
 			}
 
 			//by default, all messages are forwarded to the manager for further processing.
-			runner.manager.msgCallback(message)
+			runner.manager.msgCallback(runner.command, message)
 		}
 	}
 
