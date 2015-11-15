@@ -176,26 +176,16 @@ func (pm *PM) Run() {
 			runner := NewRunner(pm, cmd, factory)
 			pm.runners[cmd.ID] = runner
 
-			// A process must signal it's termination (that it's not going
-			// to restart) for the process manager to clean up it's reference
-			signal := make(chan int)
-			go func() {
-				<-signal
-				close(signal)
-				delete(pm.runners, cmd.ID)
-				delete(pm.statsdes, cmd.ID)
-
-				//tell the queue that this command has finished so it prepares a
-				//new command to execute
-				pm.queueMgr.Notify(cmd)
-
-				//tell manager that there is a process slot ready.
-				pm.jobsCond.Broadcast()
-			}()
-
 			go runner.Run()
 		}
 	}()
+}
+
+func (pm *PM) cleanUp(runner Runner) {
+	delete(pm.runners, runner.Command().ID)
+
+	pm.queueMgr.Notify(runner.Command())
+	pm.jobsCond.Broadcast()
 }
 
 //Processes returs a list of running processes

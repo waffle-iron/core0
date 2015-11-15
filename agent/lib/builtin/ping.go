@@ -15,5 +15,5 @@ func init() {
 }
 
 func ping(cmd *core.Cmd) (interface{}, error) {
-	return "poing", nil
+	return "pong", nil
 }

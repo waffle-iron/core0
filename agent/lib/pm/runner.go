@@ -19,6 +19,7 @@ const (
 )
 
 type Runner interface {
+	Command() *core.Cmd
 	Run()
 	Kill()
 	Process() process.Process
@@ -50,6 +51,10 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 			time.Duration(statsInterval)*time.Second,
 			manager.statsFlushCallback),
 	}
+}
+
+func (runner *runnerImpl) Command() *core.Cmd {
+	return runner.command
 }
 
 func (runner *runnerImpl) timeout() <-chan time.Time {
@@ -170,6 +175,8 @@ func (runner *runnerImpl) Run() {
 		if result != nil {
 			runner.manager.resultCallback(runner.command, result)
 		}
+
+		runner.manager.cleanUp(runner)
 	}()
 
 	//start statsd
