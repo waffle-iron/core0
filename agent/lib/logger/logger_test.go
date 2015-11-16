@@ -2,7 +2,8 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/agent2/agent/lib/pm"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -11,8 +12,8 @@ import (
 	"time"
 )
 
-func getFakeCmd(t *testing.T) *pm.Cmd {
-	cmd, err := pm.LoadCmd([]byte("{}"))
+func getFakeCmd(t *testing.T) *core.Cmd {
+	cmd, err := core.LoadCmd([]byte("{}"))
 	if err != nil {
 		t.Error("Could not create fake command")
 	}
@@ -43,7 +44,7 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 		}
 
 		//content is the serialized log messages.
-		var messages []*pm.Message
+		var messages []*stream.Message
 		err = json.Unmarshal(body, &messages)
 		if err != nil {
 			t.Error(err)
@@ -68,24 +69,23 @@ func TestACLogger_BatchSizeTrigger(t *testing.T) {
 
 	message1 := "Hello world"
 
-	msg1 := &pm.Message{
+	cmd := getFakeCmd(t)
+	msg1 := &stream.Message{
 		ID:      1,
-		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
 		Epoch:   1000,
 	}
 
-	msg2 := &pm.Message{
+	msg2 := &stream.Message{
 		ID:      2,
-		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
 		Epoch:   1000,
 	}
 
-	logger.Log(msg1)
-	logger.Log(msg2)
+	logger.Log(cmd, msg1)
+	logger.Log(cmd, msg2)
 
 	select {
 	case l := <-signal:
@@ -120,7 +120,7 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 		}
 
 		//content is the serialized log messages.
-		var messages []*pm.Message
+		var messages []*stream.Message
 		err = json.Unmarshal(body, &messages)
 		if err != nil {
 			t.Error(err)
@@ -146,33 +146,31 @@ func TestACLogger_FlushIntTrigger(t *testing.T) {
 
 	message1 := "Hello world"
 
-	msg1 := &pm.Message{
+	cmd := getFakeCmd(t)
+	msg1 := &stream.Message{
 		ID:      1,
-		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
 		Epoch:   1000,
 	}
 
-	msg2 := &pm.Message{
+	msg2 := &stream.Message{
 		ID:      2,
-		Cmd:     getFakeCmd(t),
 		Level:   1,
 		Message: message1,
 		Epoch:   1000,
 	}
 
-	msg3 := &pm.Message{
+	msg3 := &stream.Message{
 		ID:      2,
-		Cmd:     getFakeCmd(t),
 		Level:   5,
 		Message: message1,
 		Epoch:   1000,
 	}
 
-	logger.Log(msg1)
-	logger.Log(msg2)
-	logger.Log(msg3)
+	logger.Log(cmd, msg1)
+	logger.Log(cmd, msg2)
+	logger.Log(cmd, msg3)
 
 	select {
 	case l := <-signal:
