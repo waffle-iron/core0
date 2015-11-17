@@ -38,6 +38,10 @@ type runnerImpl struct {
 func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) Runner {
 	statsInterval := command.Args.GetInt("stats_interval")
 
+	if statsInterval == 0 {
+		statsInterval = 30
+	}
+
 	prefix := fmt.Sprintf("%d.%d.%s.%s.%s", command.Gid, command.Nid, command.Name,
 		command.Args.GetString("domain"), command.Args.GetString("name"))
 

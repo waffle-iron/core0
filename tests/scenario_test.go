@@ -800,3 +800,88 @@ func TestPortForwarding(t *testing.T) {
 		t.Fatal("Expected an error, instead got success")
 	}
 }
+
+func TestRoutingWorngId(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+	cmd := &client.Command{
+		Gid: 1,
+		Nid: 10,
+		Cmd: "ping",
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := ref.GetNextResult(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.State != "ERROR" {
+		t.Fatalf("Invalid response from agent controller. Expected error")
+	}
+
+	if result.Data != "Agent is not alive!" {
+		t.Fatal("Expecting, 'Agent is not alive!' message")
+	}
+}
+
+func TestRoutingWorngRole(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+	cmd := &client.Command{
+		Gid:    0,
+		Nid:    0,
+		Cmd:    "ping",
+		Roles:  []string{"unknown"},
+		Fanout: false,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := ref.GetNextResult(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.State != "ERROR" {
+		t.Fatalf("Invalid response from agent controller. Expected error")
+	}
+
+	if result.Data != "No agents with role '[unknown]' alive!" {
+		t.Fatal("Expecting, 'Agent is not alive!' message got ", result.Data, " instead")
+	}
+}
+
+func TestRoutingWorngRoleWithFanout(t *testing.T) {
+	clt := client.New("localhost:6379", "")
+	cmd := &client.Command{
+		Gid:    0,
+		Nid:    0,
+		Cmd:    "ping",
+		Roles:  []string{"unknown"},
+		Fanout: true,
+	}
+
+	ref, err := clt.Run(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := ref.GetNextResult(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.State != "ERROR" {
+		t.Fatalf("Invalid response from agent controller. Expected error")
+	}
+
+	if result.Data != "No agents with role '[unknown]' alive!" {
+		t.Fatal("Expecting, 'Agent is not alive!' message got ", result.Data, " instead")
+	}
+}
