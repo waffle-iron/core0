@@ -823,7 +823,7 @@ func TestRoutingWorngId(t *testing.T) {
 		t.Fatalf("Invalid response from agent controller. Expected error")
 	}
 
-	if result.Data != "Agent is not alive!" {
+	if result.Data != "No matching connected agents found" {
 		t.Fatal("Expecting, 'Agent is not alive!' message")
 	}
 }
