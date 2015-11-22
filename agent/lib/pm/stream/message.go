@@ -3,6 +3,7 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"time"
 )
 
@@ -58,12 +59,12 @@ var (
 
 	MessageExitSuccess = &Message{
 		Level:   LevelExitState,
-		Message: "SUCCESS",
+		Message: core.StateSuccess,
 	}
 
 	MessageExitError = &Message{
 		Level:   LevelExitState,
-		Message: "ERROR",
+		Message: core.StateError,
 	}
 )
 
