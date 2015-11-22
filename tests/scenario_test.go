@@ -828,7 +828,7 @@ func TestRoutingWorngId(t *testing.T) {
 	}
 }
 
-func TestRoutingWorngRole(t *testing.T) {
+func TestRoutingWrongRole(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 	cmd := &client.Command{
 		Gid:    0,
@@ -852,12 +852,12 @@ func TestRoutingWorngRole(t *testing.T) {
 		t.Fatalf("Invalid response from agent controller. Expected error")
 	}
 
-	if result.Data != "No agents with role '[unknown]' alive!" {
+	if result.Data != "No matching connected agents found" {
 		t.Fatal("Expecting, 'Agent is not alive!' message got ", result.Data, " instead")
 	}
 }
 
-func TestRoutingWorngRoleWithFanout(t *testing.T) {
+func TestRoutingWrongRoleWithFanout(t *testing.T) {
 	clt := client.New("localhost:6379", "")
 	cmd := &client.Command{
 		Gid:    0,
@@ -881,7 +881,7 @@ func TestRoutingWorngRoleWithFanout(t *testing.T) {
 		t.Fatalf("Invalid response from agent controller. Expected error")
 	}
 
-	if result.Data != "No agents with role '[unknown]' alive!" {
+	if result.Data != "No matching connected agents found" {
 		t.Fatal("Expecting, 'Agent is not alive!' message got ", result.Data, " instead")
 	}
 }
