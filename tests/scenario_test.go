@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"github.com/Jumpscale/agentcontroller2/client"
+	"github.com/Jumpscale/agent2/tests/client"
 )
 
 const (
