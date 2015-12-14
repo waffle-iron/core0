@@ -30,3 +30,8 @@ logs/
 Godeps/_workspace
 jumpscripts
 legacy
+
+.idea
+*.iml
+agent2
+

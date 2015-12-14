@@ -52,7 +52,7 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 		kill:    make(chan int),
 		statsd: stats.NewStatsd(
 			prefix,
-			time.Duration(statsInterval)*time.Second,
+			time.Duration(statsInterval)*time.Millisecond,
 			manager.statsFlushCallback),
 	}
 }

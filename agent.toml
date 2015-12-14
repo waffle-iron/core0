@@ -72,7 +72,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 [logging]
     [logging.db]
     type = "DB"
-    log_dir = "./logs"
+    address = "./logs"
     levels = [1, 2, 4, 7, 8, 9, 11]  # (all error messages + debug) empty for all
 
     [logging.ac]
@@ -86,27 +86,15 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     type = "console"
     levels = [2, 4, 7, 8, 9]
 
+    [logging.redis]
+    type = "redis"
+    address = "localhost:9999"
+
 [stats]
-interval = 60 # seconds
+interval = 60000 # milliseconds (1 min)
 controllers = [] # empty for all controllers, or controllers keys
 
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
-
-[startup]
-    [startup.syncthing]
-    name = "syncthing"
-        [startup.syncthing.args]
-        loglevels_db = '*'
-        domain = "agent"
-        name = "syncthing"
-
-    [startup.jumpscript]
-    name = "js_daemon"
-        [startup.jumpscript.args]
-        max_restart = 10
-        domain = "agent"
-        name = "jumpscript"
-
 
 

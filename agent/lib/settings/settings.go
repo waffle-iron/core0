@@ -18,18 +18,18 @@ const (
 //Logger settings
 type Logger struct {
 	//logger type, now only 'db' and 'ac' are supported
-	Type string
+	Type        string
 	//list of controlles base URLs
 	Controllers []string
 	//Process which levels
-	Levels []int
+	Levels      []int
 
-	//Log dir (for loggers that needs it)
-	LogDir string
+	//Log address (for loggers that needs it)
+	Address     string
 	//Flush interval (for loggers that needs it)
-	FlushInt int
+	FlushInt    int
 	//Flush batch size (for loggers that needs it)
-	BatchSize int
+	BatchSize   int
 }
 
 //Extension cmd config

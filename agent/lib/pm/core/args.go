@@ -60,6 +60,19 @@ func (args *MapArgs) ensureInt(value interface{}) int {
 	return 0
 }
 
+func (args *MapArgs) ensureFloat(value interface{}) float64 {
+	switch v := value.(type) {
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case float64:
+		return v
+	}
+
+	return 0
+}
+
 //GetInt gets int value
 func (args *MapArgs) GetInt(key string) int {
 	s, ok := args.data[key]
@@ -82,10 +95,11 @@ func (args *MapArgs) GetString(key string) string {
 //GetFloat gets float value
 func (args *MapArgs) GetFloat(key string) float64 {
 	s, ok := args.data[key]
-	if ok {
-		return s.(float64)
+	if !ok {
+		return 0
 	}
-	return 0
+
+	return args.ensureFloat(s)
 }
 
 //GetMap gets a dict value
