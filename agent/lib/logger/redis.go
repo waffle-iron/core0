@@ -1,14 +1,13 @@
 package logger
 
 import (
+	"encoding/json"
 	"github.com/Jumpscale/agent2/agent/lib/pm/core"
 	"github.com/Jumpscale/agent2/agent/lib/pm/stream"
-	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
-	"time"
-	"encoding/json"
+	"github.com/garyburd/redigo/redis"
 	"log"
-
+	"time"
 )
 
 const (
@@ -16,13 +15,13 @@ const (
 )
 
 type redisLogger struct {
-	pool *redis.Pool
+	pool     *redis.Pool
 	defaults []int
 }
 
 func NewRedisLogger(address string, password string, defaults []int) Logger {
 	return &redisLogger{
-		pool: utils.NewRedisPool(address, password),
+		pool:     utils.NewRedisPool(address, password),
 		defaults: defaults,
 	}
 }
