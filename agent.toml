@@ -86,9 +86,9 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     type = "console"
     levels = [2, 4, 7, 8, 9]
 
-    [logging.redis]
-    type = "redis"
-    address = "localhost:9999"
+#    [logging.redis]
+#    type = "redis"
+#    address = "localhost:9999"
 
 [stats]
 interval = 60000 # milliseconds (1 min)
