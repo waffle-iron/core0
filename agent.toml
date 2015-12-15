@@ -94,7 +94,10 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 interval = 60000 # milliseconds (1 min)
 controllers = [] # empty for all controllers, or controllers keys
 
+[redis_stats]
+enabled = false
+flush_interval = 100 # millisecond
+address = "localhost:9999"
+
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
-
-

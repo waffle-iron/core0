@@ -106,6 +106,12 @@ type Settings struct {
 		Controllers []string
 	}
 
+	RedisStats struct {
+		Enabled       bool
+		FlushInterval int
+		Address       string
+	}
+
 	Channel struct {
 		Cmds []string
 	}

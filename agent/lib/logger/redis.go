@@ -41,8 +41,6 @@ func (l *redisLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 	data["level"] = msg.Level
 	data["jobid"] = cmd.ID
 
-	log.Println("Debug redis log")
-
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		log.Println("Failed to serialize message for redis logger", err)
