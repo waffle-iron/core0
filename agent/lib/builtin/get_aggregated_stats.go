@@ -13,14 +13,25 @@ const (
 	cmdGetAggregatedStats = "get_aggregated_stats"
 )
 
-func init() {
-	pm.CmdMap[cmdGetAggregatedStats] = process.NewInternalProcessFactory(getAggregatedStats)
+type aggregatedStatsMgr struct {
+	agent *psutil.Process
 }
 
-func getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
-	return nil, nil
+func init() {
+	agent, err := psutil.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		log.Println("Failed to get referent to agent process", err)
+	}
 
-	var stat process.ProcessStats
+	mgr := &aggregatedStatsMgr{
+		agent: agent,
+	}
+
+	pm.CmdMap[cmdGetAggregatedStats] = process.NewInternalProcessFactory(mgr.getAggregatedStats)
+}
+
+func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
+	stat := process.ProcessStats{}
 
 	for _, runner := range pm.GetManager().Runners() {
 		process := runner.Process()
@@ -36,24 +47,22 @@ func getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
 	}
 
 	//also get agent cpu and memory consumption.
-	if agent, err := psutil.NewProcess(int32(os.Getpid())); err == nil {
-		agentCPU, err := agent.CPUPercent(0)
+	if mgr.agent != nil {
+		agentCPU, err := mgr.agent.CPUPercent(0)
 		if err == nil {
 			stat.CPU += agentCPU
 		} else {
 			log.Println(err)
 		}
 
-		agentMem, err := agent.MemoryInfo()
+		agentMem, err := mgr.agent.MemoryInfo()
 		if err == nil {
 			stat.RSS += agentMem.RSS
 			stat.Swap += agentMem.Swap
 			stat.VMS += agentMem.VMS
 		} else {
-			return nil, err
+			log.Println(err)
 		}
-	} else {
-		return nil, err
 	}
 
 	return stat, nil

@@ -32,7 +32,10 @@ func (process *systemProcessImpl) Cmd() *core.Cmd {
 
 func (process *systemProcessImpl) Kill() {
 	//should force system process to exit.
-	process.process.Kill()
+	if process.process != nil {
+		process.process.Kill()
+	}
+
 	process.killChildren()
 }
 
