@@ -101,3 +101,18 @@ address = "localhost:9999"
 
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
+
+[startup]
+    [startup.syncthing]
+    name = "syncthing"
+        [startup.syncthing.args]
+        loglevels_db = '*'
+        domain = "agent"
+        name = "syncthing"
+
+    [startup.jumpscript]
+    name = "js_daemon"
+        [startup.jumpscript.args]
+        max_restart = 10
+        domain = "agent"
+        name = "jumpscript"
