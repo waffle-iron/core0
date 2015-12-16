@@ -7,8 +7,13 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/garyburd/redigo/redis"
 	"log"
 	"time"
+)
+
+const (
+	RedisStatsQueue = "agent.stats"
 )
 
 /*
@@ -17,7 +22,11 @@ that are collected via the process manager. Flush happens when buffer is full or
 
 The StatsBuffer.Handler should be registers as StatsFlushHandler on the process manager object.
 */
-type StatsBuffer struct {
+type StatsFlusher interface {
+	Handler(stats *stats.Stats)
+}
+
+type acStatsBuffer struct {
 	gid          int
 	nid          int
 	destinations []*ControllerClient
@@ -27,8 +36,8 @@ type StatsBuffer struct {
 /*
 NewStatsBuffer creates new StatsBuffer
 */
-func NewStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient,
-	config *settings.Settings) *StatsBuffer {
+func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient,
+	config *settings.Settings) StatsFlusher {
 	var destKeys []string
 	if len(config.Stats.Controllers) > 0 {
 		destKeys = config.Stats.Controllers
@@ -46,7 +55,7 @@ func NewStatsBuffer(capacity int, flushInt time.Duration, controllers map[string
 		destinations = append(destinations, controller)
 	}
 
-	buffer := &StatsBuffer{
+	buffer := &acStatsBuffer{
 		gid:          config.Main.Gid,
 		nid:          config.Main.Nid,
 		destinations: destinations,
@@ -57,7 +66,7 @@ func NewStatsBuffer(capacity int, flushInt time.Duration, controllers map[string
 	return buffer
 }
 
-func (buffer *StatsBuffer) onflush(stats []interface{}) {
+func (buffer *acStatsBuffer) onflush(stats []interface{}) {
 	log.Println("Flushing stats to AC", len(stats))
 	if len(stats) == 0 {
 		return
@@ -80,6 +89,43 @@ func (buffer *StatsBuffer) onflush(stats []interface{}) {
 Handler should be used as a handler to manager stats messages. This method will buffer the feed messages
 to be flused on time.
 */
-func (buffer *StatsBuffer) Handler(stats *stats.Stats) {
+func (buffer *acStatsBuffer) Handler(stats *stats.Stats) {
 	buffer.buffer.Append(stats)
+}
+
+type redisStatsBuffer struct {
+	buffer utils.Buffer
+	pool   *redis.Pool
+}
+
+func NewRedisStatsBuffer(address string, password string, capacity int, flushInt time.Duration) StatsFlusher {
+	pool := utils.NewRedisPool(address, password)
+
+	redisBuffer := &redisStatsBuffer{
+		pool: pool,
+	}
+
+	redisBuffer.buffer = utils.NewBuffer(capacity, flushInt, redisBuffer.onFlush)
+
+	return redisBuffer
+}
+
+func (r *redisStatsBuffer) Handler(stats *stats.Stats) {
+	r.buffer.Append(stats)
+}
+
+func (r *redisStatsBuffer) onFlush(stats []interface{}) {
+	if len(stats) == 0 {
+		return
+	}
+
+	db := r.pool.Get()
+	defer db.Close()
+
+	call := []interface{}{RedisStatsQueue}
+	call = append(call, stats...)
+
+	if err := db.Send("RPUSH", call...); err != nil {
+		log.Println("Failed to push stats messages to redis", err)
+	}
 }

@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -35,6 +36,11 @@ type FlushHandler func(*Stats)
 type Stats struct {
 	Timestamp int64           `json:"timestamp"`
 	Series    [][]interface{} `json:"series"`
+}
+
+func (s *Stats) String() string {
+	data, _ := json.Marshal(s)
+	return string(data)
 }
 
 //Statsd represents the statsd daemon
@@ -129,6 +135,11 @@ func (statsd *Statsd) flush() {
 	}
 
 	flushSeconds := int64(statsd.flushInt / time.Second)
+	if flushSeconds <= 0 {
+		log.Println("Invalid stats flush internval:", flushSeconds)
+		return
+	}
+
 	timestamp := (time.Now().Unix() / flushSeconds) * flushSeconds
 
 	stats := &Stats{

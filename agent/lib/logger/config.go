@@ -26,8 +26,8 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 				log.Fatal("Only one db logger can be configured")
 			}
 			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-			os.Mkdir(logcfg.LogDir, 0755)
-			db, err := bolt.Open(path.Join(logcfg.LogDir, "logs.db"), 0644, nil)
+			os.Mkdir(logcfg.Address, 0755)
+			db, err := bolt.Open(path.Join(logcfg.Address, "logs.db"), 0644, nil)
 			db.MaxBatchDelay = 100 * time.Millisecond
 			if err != nil {
 				log.Fatal("Failed to open logs database", err)
@@ -76,6 +76,9 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 				batchsize,
 				time.Duration(flushint)*time.Second,
 				logcfg.Levels)
+			mgr.AddMessageHandler(handler.Log)
+		case "redis":
+			handler := NewRedisLogger(logcfg.Address, "", logcfg.Levels)
 			mgr.AddMessageHandler(handler.Log)
 		case "console":
 			handler := NewConsoleLogger(logcfg.Levels)

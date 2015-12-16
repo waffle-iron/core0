@@ -52,7 +52,7 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 		kill:    make(chan int),
 		statsd: stats.NewStatsd(
 			prefix,
-			time.Duration(statsInterval)*time.Second,
+			time.Duration(statsInterval)*time.Millisecond,
 			manager.statsFlushCallback),
 	}
 }
@@ -220,7 +220,6 @@ loop:
 
 		if restarting {
 			log.Println("Recurring", runner.command, "in", restartIn)
-			//TODO: respect the kill signal.
 			select {
 			case <-time.After(restartIn):
 			case <-runner.kill:

@@ -96,7 +96,7 @@ class WrapperThread(object):
 
             j.logger.log(json.dumps(result), j.logger.RESULT_JSON)
 
-        except Exception, e:
+        except Exception as e:
             error = traceback.format_exc()
             logging.error(error)
             eco = j.errorconditionhandler.parsePythonErrorObject(e)
@@ -124,7 +124,7 @@ class CleanerThread(Process):
                         logging.info('Deleting old file %s' % fname)
                         j.system.fs.remove(fname)
                         j.system.fs.remove('%sc' % fname)
-            except Exception, e:
+            except Exception as e:
                 # never die. just log error.
                 logging.log('Error while cleaning up old scripts %s' % e)
             finally:
@@ -141,21 +141,15 @@ def daemon(data):
     assert 'SOCKET' in os.environ, 'SOCKET env var is not set'
     assert 'JUMPSCRIPTS_HOME' in os.environ, 'JUMPSCRIPTS_HOME env var is not set'
 
-    unix_sock_path = os.environ.get('SOCKET')
-    try:
-        os.unlink(unix_sock_path)
-    except:
-        pass
+    pid = os.getpid()
 
     logging.basicConfig(format=LOG_FORMAT,
                         level=logging.INFO)
 
-    logging.info('Starting daemon')
-    try:
-        listner = connection.Listener(address=unix_sock_path)
+    logging.info("Starting daemon '%s'" % pid)
 
-    except Exception, e:
-        logging.error('Could not start listening: %s' % e)
+    # make sure you create the pool first thing otherwise, the behavior can be undefined.
+    pool = Pool(POOL_SIZE, maxtasksperchild=MAX_JOBS_PER_WORKER)
 
     # make sure we create cache folder.
     j.system.fs.createDir(SCRIPTS_CACHE_DIR)
@@ -165,24 +159,38 @@ def daemon(data):
     logging.info('Starting the clean up thread')
     cleaner.start()
 
-    pool = Pool(POOL_SIZE, maxtasksperchild=MAX_JOBS_PER_WORKER)
+    unix_sock_path = os.environ.get('SOCKET')
+    try:
+        os.unlink(unix_sock_path)
+    except:
+        pass
 
-    def exit(n, f):
-        logging.info('Stopping daemon %s' % n)
+    try:
+        listener = connection.Listener(address=unix_sock_path)
+
+    except Exception as e:
+        logging.error('Could not start listening: %s' % e)
+
+    def terminate(n, f):
+        logging.info('Stopping daemon %s: %s' % (n, pid))
+        listener.close()
         cleaner.terminate()
-        listner.close()
-        sys.exit(1)
+        pool.close()
+        logging.info('Exit %s' % pid)
+        # Suicide, please don't remove, I wanna DIE!
+        # Reasons: it seems this is the only way to terminated this process for some reason. The pool doesn't
+        # want to terminate nicely.
+        os.kill(pid, signal.SIGKILL)
 
     for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT, signal.SIGINT):
-        signal.signal(s, exit)
+        signal.signal(s, terminate)
 
     while True:
         try:
-            con = listner.accept()
+            con = listener.accept()
             reduced = reduction.reduce_connection(con)
             pool.apply_async(poolWork, args=(reduced,))
-
-        except Exception, e:
+        except Exception as e:
             logging.error(e)
 
 utils.run(daemon)

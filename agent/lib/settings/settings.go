@@ -24,8 +24,8 @@ type Logger struct {
 	//Process which levels
 	Levels []int
 
-	//Log dir (for loggers that needs it)
-	LogDir string
+	//Log address (for loggers that needs it)
+	Address string
 	//Flush interval (for loggers that needs it)
 	FlushInt int
 	//Flush batch size (for loggers that needs it)
@@ -104,6 +104,12 @@ type Settings struct {
 	Stats struct {
 		Interval    int
 		Controllers []string
+	}
+
+	RedisStats struct {
+		Enabled       bool
+		FlushInterval int
+		Address       string
 	}
 
 	Channel struct {
