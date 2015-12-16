@@ -220,7 +220,6 @@ loop:
 
 		if restarting {
 			log.Println("Recurring", runner.command, "in", restartIn)
-			//TODO: respect the kill signal.
 			select {
 			case <-time.After(restartIn):
 			case <-runner.kill:
