@@ -1,15 +1,14 @@
 {
 	"ImportPath": "github.com/Jumpscale/agent2",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5.2",
 	"Deps": [
-		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
 			"Rev": "a315e2d116511d7343ec59a111b779b0ee9dcc6c"
+		},
+		{
+			"ImportPath": "github.com/StackExchange/wmi",
+			"Rev": "f3e2bae1e0cb5aef83e319133eabfee30013a4a5"
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
@@ -23,6 +22,11 @@
 		{
 			"ImportPath": "github.com/garyburd/redigo/redis",
 			"Rev": "8b1d80a45a732e6d95e22dcc2e067312c664936c"
+		},
+		{
+			"ImportPath": "github.com/go-ole/go-ole",
+			"Comment": "v1.1.1-14-g6bb9596",
+			"Rev": "6bb9596d2db0b227d1f2e67fcf91b2218782c01f"
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
@@ -80,8 +84,16 @@
 			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
 		},
 		{
+			"ImportPath": "github.com/shirou/w32",
+			"Rev": "ada3ba68f000aa1b58580e45c9d308fe0b7fc5c5"
+		},
+		{
 			"ImportPath": "github.com/ugorji/go/codec",
 			"Rev": "1d5269ed4e89d423d40362a0914e1c99adb13cc8"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		}
 	]
 }
