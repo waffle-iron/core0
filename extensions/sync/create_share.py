@@ -20,7 +20,7 @@ def create_share(data):
     config = syncthing.config
 
     # add device to shared folder.
-    folders = filter(lambda f: f['path'] == data['path'], config['folders'])
+    folders = list(filter(lambda f: f['path'] == data['path'], config['folders']))
 
     folder_id = data['name']
     folder_path = os.path.join(sync.settings['agent-home'], data['path'])

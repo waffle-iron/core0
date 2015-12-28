@@ -21,7 +21,7 @@ def add_device(data):
     remove_device_name = data['name']
     remote_device_address = data.get('address', 'dynamic')
 
-    devices = filter(lambda d: d['deviceID'] == remote_device_id, config['devices'])
+    devices = list(filter(lambda d: d['deviceID'] == remote_device_id, config['devices']))
 
     dirty = False
     if not devices:

@@ -24,7 +24,7 @@ def sync_folder(data):
     remote_device_id = data['device_id']
     remote_device_address = data.get('address', 'dynamic')
     remove_device_name = data.get('name', remote_device_id.split('-')[0])
-    devices = filter(lambda d: d['deviceID'] == remote_device_id, config['devices'])
+    devices = list(filter(lambda d: d['deviceID'] == remote_device_id, config['devices']))
 
     dirty = False
     if not devices:
@@ -47,7 +47,7 @@ def sync_folder(data):
             dirty = True
 
     # add device to shared folder.
-    folders = filter(lambda f: f['id'] == data['folder_id'], config['folders'])
+    folders = list(filter(lambda f: f['id'] == data['folder_id'], config['folders']))
 
     folder_path = os.path.join(sync.settings['agent-home'], data['path'], sync.settings['controller-name'])
     if not folders:
@@ -69,14 +69,14 @@ def sync_folder(data):
         }
 
         if not os.path.isdir(folder_path):
-            os.makedirs(folder_path, 0755)
+            os.makedirs(folder_path, 0o755)
 
         config['folders'].append(folder)
         dirty = True
     else:
         folder = folders[0]
 
-    if not filter(lambda d: d['deviceID'] == remote_device_id, folder['devices']):
+    if not list(filter(lambda d: d['deviceID'] == remote_device_id, folder['devices'])):
         # share folder with device.
 
         folder['devices'].append({

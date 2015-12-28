@@ -33,7 +33,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 
     [extensions.sync]
     #syncthing extension
-    binary = "python2.7"
+    binary = "python"
     cwd = "./extensions/sync"
     args = ["{name}.py"]
         [extensions.sync.env]
@@ -41,7 +41,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         SYNCTHING_URL = "http://localhost:28384"
 
     [extensions.jumpscript]
-    binary = "python2.7"
+    binary = "python"
     cwd = "./extensions/jumpscript"
     args = ["wrapper.py", "{domain}", "{name}"]
         [extensions.jumpscript.env]
@@ -49,7 +49,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         PYTHONPATH = "../"
 
     [extensions.jumpscript_content]
-    binary = "python2.7"
+    binary = "python"
     cwd = "./extensions/jumpscript"
     args = ["wrapper_content.py"]
         [extensions.jumpscript_content.env]
@@ -57,7 +57,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         PYTHONPATH = "../"
 
     [extensions.js_daemon]
-    binary = "python2.7"
+    binary = "python"
     cwd = "./extensions/jumpscript"
     args = ["executor.py"]
         [extensions.js_daemon.env]

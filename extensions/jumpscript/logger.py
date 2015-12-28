@@ -1,7 +1,6 @@
 import io
 import collections
 import os
-from StringIO import StringIO
 from JumpScale.core.logging.LogHandler import LogHandler
 
 LEVEL = collections.namedtuple('LEVEL', 'name level')
@@ -89,7 +88,7 @@ class PatchedLogHandler(LogHandler):
 
         multiline = os.linesep in msg
 
-        buff = StringIO()
+        buff = io.StringIO()
 
         if multiline:
             buff.write('%d:::' % num_level)

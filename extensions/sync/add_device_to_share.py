@@ -21,7 +21,7 @@ def add_device_to_share(data):
     folder_id = data['folder_id']
 
     # add device to shared folder.
-    folders = filter(lambda f: f['id'] == folder_id, config['folders'])
+    folders = list(filter(lambda f: f['id'] == folder_id, config['folders']))
 
     if not folders:
         raise Exception('No share with path=%s' % data['path'])
@@ -29,7 +29,7 @@ def add_device_to_share(data):
     folder = folders[0]
 
     dirty = False
-    if not filter(lambda d: d['deviceID'] == remote_device_id, folder['devices']):
+    if not list(filter(lambda d: d['deviceID'] == remote_device_id, folder['devices'])):
         # share folder with device.
 
         folder['devices'].append({

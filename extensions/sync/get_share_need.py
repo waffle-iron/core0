@@ -18,7 +18,7 @@ def get_ignore(data):
     config = syncthing.config
 
     # add device to shared folder.
-    folders = filter(lambda f: f['id'] == data['name'], config['folders'])
+    folders = list(filter(lambda f: f['id'] == data['name'], config['folders']))
 
     if not folders:
         raise Exception('No share with name=%s' % data['name'])

@@ -50,12 +50,17 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 		}
 	}()
 
-	cpu, err := process.process.CPUPercent(0)
+	ps := process.process
+	if ps == nil {
+		return &stats
+	}
+
+	cpu, err := ps.CPUPercent(0)
 	if err == nil {
 		stats.CPU = cpu
 	}
 
-	mem, err := process.process.MemoryInfo()
+	mem, err := ps.MemoryInfo()
 	if err == nil {
 		stats.RSS = mem.RSS
 		stats.VMS = mem.VMS

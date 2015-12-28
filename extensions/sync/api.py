@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 import json
-import md5
+from hashlib import md5
 
 ENDPOINT_CONFIG = '/rest/system/config'
 ENDPOINT_RESTART = '/rest/system/restart'
@@ -99,7 +99,7 @@ class Syncthing(object):
             raise Exception('Failed to restart syncthing: %s' % response.reason)
 
     def folder_path_to_id(self, path):
-        return md5.md5(path).hexdigest()
+        return md5(path).hexdigest()
 
     def scan(self, folder, sub=None):
         data = {'folder': folder}

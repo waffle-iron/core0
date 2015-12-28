@@ -45,7 +45,7 @@ class WrapperThread(object):
         agent_name = data['controller-name']
         path = os.path.join(jspath, agent_name, data['domain'], '%s.py' % data['name'])
 
-        if not j.system.fs.exists(path):
+        if not j.sal.fs.exists(path):
             raise ValueError('Jumpscript %s/%s does not exist' % (data['domain'], data['name']))
 
         return self.run_path(path, data['data'])
@@ -71,7 +71,7 @@ class WrapperThread(object):
         if not response.ok:
             raise Exception('Failed to retrieve script from controller %s' % response.reason)
 
-        j.system.fs.writeFile(path, response.content)
+        j.sal.fs.writeFile(path, response.content)
         return path
 
     def run_with_content(self, data):
@@ -117,13 +117,13 @@ class CleanerThread(Process):
         while True:
             try:
                 now = time.time()
-                for fname in j.system.fs.listFilesInDir(self.path, filter='*.js'):
+                for fname in j.sal.fs.listFilesInDir(self.path, filter='*.js'):
                     logging.info('Checking file for clean up %s' % fname)
                     mtime = os.path.getmtime(fname)
                     if now - mtime >= SCRIPTS_DELETE_OLDER_THAN:
                         logging.info('Deleting old file %s' % fname)
-                        j.system.fs.remove(fname)
-                        j.system.fs.remove('%sc' % fname)
+                        j.sal.fs.remove(fname)
+                        j.sal.fs.remove('%sc' % fname)
             except Exception as e:
                 # never die. just log error.
                 logging.log('Error while cleaning up old scripts %s' % e)
@@ -152,7 +152,7 @@ def daemon(data):
     pool = Pool(POOL_SIZE, maxtasksperchild=MAX_JOBS_PER_WORKER)
 
     # make sure we create cache folder.
-    j.system.fs.createDir(SCRIPTS_CACHE_DIR)
+    j.sal.fs.createDir(SCRIPTS_CACHE_DIR)
 
     # starting clean up thread.
     cleaner = CleanerThread(SCRIPTS_CACHE_DIR, name='Cleaner Thread')
