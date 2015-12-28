@@ -71,7 +71,7 @@ class WrapperThread(object):
         if not response.ok:
             raise Exception('Failed to retrieve script from controller %s' % response.reason)
 
-        j.sal.fs.writeFile(path, response.content)
+        j.sal.fs.writeFile(path, response.content.decode())
         return path
 
     def run_with_content(self, data):
@@ -131,9 +131,7 @@ class CleanerThread(Process):
                 time.sleep(3600)  # run every hour.
 
 
-def poolWork(reduced_con):
-    func, args = reduced_con
-    con = func(*args)
+def poolWork(con):
     WrapperThread(con).run()
 
 
@@ -188,8 +186,7 @@ def daemon(data):
     while True:
         try:
             con = listener.accept()
-            reduced = reduction.reduce_connection(con)
-            pool.apply_async(poolWork, args=(reduced,))
+            pool.apply_async(poolWork, args=(con,))
         except Exception as e:
             logging.error(e)
 
