@@ -4,7 +4,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "a315e2d116511d7343ec59a111b779b0ee9dcc6c"
+			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
 		},
 		{
 			"ImportPath": "github.com/StackExchange/wmi",
@@ -12,8 +12,8 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.1.0-22-g6e1ca38",
-			"Rev": "6e1ca38c6a73025366cd8705553b404746ee6e63"
+			"Comment": "v1.1.0-32-g827f56d",
+			"Rev": "827f56dfb2091be2edb284ffb6113c198f27b033"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
