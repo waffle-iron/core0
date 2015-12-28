@@ -4,7 +4,8 @@ import api
 import _sync as sync
 
 
-INTERNAL = ('/opt/jumpscale7/apps/agent2/jumpscripts',)
+INTERNAL = ('/opt/jumpscale7/apps/agent2/jumpscripts',
+            '/opt/jumpscale8/apps/agent2/jumpscripts')
 
 
 def list_shares(data):

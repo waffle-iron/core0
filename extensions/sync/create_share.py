@@ -44,7 +44,7 @@ def create_share(data):
         }
 
         if not os.path.isdir(folder_path):
-            os.makedirs(folder_path, 0755)
+            os.makedirs(folder_path, 0o755)
 
         config['folders'].append(folder)
         dirty = True
