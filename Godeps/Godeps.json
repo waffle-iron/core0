@@ -12,29 +12,29 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.1.0-32-g827f56d",
-			"Rev": "827f56dfb2091be2edb284ffb6113c198f27b033"
+			"Comment": "v1.1.0-40-g34a0fa5",
+			"Rev": "34a0fa5307f7562980fb8e7ff4723f7987edf49b"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
-			"Rev": "8b1d80a45a732e6d95e22dcc2e067312c664936c"
+			"Rev": "836b6e58b3358112c8291565d01c35b8764070d7"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/redis",
-			"Rev": "8b1d80a45a732e6d95e22dcc2e067312c664936c"
+			"Rev": "836b6e58b3358112c8291565d01c35b8764070d7"
 		},
 		{
 			"ImportPath": "github.com/go-ole/go-ole",
-			"Comment": "v1.1.1-14-g6bb9596",
-			"Rev": "6bb9596d2db0b227d1f2e67fcf91b2218782c01f"
+			"Comment": "v1.2.0-2-g97ac8b0",
+			"Rev": "97ac8b05c02bbb755d36549e7e607433dfbef4b2"
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "39cd638460acf1c01aaac38effc6e54ee7e04bca"
+			"Rev": "3986be78bf859e01f01af631ad76da5b269d270c"
 		},
 		{
 			"ImportPath": "github.com/naoina/go-stringutil",
-			"Rev": "360db0db4b01d34e12a2ec042c09e7d37fece761"
+			"Rev": "6b638e95a32d0c1131db0e7fe83775cbea4a0d0b"
 		},
 		{
 			"ImportPath": "github.com/naoina/toml",
@@ -42,46 +42,46 @@
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
-			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
+			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
 		},
 		{
 			"ImportPath": "github.com/rjeczalik/notify",
-			"Rev": "b097dccf0a46b407c6be47666d8ed2b3ea108513"
+			"Rev": "efbcb15a545abd0c7d546f0a15f4115c713a4c59"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/cpu",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/disk",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/host",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/internal/common",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/mem",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/net",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/process",
-			"Comment": "1.0.0-185-gb9ba9bf",
-			"Rev": "b9ba9bfee895e9823d616f3104ca5c70616597fc"
+			"Comment": "1.0.0-232-gef151b7",
+			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
 		},
 		{
 			"ImportPath": "github.com/shirou/w32",
@@ -89,7 +89,7 @@
 		},
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
-			"Rev": "1d5269ed4e89d423d40362a0914e1c99adb13cc8"
+			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
