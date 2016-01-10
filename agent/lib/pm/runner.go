@@ -95,7 +95,6 @@ func (runner *runnerImpl) run() *core.JobResult {
 	defer func() {
 		endtime := time.Duration(time.Now().UnixNano()) / time.Millisecond
 		jobresult.Time = int64(endtime - starttime)
-		runner.manager.resultCallback(runner.command, jobresult)
 	}()
 
 	process := runner.factory(runner.command)
@@ -107,6 +106,8 @@ func (runner *runnerImpl) run() *core.JobResult {
 		//this basically means process couldn't spawn
 		//which indicates a problem with the command itself. So restart won't
 		//do any good. It's better to terminate it immediately.
+		jobresult.Data = err.Error()
+		return jobresult
 	}
 
 	var result *stream.Message
