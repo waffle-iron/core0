@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/Jumpscale/agent2/agent/lib/settings"
 	"github.com/Jumpscale/agent2/agent/lib/stats"
 	"github.com/Jumpscale/agent2/agent/lib/utils"
@@ -49,7 +48,7 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 	for _, key := range destKeys {
 		controller, ok := controllers[key]
 		if !ok {
-			panic(fmt.Sprintf("Unknown controller '%s' while configurint statsd", key))
+			log.Fatalf("Unknown controller '%s' while configurint statsd", key)
 		}
 
 		destinations = append(destinations, controller)
