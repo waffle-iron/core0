@@ -6,8 +6,11 @@ import (
 	"github.com/Jumpscale/agent2/agent/lib/utils"
 	"io"
 	"io/ioutil"
+	"log"
+	"net/url"
 	"path"
 	"sort"
+	"strings"
 )
 
 const (
@@ -123,6 +126,29 @@ type Settings struct {
 	Startup map[string]StartupCmd
 }
 
+func (s *Settings) Validate() []error {
+	errors := make([]error, 0)
+	if s.Main.Gid <= 0 {
+		errors = append(errors, fmt.Errorf("[main] `gid` must be greater than 0"))
+	}
+
+	if s.Main.Nid <= 0 {
+		errors = append(errors, fmt.Errorf("[main] `nid` must be greater than 0"))
+	}
+
+	for name, con := range s.Controllers {
+		if u, err := url.Parse(con.URL); err != nil {
+			verr := fmt.Errorf("[controller.%s] `url`: %s", name, err)
+			errors = append(errors, verr)
+		} else if !utils.InString([]string{"http", "https"}, strings.ToLower(u.Scheme)) {
+			verr := fmt.Errorf("[controller.%s] `url` has unknown schema (%s)", name, u.Scheme)
+			errors = append(errors, verr)
+		}
+	}
+
+	return errors
+}
+
 //PartialSettings loadable settings
 type PartialSettings struct {
 	Extensions map[string]Extension
@@ -198,7 +224,7 @@ func GetSettings(filename string) *Settings {
 
 	//that's the main config file, panic if can't load
 	if err := utils.LoadTomlFile(filename, settings); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return settings
