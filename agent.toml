@@ -37,7 +37,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/sync"
     args = ["{name}.py"]
         [extensions.sync.env]
-        PYTHONPATH = "../:/opt/jumpscale7/lib"
+        PYTHONPATH = "../:/opt/jumpscale8/lib"
         SYNCTHING_URL = "http://localhost:28384"
 
     [extensions.jumpscript]
@@ -62,8 +62,8 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     args = ["executor.py"]
         [extensions.js_daemon.env]
         SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../:/opt/jumpscale7/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale7/apps/agent2/jumpscripts/"
+        PYTHONPATH = "../:/opt/jumpscale8/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent2/jumpscripts/"
 
     [extensions.bash]
     binary = "bash"
