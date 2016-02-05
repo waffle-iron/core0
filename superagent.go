@@ -53,6 +53,14 @@ func main() {
 
 	config := settings.GetSettings(cfg)
 
+	if errors := config.Validate(); len(errors) > 0 {
+		for _, err := range errors {
+			log.Println(err)
+		}
+
+		log.Fatal("\nConfig validation error, please fix and try again.")
+	}
+
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)
 	for key, controllerCfg := range config.Controllers {

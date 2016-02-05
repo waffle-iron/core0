@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/garyburd/redigo/redis"
+	"log"
 )
 
 func NewRedisPool(address string, password string) *redis.Pool {
@@ -12,7 +13,7 @@ func NewRedisPool(address string, password string) *redis.Pool {
 			c, err := redis.Dial("tcp", address)
 
 			if err != nil {
-				panic(err.Error())
+				log.Fatal(err)
 			}
 
 			if password != "" {
