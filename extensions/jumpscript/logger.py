@@ -1,6 +1,7 @@
 import io
 import collections
 import os
+
 from JumpScale.core.logging.LogHandler import LogHandler
 
 LEVEL = collections.namedtuple('LEVEL', 'name level')

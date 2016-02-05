@@ -2,7 +2,7 @@ import os
 
 settings = {
     'syncthing': os.environ.get('SYNCTHING_URL', 'http://localhost:8384'),
-    'agent-home': os.environ.get('AGENT_HOME', '/opt/jumpscale7/apps/agent2'),
+    'agent-home': os.environ.get('AGENT_HOME'),
     'controller-name': os.environ.get('AGENT_CONTROLLER_NAME', 'unknown')
 }
 

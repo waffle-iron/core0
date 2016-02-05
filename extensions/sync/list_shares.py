@@ -3,9 +3,9 @@ import utils
 import api
 import _sync as sync
 
+agent_home = os.environ.get('AGENT_HOME')
 
-INTERNAL = ('/opt/jumpscale7/apps/agent2/jumpscripts',
-            '/opt/jumpscale8/apps/agent2/jumpscripts')
+INTERNAL = ('%s/agent2/jumpscripts'%agent_home)
 
 
 def list_shares(data):
