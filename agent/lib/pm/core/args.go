@@ -92,6 +92,14 @@ func (args *MapArgs) GetString(key string) string {
 	return ""
 }
 
+func (args *MapArgs) GetStringDefault(key string, value string) string {
+	s, ok := args.data[key]
+	if ok {
+		return fmt.Sprintf("%v", s)
+	}
+	return value
+}
+
 //GetFloat gets float value
 func (args *MapArgs) GetFloat(key string) float64 {
 	s, ok := args.data[key]

@@ -105,15 +105,18 @@ type Settings struct {
 	Logging map[string]Logger
 
 	Stats struct {
-		Interval    int
-		Controllers []string
+		Interval int
+		Ac       struct {
+			Enabled     bool
+			Controllers []string
+		}
+		Redis struct {
+			Enabled       bool
+			FlushInterval int
+			Address       string
+		}
 	}
 
-	RedisStats struct {
-		Enabled       bool
-		FlushInterval int
-		Address       string
-	}
 
 	Channel struct {
 		Cmds []string

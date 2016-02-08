@@ -43,7 +43,7 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 	}
 
 	prefix := fmt.Sprintf("%d.%d.%s.%s.%s", command.Gid, command.Nid, command.Name,
-		command.Args.GetString("domain"), command.Args.GetString("name"))
+		command.Args.GetStringDefault("domain", "unknown"), command.Args.GetStringDefault("name", "unknown"))
 
 	return &runnerImpl{
 		manager: manager,

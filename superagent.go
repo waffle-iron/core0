@@ -88,15 +88,17 @@ func main() {
 		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
 	}
 
-	if config.RedisStats.Enabled {
-		redis := agent.NewRedisStatsBuffer(config.RedisStats.Address, "", 1000, time.Duration(config.RedisStats.FlushInterval)*time.Millisecond)
+	if config.Stats.Redis.Enabled {
+		redis := agent.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
 		mgr.AddStatsFlushHandler(redis.Handler)
 	}
 
-	//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
-	//flush)
-	statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers, config)
-	mgr.AddStatsFlushHandler(statsBuffer.Handler)
+	if config.Stats.Ac.Enabled {
+		//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
+		//flush)
+		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers, config)
+		mgr.AddStatsFlushHandler(statsBuffer.Handler)
+	}
 
 	//handle process results. Forwards the result to the correct controller.
 	mgr.AddResultHandler(func(cmd *core.Cmd, result *core.JobResult) {

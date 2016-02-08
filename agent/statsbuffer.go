@@ -38,8 +38,8 @@ NewStatsBuffer creates new StatsBuffer
 func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient,
 	config *settings.Settings) StatsFlusher {
 	var destKeys []string
-	if len(config.Stats.Controllers) > 0 {
-		destKeys = config.Stats.Controllers
+	if len(config.Stats.Ac.Controllers) > 0 {
+		destKeys = config.Stats.Ac.Controllers
 	} else {
 		destKeys = getKeys(controllers)
 	}
