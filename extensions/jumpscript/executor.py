@@ -18,7 +18,7 @@ import logger
 
 LOG_FORMAT = '%(asctime)-15s [%(process)d] %(levelname)s: %(message)s'
 
-SCRIPTS_CACHE_DIR = '/tmp/jscache/'
+SCRIPTS_CACHE_DIR = '%s/jscache/'%os.environ["TMPDIR"]
 SCRIPTS_URL_PATH = '{gid}/{nid}/script'
 SCRIPTS_DELETE_OLDER_THAN = 86400  # A day
 

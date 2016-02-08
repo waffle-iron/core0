@@ -1,3 +1,5 @@
+#leave $tmpdir and $base in this file, gets replaced during installation
+
 [main]
 gid = 1
 nid = 10
@@ -37,7 +39,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/sync"
     args = ["{name}.py"]
         [extensions.sync.env]
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
+        PYTHONPATH = "../:$base/lib"
         SYNCTHING_URL = "http://localhost:28384"
 
     [extensions.jumpscript]
@@ -61,9 +63,9 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["executor.py"]
         [extensions.js_daemon.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent2/jumpscripts/"
+        SOCKET = "$tmpdir/jumpscript.sock"
+        PYTHONPATH = "../:$base/lib"
+        JUMPSCRIPTS_HOME = "$base/apps/agent2/jumpscripts/"
 
     [extensions.bash]
     binary = "bash"
