@@ -9,6 +9,7 @@ import requests
 import time
 from multiprocessing import Process, connection, Pool, reduction
 import traceback
+import tempfile
 
 # importing jumpscale
 from JumpScale import j # NOQA
@@ -18,7 +19,7 @@ import logger
 
 LOG_FORMAT = '%(asctime)-15s [%(process)d] %(levelname)s: %(message)s'
 
-SCRIPTS_CACHE_DIR = '%s/jscache/'%os.environ["TMPDIR"]
+SCRIPTS_CACHE_DIR = '%s/jscache/' % tempfile.gettempdir()
 SCRIPTS_URL_PATH = '{gid}/{nid}/script'
 SCRIPTS_DELETE_OLDER_THAN = 86400  # A day
 
@@ -167,7 +168,7 @@ def daemon(data):
         listener = connection.Listener(address=unix_sock_path)
 
     except Exception as e:
-        logging.error('Could not start listening: %s' % e)
+        raise e
 
     def terminate(n, f):
         logging.info('Stopping daemon %s: %s' % (n, pid))

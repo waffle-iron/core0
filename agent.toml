@@ -47,7 +47,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["wrapper.py", "{domain}", "{name}"]
         [extensions.jumpscript.env]
-        SOCKET = "/tmp/jumpscript.sock"
+        SOCKET = "$tmpdir/jumpscript.sock"
         PYTHONPATH = "../"
 
     [extensions.jumpscript_content]
@@ -55,7 +55,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["wrapper_content.py"]
         [extensions.jumpscript_content.env]
-        SOCKET = "/tmp/jumpscript.sock"
+        SOCKET = "$tmpdir/jumpscript.sock"
         PYTHONPATH = "../"
 
     [extensions.js_daemon]
