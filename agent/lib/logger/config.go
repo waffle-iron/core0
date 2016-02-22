@@ -16,7 +16,7 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, cfg *settings.Settings) {
+func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, gid, nid int, cfg *settings.Settings) {
 	//apply logging handlers.
 	dbLoggerConfigured := false
 	for _, logcfg := range cfg.Logging {
@@ -51,13 +51,13 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 					if !ok {
 						log.Fatalf("Unknow controller '%s'", key)
 					}
-					url := controller.BuildURL(cfg.Main.Gid, cfg.Main.Nid, "log")
+					url := controller.BuildURL(gid, nid, "log")
 					endpoints[url] = controller.Client
 				}
 			} else {
 				//all ACs
 				for _, controller := range controllers {
-					url := controller.BuildURL(cfg.Main.Gid, cfg.Main.Nid, "log")
+					url := controller.BuildURL(gid, nid, "log")
 					endpoints[url] = controller.Client
 				}
 			}

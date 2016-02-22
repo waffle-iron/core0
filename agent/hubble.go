@@ -127,7 +127,7 @@ RegisterHubbleFunctions Registers all the handlers for hubble commands this incl
 - hubble_list_tunnels
 
 */
-func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings *settings.Settings) {
+func RegisterHubbleFunctions(controllers map[string]*ControllerClient, gid, nid int, settings *settings.Settings) {
 	var proxisKeys []string
 	if len(settings.Hubble.Controllers) == 0 {
 		proxisKeys = getKeys(controllers)
@@ -137,7 +137,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 
 	agents := make(map[string]hubble.Agent)
 
-	localName := fmt.Sprintf("%d.%d", settings.Main.Gid, settings.Main.Nid)
+	localName := fmt.Sprintf("%d.%d", gid, nid)
 	//first of all... start all agents for controllers that are configured.
 	for _, proxyKey := range proxisKeys {
 		controller, ok := controllers[proxyKey]
@@ -146,7 +146,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, settings 
 		}
 
 		//start agent for that controller.
-		baseURL := controller.BuildURL(settings.Main.Gid, settings.Main.Nid, "hubble")
+		baseURL := controller.BuildURL(gid, nid, "hubble")
 		parsedURL, err := url.Parse(baseURL)
 		if err != nil {
 			log.Fatal(err)

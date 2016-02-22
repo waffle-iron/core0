@@ -19,14 +19,20 @@ type poller struct {
 	manager    *pm.PM
 	controller *ControllerClient
 	config     *settings.Settings
+
+	gid int
+	nid int
 }
 
-func newPoller(key string, manager *pm.PM, controller *ControllerClient, config *settings.Settings) *poller {
+func newPoller(key string, manager *pm.PM, controller *ControllerClient, gid, nid int, config *settings.Settings) *poller {
 	poll := &poller{
 		key:        key,
 		manager:    manager,
 		controller: controller,
 		config:     config,
+
+		gid: gid,
+		nid: nid,
 	}
 
 	return poll
@@ -50,7 +56,7 @@ func (poll *poller) longPoll() {
 		pollQuery.Add("role", role)
 	}
 
-	pollURL := fmt.Sprintf("%s?%s", controller.BuildURL(config.Main.Gid, config.Main.Nid, "cmd"),
+	pollURL := fmt.Sprintf("%s?%s", controller.BuildURL(poll.gid, poll.nid, "cmd"),
 		pollQuery.Encode())
 
 	for {
@@ -59,7 +65,7 @@ func (poll *poller) longPoll() {
 			//restored.
 			reader := bytes.NewBuffer(event)
 
-			url := controller.BuildURL(config.Main.Gid, config.Main.Nid, "event")
+			url := controller.BuildURL(poll.gid, poll.nid, "event")
 
 			resp, err := client.Post(url, "application/json", reader)
 			if err != nil {
@@ -124,8 +130,8 @@ func (poll *poller) longPoll() {
 		cmd.Args.SetTag(poll.key)
 		cmd.Args.SetController(ctrlConfig)
 
-		cmd.Gid = config.Main.Gid
-		cmd.Nid = config.Main.Nid
+		cmd.Gid = poll.gid
+		cmd.Nid = poll.nid
 
 		log.Println("Starting command", cmd)
 
@@ -140,7 +146,7 @@ func (poll *poller) longPoll() {
 /*
 StartPollers starts the long polling routines and feed the manager with received commands
 */
-func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, config *settings.Settings) {
+func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, gid, nid int, config *settings.Settings) {
 	var keys []string
 	if len(config.Channel.Cmds) > 0 {
 		keys = config.Channel.Cmds
@@ -154,7 +160,7 @@ func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, conf
 			log.Fatalf("No contoller with name '%s'\n", key)
 		}
 
-		poll := newPoller(key, manager, controller, config)
+		poll := newPoller(key, manager, controller, gid, nid, config)
 		go poll.longPoll()
 	}
 }

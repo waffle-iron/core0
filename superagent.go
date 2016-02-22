@@ -30,9 +30,13 @@ func getKeys(m map[string]*agent.ControllerClient) []string {
 func main() {
 	var cfg string
 	var help bool
+	var gid int
+	var nid int
 
 	flag.BoolVar(&help, "h", false, "Print this help screen")
 	flag.StringVar(&cfg, "c", "", "Path to config file")
+	flag.IntVar(&gid, "gid", 0, "Grid ID")
+	flag.IntVar(&nid, "nid", 0, "Node ID")
 	flag.Parse()
 
 	printHelp := func() {
@@ -47,6 +51,11 @@ func main() {
 
 	if cfg == "" {
 		fmt.Println("Missing required option -c")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+	if gid == 0 || nid == 0 {
+		fmt.Println("-gid and -nid are required options")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -70,10 +79,10 @@ func main() {
 	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
 
 	//configure logging handlers from configurations
-	logger.ConfigureLogging(mgr, controllers, config)
+	logger.ConfigureLogging(mgr, controllers, gid, nid, config)
 
 	//configure hubble functions from configurations
-	agent.RegisterHubbleFunctions(controllers, config)
+	agent.RegisterHubbleFunctions(controllers, gid, nid, config)
 
 	//register the extensions from the main configuration
 	for extKey, extCfg := range config.Extensions {
@@ -96,7 +105,7 @@ func main() {
 	if config.Stats.Ac.Enabled {
 		//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
 		//flush)
-		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers, config)
+		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers, gid, nid, config)
 		mgr.AddStatsFlushHandler(statsBuffer.Handler)
 	}
 
@@ -104,8 +113,8 @@ func main() {
 	mgr.AddResultHandler(func(cmd *core.Cmd, result *core.JobResult) {
 		//send result to AC.
 		//NOTE: we always force the real gid and nid on the result.
-		result.Gid = config.Main.Gid
-		result.Nid = config.Main.Nid
+		result.Gid = gid
+		result.Nid = nid
 
 		res, _ := json.Marshal(result)
 		controller, ok := controllers[result.Args.GetTag()]
@@ -116,7 +125,7 @@ func main() {
 			return
 		}
 
-		url := controller.BuildURL(config.Main.Gid, config.Main.Nid, "result")
+		url := controller.BuildURL(gid, nid, "result")
 
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
@@ -139,8 +148,8 @@ func main() {
 		}
 
 		cmd := &core.Cmd{
-			Gid:  config.Main.Gid,
-			Nid:  config.Main.Nid,
+			Gid:  gid,
+			Nid:  nid,
 			ID:   id,
 			Name: startup.Name,
 			Data: startup.Data,
@@ -156,10 +165,10 @@ func main() {
 	}
 
 	//also register extensions and run startup commands from partial configuration files
-	configuration.WatchAndApply(mgr, config)
+	configuration.WatchAndApply(mgr, gid, nid, config)
 
 	//start jobs pollers.
-	agent.StartPollers(mgr, controllers, config)
+	agent.StartPollers(mgr, controllers, gid, nid, config)
 
 	//wait
 	select {}

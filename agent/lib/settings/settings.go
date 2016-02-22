@@ -89,8 +89,6 @@ func (up StartupCmd) Hash() string {
 //Settings main agent settings
 type Settings struct {
 	Main struct {
-		Gid           int
-		Nid           int
 		MaxJobs       int
 		MessageIDFile string
 		HistoryFile   string
@@ -117,7 +115,6 @@ type Settings struct {
 		}
 	}
 
-
 	Channel struct {
 		Cmds []string
 	}
@@ -131,14 +128,6 @@ type Settings struct {
 
 func (s *Settings) Validate() []error {
 	errors := make([]error, 0)
-	if s.Main.Gid <= 0 {
-		errors = append(errors, fmt.Errorf("[main] `gid` must be greater than 0"))
-	}
-
-	if s.Main.Nid <= 0 {
-		errors = append(errors, fmt.Errorf("[main] `nid` must be greater than 0"))
-	}
-
 	for name, con := range s.Controllers {
 		if u, err := url.Parse(con.URL); err != nil {
 			verr := fmt.Errorf("[controller.%s] `url`: %s", name, err)

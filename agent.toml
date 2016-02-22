@@ -1,8 +1,6 @@
-#leave $tmpdir and $base in this file, gets replaced during installation
+#leave /tmp and /opt/jumpscale8 in this file, gets replaced during installation
 
 [main]
-gid = 1
-nid = 10
 max_jobs = 100
 message_ID_file = "./.mid"
 history_file = "./.history"
@@ -39,7 +37,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/sync"
     args = ["{name}.py"]
         [extensions.sync.env]
-        PYTHONPATH = "../:$base/lib"
+        PYTHONPATH = "../:/opt/jumpscale8/lib"
         SYNCTHING_URL = "http://localhost:28384"
 
     [extensions.jumpscript]
@@ -47,7 +45,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["wrapper.py", "{domain}", "{name}"]
         [extensions.jumpscript.env]
-        SOCKET = "$tmpdir/jumpscript.sock"
+        SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
 
     [extensions.jumpscript_content]
@@ -55,7 +53,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["wrapper_content.py"]
         [extensions.jumpscript_content.env]
-        SOCKET = "$tmpdir/jumpscript.sock"
+        SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../"
 
     [extensions.js_daemon]
@@ -63,9 +61,9 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     cwd = "./extensions/jumpscript"
     args = ["executor.py"]
         [extensions.js_daemon.env]
-        SOCKET = "$tmpdir/jumpscript.sock"
-        PYTHONPATH = "../:$base/lib"
-        JUMPSCRIPTS_HOME = "$base/apps/agent2/jumpscripts/"
+        SOCKET = "/tmp/jumpscript.sock"
+        PYTHONPATH = "../:/opt/jumpscale8/lib"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent2/jumpscripts/"
 
     [extensions.bash]
     binary = "bash"

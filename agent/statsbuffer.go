@@ -35,7 +35,7 @@ type acStatsBuffer struct {
 /*
 NewStatsBuffer creates new StatsBuffer
 */
-func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient,
+func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient, gid, nid int,
 	config *settings.Settings) StatsFlusher {
 	var destKeys []string
 	if len(config.Stats.Ac.Controllers) > 0 {
@@ -55,8 +55,8 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 	}
 
 	buffer := &acStatsBuffer{
-		gid:          config.Main.Gid,
-		nid:          config.Main.Nid,
+		gid:          gid,
+		nid:          nid,
 		destinations: destinations,
 	}
 

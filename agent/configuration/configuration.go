@@ -15,7 +15,7 @@ import (
 )
 
 //WatchAndApply watches and applies changes of configuration folder
-func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
+func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
 	if cfg.Main.Include == "" {
 		return
 	}
@@ -79,8 +79,8 @@ func WatchAndApply(mgr *pm.PM, cfg *settings.Settings) {
 			id := uuid.New()
 
 			cmd := &core.Cmd{
-				Gid:  cfg.Main.Gid,
-				Nid:  cfg.Main.Nid,
+				Gid:  gid,
+				Nid:  nid,
 				ID:   id,
 				Name: startup.Name,
 				Data: startup.Data,
