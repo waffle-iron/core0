@@ -63,7 +63,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         [extensions.js_daemon.env]
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../:/opt/jumpscale8/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent2/jumpscripts/"
+        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent8/jumpscripts/"
 
     [extensions.bash]
     binary = "bash"

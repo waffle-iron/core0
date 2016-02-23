@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/Jumpscale/agent2/agent/lib/settings"
+	"github.com/Jumpscale/agent8/agent/lib/settings"
 	"io/ioutil"
 	"log"
 	"net/http"

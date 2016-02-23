@@ -3,8 +3,8 @@ package pm
 //implement internal processes
 
 import (
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/Jumpscale/agent2/agent/lib/pm/process"
+	"github.com/Jumpscale/agent8/agent/lib/pm/core"
+	"github.com/Jumpscale/agent8/agent/lib/pm/process"
 )
 
 /*

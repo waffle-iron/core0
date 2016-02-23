@@ -13,4 +13,4 @@ The Agent will also monitor the jobs, updating the AC with `stats` and `logs`. A
 
 ![](https://docs.google.com/drawings/d/1qsOzbv2XbwChgsLVV8qCydmH0ki9QLkaB336kt7D1Cg/pub?w=960&h=720)
 
-For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController2/AgentController2.html#).
+For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController8/AgentController8.html#).
