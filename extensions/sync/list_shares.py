@@ -6,7 +6,7 @@ import _sync as sync
 
 agent_home = os.environ.get('AGENT_HOME')
 
-INTERNAL = ('%s/agent2/jumpscripts' % agent_home,)
+INTERNAL = ('%s/agent8/jumpscripts' % agent_home,)
 
 
 def list_shares(data):
