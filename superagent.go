@@ -9,13 +9,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/Jumpscale/agent2/agent"
-	"github.com/Jumpscale/agent2/agent/configuration"
-	_ "github.com/Jumpscale/agent2/agent/lib/builtin"
-	"github.com/Jumpscale/agent2/agent/lib/logger"
-	"github.com/Jumpscale/agent2/agent/lib/pm"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/Jumpscale/agent2/agent/lib/settings"
+	"github.com/Jumpscale/agent8/agent"
+	"github.com/Jumpscale/agent8/agent/configuration"
+	_ "github.com/Jumpscale/agent8/agent/lib/builtin"
+	"github.com/Jumpscale/agent8/agent/lib/logger"
+	"github.com/Jumpscale/agent8/agent/lib/pm"
+	"github.com/Jumpscale/agent8/agent/lib/pm/core"
+	"github.com/Jumpscale/agent8/agent/lib/settings"
 )
 
 func getKeys(m map[string]*agent.ControllerClient) []string {

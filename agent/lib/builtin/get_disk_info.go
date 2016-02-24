@@ -1,9 +1,9 @@
 package builtin
 
 import (
-	"github.com/Jumpscale/agent2/agent/lib/pm"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
-	"github.com/Jumpscale/agent2/agent/lib/pm/process"
+	"github.com/Jumpscale/agent8/agent/lib/pm"
+	"github.com/Jumpscale/agent8/agent/lib/pm/core"
+	"github.com/Jumpscale/agent8/agent/lib/pm/process"
 	"github.com/shirou/gopsutil/disk"
 )
 

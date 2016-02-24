@@ -2,7 +2,7 @@ package pm
 
 import (
 	"container/list"
-	"github.com/Jumpscale/agent2/agent/lib/pm/core"
+	"github.com/Jumpscale/agent8/agent/lib/pm/core"
 	"log"
 	"sync"
 )

@@ -3,9 +3,9 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/Jumpscale/agent2/agent/lib/settings"
-	"github.com/Jumpscale/agent2/agent/lib/stats"
-	"github.com/Jumpscale/agent2/agent/lib/utils"
+	"github.com/Jumpscale/agent8/agent/lib/settings"
+	"github.com/Jumpscale/agent8/agent/lib/stats"
+	"github.com/Jumpscale/agent8/agent/lib/utils"
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"time"
