@@ -3,7 +3,7 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/core"
 	"time"
 )
 

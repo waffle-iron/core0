@@ -1,8 +1,8 @@
 package process
 
 import (
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	"github.com/Jumpscale/agent8/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/stream"
 )
 
 const (

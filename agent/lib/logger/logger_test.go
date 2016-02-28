@@ -2,8 +2,8 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	"github.com/Jumpscale/agent8/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/stream"
 	"io/ioutil"
 	"net"
 	"net/http"

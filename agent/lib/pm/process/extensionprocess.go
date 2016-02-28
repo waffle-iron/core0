@@ -1,9 +1,9 @@
 package process
 
 import (
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	"github.com/Jumpscale/agent8/agent/lib/pm/stream"
-	"github.com/Jumpscale/agent8/agent/lib/utils"
+	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/utils"
 )
 
 type extensionProcess struct {

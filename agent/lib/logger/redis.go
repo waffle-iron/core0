@@ -2,9 +2,9 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	"github.com/Jumpscale/agent8/agent/lib/pm/stream"
-	"github.com/Jumpscale/agent8/agent/lib/utils"
+	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/utils"
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"time"

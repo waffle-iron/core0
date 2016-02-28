@@ -2,9 +2,9 @@ package builtin
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/agent8/agent/lib/pm"
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	"github.com/Jumpscale/agent8/agent/lib/pm/process"
+	"github.com/g8os/core/agent/lib/pm"
+	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core/agent/lib/pm/process"
 )
 
 const (

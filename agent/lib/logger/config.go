@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"github.com/Jumpscale/agent8/agent"
-	"github.com/Jumpscale/agent8/agent/lib/pm"
-	"github.com/Jumpscale/agent8/agent/lib/settings"
+	"github.com/g8os/core/agent"
+	"github.com/g8os/core/agent/lib/pm"
+	"github.com/g8os/core/agent/lib/settings"
 	"github.com/boltdb/bolt"
 	"log"
 	"net/http"

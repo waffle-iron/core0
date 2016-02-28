@@ -3,7 +3,7 @@ package settings
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/Jumpscale/agent8/agent/lib/utils"
+	"github.com/g8os/core/agent/lib/utils"
 	"io"
 	"io/ioutil"
 	"log"

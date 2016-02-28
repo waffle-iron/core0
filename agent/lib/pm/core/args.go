@@ -3,8 +3,8 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agent8/agent/lib/settings"
-	"github.com/Jumpscale/agent8/agent/lib/utils"
+	"github.com/g8os/core/agent/lib/settings"
+	"github.com/g8os/core/agent/lib/utils"
 	"log"
 )
 

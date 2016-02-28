@@ -33,5 +33,7 @@ legacy
 
 .idea
 *.iml
-agent8
 
+#binary
+core
+agent8

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Jumpscale/agent8/agent/lib/utils"
-	"github.com/Jumpscale/agent8/tests/client"
+	"github.com/g8os/core/agent/lib/utils"
+	"github.com/g8os/core/tests/client"
 )
 
 const (
@@ -81,7 +81,7 @@ func TestMain(m *testing.M) {
 	{
 		//build agent
 		log.Println("Building agent")
-		cmd := exec.Command("go", "install", "github.com/Jumpscale/agent8")
+		cmd := exec.Command("go", "install", "github.com/g8os/core")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Failed to build agent", err)
 		}

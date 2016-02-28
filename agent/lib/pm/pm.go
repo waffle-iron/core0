@@ -2,11 +2,11 @@ package pm
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agent8/agent/lib/pm/core"
-	//"github.com/Jumpscale/agent8/agent/lib/pm/process"
-	"github.com/Jumpscale/agent8/agent/lib/pm/stream"
-	"github.com/Jumpscale/agent8/agent/lib/stats"
-	"github.com/Jumpscale/agent8/agent/lib/utils"
+	"github.com/g8os/core/agent/lib/pm/core"
+	//"github.com/g8os/core/agent/lib/pm/process"
+	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/stats"
+	"github.com/g8os/core/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
