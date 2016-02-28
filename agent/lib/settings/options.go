@@ -65,7 +65,7 @@ func init() {
 
 	if errors := Options.validate(); len(errors) != 0 {
 		for _, err := range errors {
-			fmt.Errorf("Validation Error: %s", err)
+			fmt.Printf("Validation Error: %s\n", err)
 		}
 
 		os.Exit(1)

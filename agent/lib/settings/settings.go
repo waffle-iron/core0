@@ -91,7 +91,6 @@ type AppSettings struct {
 		MaxJobs       int
 		MessageIDFile string
 		HistoryFile   string
-		Roles         []string
 		Include       string
 	}
 

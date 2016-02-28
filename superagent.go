@@ -27,7 +27,9 @@ func getKeys(m map[string]*agent.ControllerClient) []string {
 
 func main() {
 
-	if err := settings.LoadSettings(settings.Options.Config()); err != nil {
+	var options = settings.Options
+
+	if err := settings.LoadSettings(options.Config()); err != nil {
 		log.Fatal(err)
 	}
 
@@ -40,7 +42,7 @@ func main() {
 	}
 
 	var config = settings.Settings
-	var options = settings.Options
+
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)

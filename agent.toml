@@ -4,7 +4,6 @@
 max_jobs = 100
 message_ID_file = "./.mid"
 history_file = "./.history"
-roles = []
 include = "./conf"
 
 [controllers]

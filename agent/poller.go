@@ -44,7 +44,7 @@ func (poll *poller) longPoll() {
 
 	pollQuery := make(url.Values)
 
-	for _, role := range config.Main.Roles {
+	for _, role := range settings.Options.Roles() {
 		pollQuery.Add("role", role)
 	}
 
