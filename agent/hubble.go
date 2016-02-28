@@ -3,11 +3,11 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	hubble "github.com/Jumpscale/hubble/agent"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/settings"
-	hubble "github.com/Jumpscale/hubble/agent"
 	"log"
 	"net/http"
 	"net/url"
@@ -127,17 +127,17 @@ RegisterHubbleFunctions Registers all the handlers for hubble commands this incl
 - hubble_list_tunnels
 
 */
-func RegisterHubbleFunctions(controllers map[string]*ControllerClient, gid, nid int, settings *settings.Settings) {
+func RegisterHubbleFunctions(controllers map[string]*ControllerClient) {
 	var proxisKeys []string
-	if len(settings.Hubble.Controllers) == 0 {
+	if len(settings.Settings.Hubble.Controllers) == 0 {
 		proxisKeys = getKeys(controllers)
 	} else {
-		proxisKeys = settings.Hubble.Controllers
+		proxisKeys = settings.Settings.Hubble.Controllers
 	}
 
 	agents := make(map[string]hubble.Agent)
 
-	localName := fmt.Sprintf("%d.%d", gid, nid)
+	localName := fmt.Sprintf("%d.%d", settings.Options.Gid(), settings.Options.Nid())
 	//first of all... start all agents for controllers that are configured.
 	for _, proxyKey := range proxisKeys {
 		controller, ok := controllers[proxyKey]
@@ -146,7 +146,7 @@ func RegisterHubbleFunctions(controllers map[string]*ControllerClient, gid, nid 
 		}
 
 		//start agent for that controller.
-		baseURL := controller.BuildURL(gid, nid, "hubble")
+		baseURL := controller.BuildURL("hubble")
 		parsedURL, err := url.Parse(baseURL)
 		if err != nil {
 			log.Fatal(err)

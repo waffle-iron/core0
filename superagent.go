@@ -3,10 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/g8os/core/agent"
@@ -28,47 +26,21 @@ func getKeys(m map[string]*agent.ControllerClient) []string {
 }
 
 func main() {
-	var cfg string
-	var help bool
-	var gid int
-	var nid int
 
-	flag.BoolVar(&help, "h", false, "Print this help screen")
-	flag.StringVar(&cfg, "c", "", "Path to config file")
-	flag.IntVar(&gid, "gid", 0, "Grid ID")
-	flag.IntVar(&nid, "nid", 0, "Node ID")
-	flag.Parse()
-
-	printHelp := func() {
-		fmt.Println("agent [options]")
-		flag.PrintDefaults()
+	if err := settings.LoadSettings(settings.Options.Config()); err != nil {
+		log.Fatal(err)
 	}
 
-	if help {
-		printHelp()
-		return
-	}
-
-	if cfg == "" {
-		fmt.Println("Missing required option -c")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-	if gid == 0 || nid == 0 {
-		fmt.Println("-gid and -nid are required options")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	config := settings.GetSettings(cfg)
-
-	if errors := config.Validate(); len(errors) > 0 {
+	if errors := settings.Settings.Validate(); len(errors) > 0 {
 		for _, err := range errors {
 			log.Println(err)
 		}
 
 		log.Fatal("\nConfig validation error, please fix and try again.")
 	}
+
+	var config = settings.Settings
+	var options = settings.Options
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)
@@ -79,10 +51,10 @@ func main() {
 	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
 
 	//configure logging handlers from configurations
-	logger.ConfigureLogging(mgr, controllers, gid, nid, config)
+	logger.ConfigureLogging(mgr, controllers)
 
 	//configure hubble functions from configurations
-	agent.RegisterHubbleFunctions(controllers, gid, nid, config)
+	agent.RegisterHubbleFunctions(controllers)
 
 	//register the extensions from the main configuration
 	for extKey, extCfg := range config.Extensions {
@@ -105,7 +77,7 @@ func main() {
 	if config.Stats.Ac.Enabled {
 		//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
 		//flush)
-		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers, gid, nid, config)
+		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers)
 		mgr.AddStatsFlushHandler(statsBuffer.Handler)
 	}
 
@@ -113,8 +85,8 @@ func main() {
 	mgr.AddResultHandler(func(cmd *core.Cmd, result *core.JobResult) {
 		//send result to AC.
 		//NOTE: we always force the real gid and nid on the result.
-		result.Gid = gid
-		result.Nid = nid
+		result.Gid = options.Gid()
+		result.Nid = options.Nid()
 
 		res, _ := json.Marshal(result)
 		controller, ok := controllers[result.Args.GetTag()]
@@ -125,7 +97,7 @@ func main() {
 			return
 		}
 
-		url := controller.BuildURL(gid, nid, "result")
+		url := controller.BuildURL("result")
 
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
@@ -148,8 +120,8 @@ func main() {
 		}
 
 		cmd := &core.Cmd{
-			Gid:  gid,
-			Nid:  nid,
+			Gid:  options.Gid(),
+			Nid:  options.Nid(),
 			ID:   id,
 			Name: startup.Name,
 			Data: startup.Data,
@@ -165,10 +137,10 @@ func main() {
 	}
 
 	//also register extensions and run startup commands from partial configuration files
-	configuration.WatchAndApply(mgr, gid, nid, config)
+	configuration.WatchAndApply(mgr)
 
 	//start jobs pollers.
-	agent.StartPollers(mgr, controllers, gid, nid, config)
+	agent.StartPollers(mgr, controllers)
 
 	//wait
 	select {}

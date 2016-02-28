@@ -1,10 +1,10 @@
 package logger
 
 import (
+	"github.com/boltdb/bolt"
 	"github.com/g8os/core/agent"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
-	"github.com/boltdb/bolt"
 	"log"
 	"net/http"
 	"os"
@@ -16,10 +16,10 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient, gid, nid int, cfg *settings.Settings) {
+func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient) {
 	//apply logging handlers.
 	dbLoggerConfigured := false
-	for _, logcfg := range cfg.Logging {
+	for _, logcfg := range settings.Settings.Logging {
 		switch strings.ToLower(logcfg.Type) {
 		case "db":
 			if dbLoggerConfigured {
@@ -51,13 +51,13 @@ func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient
 					if !ok {
 						log.Fatalf("Unknow controller '%s'", key)
 					}
-					url := controller.BuildURL(gid, nid, "log")
+					url := controller.BuildURL("log")
 					endpoints[url] = controller.Client
 				}
 			} else {
 				//all ACs
 				for _, controller := range controllers {
-					url := controller.BuildURL(gid, nid, "log")
+					url := controller.BuildURL("log")
 					endpoints[url] = controller.Client
 				}
 			}

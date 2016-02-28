@@ -18,21 +18,13 @@ type poller struct {
 	key        string
 	manager    *pm.PM
 	controller *ControllerClient
-	config     *settings.Settings
-
-	gid int
-	nid int
 }
 
-func newPoller(key string, manager *pm.PM, controller *ControllerClient, gid, nid int, config *settings.Settings) *poller {
+func newPoller(key string, manager *pm.PM, controller *ControllerClient) *poller {
 	poll := &poller{
 		key:        key,
 		manager:    manager,
 		controller: controller,
-		config:     config,
-
-		gid: gid,
-		nid: nid,
 	}
 
 	return poll
@@ -42,7 +34,7 @@ func (poll *poller) longPoll() {
 	lastfail := time.Now().Unix()
 	controller := poll.controller
 	client := controller.Client
-	config := poll.config
+	config := settings.Settings
 
 	sendStartup := true
 
@@ -56,7 +48,7 @@ func (poll *poller) longPoll() {
 		pollQuery.Add("role", role)
 	}
 
-	pollURL := fmt.Sprintf("%s?%s", controller.BuildURL(poll.gid, poll.nid, "cmd"),
+	pollURL := fmt.Sprintf("%s?%s", controller.BuildURL("cmd"),
 		pollQuery.Encode())
 
 	for {
@@ -65,7 +57,7 @@ func (poll *poller) longPoll() {
 			//restored.
 			reader := bytes.NewBuffer(event)
 
-			url := controller.BuildURL(poll.gid, poll.nid, "event")
+			url := controller.BuildURL("event")
 
 			resp, err := client.Post(url, "application/json", reader)
 			if err != nil {
@@ -130,8 +122,8 @@ func (poll *poller) longPoll() {
 		cmd.Args.SetTag(poll.key)
 		cmd.Args.SetController(ctrlConfig)
 
-		cmd.Gid = poll.gid
-		cmd.Nid = poll.nid
+		cmd.Gid = settings.Options.Gid()
+		cmd.Nid = settings.Options.Nid()
 
 		log.Println("Starting command", cmd)
 
@@ -146,10 +138,10 @@ func (poll *poller) longPoll() {
 /*
 StartPollers starts the long polling routines and feed the manager with received commands
 */
-func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, gid, nid int, config *settings.Settings) {
+func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient) {
 	var keys []string
-	if len(config.Channel.Cmds) > 0 {
-		keys = config.Channel.Cmds
+	if len(settings.Settings.Channel.Cmds) > 0 {
+		keys = settings.Settings.Channel.Cmds
 	} else {
 		keys = getKeys(controllers)
 	}
@@ -160,7 +152,7 @@ func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient, gid,
 			log.Fatalf("No contoller with name '%s'\n", key)
 		}
 
-		poll := newPoller(key, manager, controller, gid, nid, config)
+		poll := newPoller(key, manager, controller)
 		go poll.longPoll()
 	}
 }

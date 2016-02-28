@@ -26,8 +26,6 @@ type StatsFlusher interface {
 }
 
 type acStatsBuffer struct {
-	gid          int
-	nid          int
 	destinations []*ControllerClient
 	buffer       utils.Buffer
 }
@@ -35,11 +33,10 @@ type acStatsBuffer struct {
 /*
 NewStatsBuffer creates new StatsBuffer
 */
-func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient, gid, nid int,
-	config *settings.Settings) StatsFlusher {
+func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient) StatsFlusher {
 	var destKeys []string
-	if len(config.Stats.Ac.Controllers) > 0 {
-		destKeys = config.Stats.Ac.Controllers
+	if len(settings.Settings.Stats.Ac.Controllers) > 0 {
+		destKeys = settings.Settings.Stats.Ac.Controllers
 	} else {
 		destKeys = getKeys(controllers)
 	}
@@ -55,8 +52,6 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 	}
 
 	buffer := &acStatsBuffer{
-		gid:          gid,
-		nid:          nid,
 		destinations: destinations,
 	}
 
@@ -73,7 +68,7 @@ func (buffer *acStatsBuffer) onflush(stats []interface{}) {
 
 	res, _ := json.Marshal(stats)
 	for _, controller := range buffer.destinations {
-		url := controller.BuildURL(buffer.gid, buffer.nid, "stats")
+		url := controller.BuildURL("stats")
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
 		if err != nil {

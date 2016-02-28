@@ -15,8 +15,8 @@ import (
 )
 
 //WatchAndApply watches and applies changes of configuration folder
-func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
-	if cfg.Main.Include == "" {
+func WatchAndApply(mgr *pm.PM) {
+	if settings.Settings.Main.Include == "" {
 		return
 	}
 
@@ -29,7 +29,7 @@ func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
 	commands := make(map[string]PlaceHolder)
 
 	apply := func() error {
-		partial, err := settings.GetPartialSettings(cfg)
+		partial, err := settings.GetPartialSettings()
 		if err != nil {
 			log.Println(err)
 			return err
@@ -79,8 +79,8 @@ func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
 			id := uuid.New()
 
 			cmd := &core.Cmd{
-				Gid:  gid,
-				Nid:  nid,
+				Gid:  settings.Options.Gid(),
+				Nid:  settings.Options.Nid(),
 				ID:   id,
 				Name: startup.Name,
 				Data: startup.Data,
@@ -89,7 +89,7 @@ func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
 
 			meterInt := cmd.Args.GetInt("stats_interval")
 			if meterInt == 0 {
-				cmd.Args.Set("stats_interval", cfg.Stats.Interval)
+				cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
 			}
 
 			mgr.RunCmd(cmd)
@@ -140,5 +140,5 @@ func WatchAndApply(mgr *pm.PM, gid int, nid int, cfg *settings.Settings) {
 	}
 
 	apply()
-	go watch(cfg.Main.Include)
+	go watch(settings.Settings.Main.Include)
 }

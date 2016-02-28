@@ -6,7 +6,6 @@ import (
 	"github.com/g8os/core/agent/lib/utils"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"path"
 	"sort"
@@ -87,7 +86,7 @@ func (up StartupCmd) Hash() string {
 }
 
 //Settings main agent settings
-type Settings struct {
+type AppSettings struct {
 	Main struct {
 		MaxJobs       int
 		MessageIDFile string
@@ -126,7 +125,9 @@ type Settings struct {
 	Startup map[string]StartupCmd
 }
 
-func (s *Settings) Validate() []error {
+var Settings AppSettings
+
+func (s *AppSettings) Validate() []error {
 	errors := make([]error, 0)
 	for name, con := range s.Controllers {
 		if u, err := url.Parse(con.URL); err != nil {
@@ -149,17 +150,17 @@ type PartialSettings struct {
 }
 
 //GetPartialSettings loads partial settings according to main configurations
-func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
+func GetPartialSettings() (*PartialSettings, error) {
 	partial := &PartialSettings{
 		Extensions: make(map[string]Extension),
 		Startup:    make(map[string]StartupCmd),
 	}
 
-	if settings.Main.Include == "" {
+	if Settings.Main.Include == "" {
 		return partial, nil
 	}
 
-	infos, err := ioutil.ReadDir(settings.Main.Include)
+	infos, err := ioutil.ReadDir(Settings.Main.Include)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +179,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 		}
 
 		partialCfg := PartialSettings{}
-		partialPath := path.Join(settings.Main.Include, name)
+		partialPath := path.Join(Settings.Main.Include, name)
 
 		err := utils.LoadTomlFile(partialPath, &partialCfg)
 		if err != nil {
@@ -187,7 +188,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 
 		//merge into settings
 		for key, ext := range partialCfg.Extensions {
-			_, m := settings.Extensions[key]
+			_, m := Settings.Extensions[key]
 			_, p := partial.Extensions[key]
 			if m || p {
 				return nil, fmt.Errorf("Extension override in '%s' name '%s'", partialPath, key)
@@ -197,7 +198,7 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 		}
 
 		for key, startup := range partialCfg.Startup {
-			_, m := settings.Startup[key]
+			_, m := Settings.Startup[key]
 			_, p := partial.Startup[key]
 			if m || p {
 				return nil, fmt.Errorf("Startup command override in '%s' name '%s'", partialPath, key)
@@ -211,13 +212,11 @@ func GetPartialSettings(settings *Settings) (*PartialSettings, error) {
 }
 
 //GetSettings loads main settings from a filename
-func GetSettings(filename string) *Settings {
-	settings := &Settings{}
-
+func LoadSettings(filename string) error {
 	//that's the main config file, panic if can't load
-	if err := utils.LoadTomlFile(filename, settings); err != nil {
-		log.Fatal(err)
+	if err := utils.LoadTomlFile(filename, &Settings); err != nil {
+		return err
 	}
 
-	return settings
+	return nil
 }
