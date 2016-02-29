@@ -14,16 +14,8 @@ import (
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
+	"github.com/g8os/core/agent/lib/system"
 )
-
-func getKeys(m map[string]*agent.ControllerClient) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
 
 func main() {
 
@@ -42,7 +34,6 @@ func main() {
 	}
 
 	var config = settings.Settings
-
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*agent.ControllerClient)
@@ -110,6 +101,9 @@ func main() {
 		resp.Body.Close()
 	})
 
+	//start the child processes cleaner
+	system.CollectDefunct()
+
 	//start process mgr.
 	mgr.Run()
 
@@ -135,6 +129,7 @@ func main() {
 			cmd.Args.Set("stats_interval", config.Stats.Interval)
 		}
 
+		log.Printf("Starting %s\n", cmd)
 		mgr.RunCmd(cmd)
 	}
 

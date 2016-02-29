@@ -90,7 +90,6 @@ type AppSettings struct {
 	Main struct {
 		MaxJobs       int
 		MessageIDFile string
-		HistoryFile   string
 		Include       string
 	}
 

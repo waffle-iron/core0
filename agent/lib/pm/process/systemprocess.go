@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/stream"
-	psutil "github.com/shirou/gopsutil/process"
 	psutils "github.com/shirou/gopsutil/process"
 	"log"
 	"os"
@@ -22,7 +21,7 @@ type systemProcessImpl struct {
 func NewSystemProcess(cmd *core.Cmd) Process {
 	return &systemProcessImpl{
 		cmd:      cmd,
-		children: make([]*psutil.Process, 0),
+		children: make([]*psutils.Process, 0),
 	}
 }
 
@@ -140,7 +139,7 @@ func (process *systemProcessImpl) processInternalMessage(msg *stream.Message) {
 			return
 		}
 		log.Println("Tracking external process:", childPid)
-		child, err := psutil.NewProcess(int32(childPid))
+		child, err := psutils.NewProcess(int32(childPid))
 		if err != nil {
 			log.Println(err)
 		}
@@ -201,7 +200,7 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 	channel := make(chan *stream.Message)
 
 	process.pid = cmd.Process.Pid
-	psProcess, _ := psutil.NewProcess(int32(process.pid))
+	psProcess, _ := psutils.NewProcess(int32(process.pid))
 	process.process = psProcess
 
 	msgInterceptor := func(msg *stream.Message) {

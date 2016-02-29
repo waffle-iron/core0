@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+#prepare pseudoterminal
+mkdir /dev/pts
+mount -t devpts none /dev/pts
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+
+exec /sbin/core -gid 1 -nid 1 -roles g8os

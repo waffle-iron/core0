@@ -2,9 +2,8 @@
 
 [main]
 max_jobs = 100
-message_ID_file = "./.mid"
-history_file = "./.history"
-include = "./conf"
+message_ID_file = "/var/run/core.mid"
+include = "/etc/g8os/g8os.d"
 
 [controllers]
     [controllers.main]
@@ -23,71 +22,14 @@ include = "./conf"
 cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
 
 [extensions]
-    #the very basic agent extensions. Also please check the toml files under
-    #the Main.Include folder for more extensions
-    [extensions.syncthing]
-    binary = "./syncthing"
-    cwd = "./extensions/syncthing"
-    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
-
-    [extensions.sync]
-    #syncthing extension
-    binary = "python"
-    cwd = "./extensions/sync"
-    args = ["{name}.py"]
-        [extensions.sync.env]
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
-        SYNCTHING_URL = "http://localhost:28384"
-
-    [extensions.jumpscript]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["wrapper.py", "{domain}", "{name}"]
-        [extensions.jumpscript.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../"
-
-    [extensions.jumpscript_content]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["wrapper_content.py"]
-        [extensions.jumpscript_content.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../"
-
-    [extensions.js_daemon]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["executor.py"]
-        [extensions.js_daemon.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent8/jumpscripts/"
-
     [extensions.bash]
     binary = "bash"
     args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash -c $T; EXIT=$?; rm -rf $T; exit $EXIT']
 
 [logging]
-    [logging.db]
-    type = "DB"
-    address = "./logs"
-    levels = [1, 2, 4, 7, 8, 9, 11]  # (all error messages + debug) empty for all
-
-    [logging.ac]
-    type = "AC"
-    flush_int = 300 # seconds (5min)
-    batch_size = 1000 # max batch size, force flush if reached this count.
-    controllers = [] # empty for all controllers, or controllers keys
-    levels = [2, 4, 7, 8, 9, 11]  # (all error messages + debug) empty for all
-
     [logging.console]
     type = "console"
     levels = [2, 4, 7, 8, 9]
-
-#    [logging.redis]
-#    type = "redis"
-#    address = "localhost:9999"
 
 [stats]
 interval = 60000 # milliseconds (1 min)
@@ -95,24 +37,9 @@ interval = 60000 # milliseconds (1 min)
     enabled = false
     controllers = [] # empty for all controllers, or controllers keys
 [stats.redis]
-enabled = true
-flush_interval = 100 # millisecond
-address = "localhost:6379"
+    enabled = false
+    flush_interval = 100 # millisecond
+    address = "localhost:6379"
 
 [hubble]
 controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
-
-[startup]
-    [startup.syncthing]
-    name = "syncthing"
-        [startup.syncthing.args]
-        loglevels_db = '*'
-        domain = "agent"
-        name = "syncthing"
-
-    [startup.jumpscript]
-    name = "js_daemon"
-        [startup.jumpscript.args]
-        max_restart = 10
-        domain = "agent"
-        name = "jumpscript"
