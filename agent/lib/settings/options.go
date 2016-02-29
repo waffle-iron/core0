@@ -27,6 +27,9 @@ func (o *AppOptions) Nid() int {
 }
 
 func (o *AppOptions) Roles() []string {
+	if o.roles == "" {
+		return nil
+	}
 	return strings.Split(o.roles, ",")
 }
 
@@ -49,8 +52,10 @@ func init() {
 	help := false
 	flag.BoolVar(&help, "h", false, "Print this help screen")
 	flag.StringVar(&Options.cfg, "c", "/etc/g8os/net.toml", "Path to config file")
+
 	flag.IntVar(&Options.gid, "gid", 0, "Grid ID")
 	flag.IntVar(&Options.nid, "nid", 0, "Node ID")
+	flag.StringVar(&Options.roles, "roles", "", "A comma separated list of roles")
 	flag.Parse()
 
 	printHelp := func() {
