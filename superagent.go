@@ -8,16 +8,23 @@ import (
 	"time"
 
 	"github.com/g8os/core/agent"
-	"github.com/g8os/core/agent/configuration"
 	_ "github.com/g8os/core/agent/lib/builtin"
 	"github.com/g8os/core/agent/lib/logger"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
 	"github.com/g8os/core/agent/lib/system"
+	"os"
 )
 
 func main() {
+	if errors := settings.Options.Validate(); len(errors) != 0 {
+		for _, err := range errors {
+			fmt.Printf("Validation Error: %s\n", err)
+		}
+
+		os.Exit(1)
+	}
 
 	var options = settings.Options
 
@@ -107,34 +114,31 @@ func main() {
 	//start process mgr.
 	mgr.Run()
 
-	//System is ready to receive commands.
-	//before start polling on commands, lets run our startup commands
-	//from config
-	for id, startup := range config.Startup {
-		if startup.Args == nil {
-			startup.Args = make(map[string]interface{})
-		}
-
-		cmd := &core.Cmd{
-			Gid:  options.Gid(),
-			Nid:  options.Nid(),
-			ID:   id,
-			Name: startup.Name,
-			Data: startup.Data,
-			Args: core.NewMapArgs(startup.Args),
-		}
-
-		meterInt := cmd.Args.GetInt("stats_interval")
-		if meterInt == 0 {
-			cmd.Args.Set("stats_interval", config.Stats.Interval)
-		}
-
-		log.Printf("Starting %s\n", cmd)
-		mgr.RunCmd(cmd)
-	}
-
-	//also register extensions and run startup commands from partial configuration files
-	configuration.WatchAndApply(mgr)
+	////System is ready to receive commands.
+	////before start polling on commands, lets run our startup commands
+	////from config
+	//for id, startup := range config.Startup {
+	//	if startup.Args == nil {
+	//		startup.Args = make(map[string]interface{})
+	//	}
+	//
+	//	cmd := &core.Cmd{
+	//		Gid:  options.Gid(),
+	//		Nid:  options.Nid(),
+	//		ID:   id,
+	//		Name: startup.Name,
+	//		Data: startup.Data,
+	//		Args: core.NewMapArgs(startup.Args),
+	//	}
+	//
+	//	meterInt := cmd.Args.GetInt("stats_interval")
+	//	if meterInt == 0 {
+	//		cmd.Args.Set("stats_interval", config.Stats.Interval)
+	//	}
+	//
+	//	log.Printf("Starting %s\n", cmd)
+	//	mgr.RunCmd(cmd)
+	//}
 
 	//start jobs pollers.
 	agent.StartPollers(mgr, controllers)

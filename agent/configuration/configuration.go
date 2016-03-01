@@ -42,7 +42,7 @@ func WatchAndApply(mgr *pm.PM) {
 		extensions = extensions[:]
 
 		//register the execute commands
-		for extKey, extCfg := range partial.Extensions {
+		for extKey, extCfg := range partial.extensions {
 			var env []string
 			if len(extCfg.Env) > 0 {
 				env = make([]string, 0, len(extCfg.Env))
@@ -58,7 +58,7 @@ func WatchAndApply(mgr *pm.PM) {
 		//Simple diff to find out which command needs to be restarted
 		//and witch needs to be stopped totally
 		var running []string
-		for name, startup := range partial.Startup {
+		for name, startup := range partial.startup {
 			hash := startup.Hash()
 			if ph, ok := commands[name]; ok {
 				//name already tracked

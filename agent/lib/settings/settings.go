@@ -1,14 +1,9 @@
 package settings
 
 import (
-	"crypto/md5"
 	"fmt"
 	"github.com/g8os/core/agent/lib/utils"
-	"io"
-	"io/ioutil"
 	"net/url"
-	"path"
-	"sort"
 	"strings"
 )
 
@@ -44,6 +39,12 @@ type Extension struct {
 	Env map[string]string
 
 	Args []string
+
+	key string
+}
+
+func (e *Extension) Key() string {
+	return e.key
 }
 
 //Security certificate path
@@ -57,32 +58,6 @@ type Security struct {
 type Controller struct {
 	URL      string
 	Security Security
-}
-
-//StartupCmd startup command config
-type StartupCmd struct {
-	Name string
-	Data string
-	Args map[string]interface{}
-}
-
-//Hash calculates a hash for the startup command, identical commands should have identical hashes.
-func (up StartupCmd) Hash() string {
-	h := md5.New()
-
-	io.WriteString(h, fmt.Sprintf("Name:%s,", up.Name))
-	io.WriteString(h, fmt.Sprintf("Data:%s,", up.Data))
-
-	keys := make([]string, 0, len(up.Args))
-	for key := range up.Args {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-	for _, key := range keys {
-		io.WriteString(h, fmt.Sprintf("%s:%v,", key, up.Args[key]))
-	}
-	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 //Settings main agent settings
@@ -119,8 +94,6 @@ type AppSettings struct {
 	Hubble struct {
 		Controllers []string
 	}
-
-	Startup map[string]StartupCmd
 }
 
 var Settings AppSettings
@@ -138,75 +111,6 @@ func (s *AppSettings) Validate() []error {
 	}
 
 	return errors
-}
-
-//PartialSettings loadable settings
-type PartialSettings struct {
-	Extensions map[string]Extension
-
-	Startup map[string]StartupCmd
-}
-
-//GetPartialSettings loads partial settings according to main configurations
-func GetPartialSettings() (*PartialSettings, error) {
-	partial := &PartialSettings{
-		Extensions: make(map[string]Extension),
-		Startup:    make(map[string]StartupCmd),
-	}
-
-	if Settings.Main.Include == "" {
-		return partial, nil
-	}
-
-	infos, err := ioutil.ReadDir(Settings.Main.Include)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, info := range infos {
-		if info.IsDir() {
-			continue
-		}
-		name := info.Name()
-		if len(name) <= len(ConfigSuffix) {
-			//file name too short to be a config file (shorter than the extension)
-			continue
-		}
-		if name[len(name)-len(ConfigSuffix):] != ConfigSuffix {
-			continue
-		}
-
-		partialCfg := PartialSettings{}
-		partialPath := path.Join(Settings.Main.Include, name)
-
-		err := utils.LoadTomlFile(partialPath, &partialCfg)
-		if err != nil {
-			return nil, err
-		}
-
-		//merge into settings
-		for key, ext := range partialCfg.Extensions {
-			_, m := Settings.Extensions[key]
-			_, p := partial.Extensions[key]
-			if m || p {
-				return nil, fmt.Errorf("Extension override in '%s' name '%s'", partialPath, key)
-			}
-
-			partial.Extensions[key] = ext
-		}
-
-		for key, startup := range partialCfg.Startup {
-			_, m := Settings.Startup[key]
-			_, p := partial.Startup[key]
-			if m || p {
-				return nil, fmt.Errorf("Startup command override in '%s' name '%s'", partialPath, key)
-			}
-
-			partial.Startup[key] = startup
-		}
-	}
-
-	return partial, nil
 }
 
 //GetSettings loads main settings from a filename

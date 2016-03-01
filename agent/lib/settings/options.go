@@ -33,7 +33,7 @@ func (o *AppOptions) Roles() []string {
 	return strings.Split(o.roles, ",")
 }
 
-func (o *AppOptions) validate() []error {
+func (o *AppOptions) Validate() []error {
 	errors := make([]error, 0)
 	if o.gid == 0 {
 		errors = append(errors, fmt.Errorf("Gid can't be 0"))
@@ -66,13 +66,5 @@ func init() {
 	if help {
 		printHelp()
 		os.Exit(0)
-	}
-
-	if errors := Options.validate(); len(errors) != 0 {
-		for _, err := range errors {
-			fmt.Printf("Validation Error: %s\n", err)
-		}
-
-		os.Exit(1)
 	}
 }
