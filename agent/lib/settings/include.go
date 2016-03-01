@@ -26,8 +26,8 @@ var (
 
 	Priority = map[After]int64{
 		AfterInit: 1,
-		AfterNet:  100,
-		AfterBoot: 1000,
+		AfterNet:  1000,
+		AfterBoot: 1000000,
 	}
 )
 

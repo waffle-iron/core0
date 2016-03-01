@@ -3,7 +3,6 @@ package settings
 import (
 	"github.com/stretchr/testify/assert"
 	"log"
-	"os"
 	"sort"
 	"testing"
 )
@@ -38,11 +37,6 @@ var (
 		},
 	}
 )
-
-func TestMain(m *testing.M) {
-
-	os.Exit(m.Run())
-}
 
 func TestGetTree(t *testing.T) {
 	tree, errors := settings.GetStartupTree()
@@ -98,6 +92,62 @@ func TestGetTreeSorted(t *testing.T) {
 		[]string{"ovc"}}
 
 	if !AssertTree(t, expected, tree) {
+		t.Fatal()
+	}
+}
+
+func TestTreeSlice(t *testing.T) {
+	tree, errors := settings.GetStartupTree()
+	if ok := assert.Empty(t, errors); !ok {
+		t.Fail()
+	}
+
+	if ok := assert.NotNil(t, tree); !ok {
+		t.Fatal()
+	}
+
+	slice := tree.Slice(Priority[AfterInit], Priority[AfterNet])
+	if ok := assert.Len(t, slice, 2); !ok {
+		t.Fatal()
+	}
+
+	expected := []string{"fstab", "udev"}
+	actual := make([]string, 0)
+	for _, s := range slice {
+		actual = append(actual, s.Key())
+	}
+	sort.Strings(expected)
+	sort.Strings(actual)
+
+	if ok := assert.Equal(t, expected, actual); !ok {
+		t.Fatal()
+	}
+}
+
+func TestTreeSliceBoot(t *testing.T) {
+	tree, errors := settings.GetStartupTree()
+	if ok := assert.Empty(t, errors); !ok {
+		t.Fail()
+	}
+
+	if ok := assert.NotNil(t, tree); !ok {
+		t.Fatal()
+	}
+
+	slice := tree.Slice(Priority[AfterBoot], -1)
+	if ok := assert.Len(t, slice, 3); !ok {
+		t.Fatal()
+	}
+
+	expected := []string{"mongo", "influx", "ovc"}
+	actual := make([]string, 0)
+	for _, s := range slice {
+		actual = append(actual, s.Key())
+	}
+	sort.Strings(expected)
+	sort.Strings(actual)
+
+	if ok := assert.Equal(t, expected, actual); !ok {
 		t.Fatal()
 	}
 }
