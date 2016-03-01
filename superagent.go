@@ -93,7 +93,10 @@ func main() {
 
 		if !ok {
 			//command isn't bind to any controller. This can be a startup command.
-			log.Printf("Got orphan result: %s", res)
+			if result.State != core.StateSuccess {
+				log.Printf("Got orphan result: %s", res)
+			}
+
 			return
 		}
 
@@ -114,31 +117,7 @@ func main() {
 	//start process mgr.
 	mgr.Run()
 
-	////System is ready to receive commands.
-	////before start polling on commands, lets run our startup commands
-	////from config
-	//for id, startup := range config.Startup {
-	//	if startup.Args == nil {
-	//		startup.Args = make(map[string]interface{})
-	//	}
-	//
-	//	cmd := &core.Cmd{
-	//		Gid:  options.Gid(),
-	//		Nid:  options.Nid(),
-	//		ID:   id,
-	//		Name: startup.Name,
-	//		Data: startup.Data,
-	//		Args: core.NewMapArgs(startup.Args),
-	//	}
-	//
-	//	meterInt := cmd.Args.GetInt("stats_interval")
-	//	if meterInt == 0 {
-	//		cmd.Args.Set("stats_interval", config.Stats.Interval)
-	//	}
-	//
-	//	log.Printf("Starting %s\n", cmd)
-	//	mgr.RunCmd(cmd)
-	//}
+	Bootstrap(mgr)
 
 	//start jobs pollers.
 	agent.StartPollers(mgr, controllers)

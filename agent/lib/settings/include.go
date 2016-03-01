@@ -4,27 +4,24 @@ import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/utils"
 	"io/ioutil"
-	"log"
 	"path"
 )
 
-type After string
-
 const (
 	//Init happens before handshake
-	AfterInit = After("init")
+	AfterInit = "init"
 
 	//Core happens with core is up and running (also networking)
-	AfterNet = After("net")
+	AfterNet = "net"
 
 	//Default for startup commands that doesn't specify dependency
-	AfterBoot = After("boot")
+	AfterBoot = "boot"
 )
 
 var (
 	CyclicDependency = fmt.Errorf("cyclic dependency")
 
-	Priority = map[After]int64{
+	Priority = map[string]int64{
 		AfterInit: 1,
 		AfterNet:  1000,
 		AfterBoot: 1000000,
@@ -32,24 +29,26 @@ var (
 )
 
 type IncludedSettings struct {
-	Extensions map[string]Extension
-	Startups   map[string]Startup
+	Extension map[string]Extension
+	Startup   map[string]Startup
 }
 
 //GetPartialSettings loads partial settings according to main configurations
-func (s *AppSettings) GetIncludedSettings() (partial *IncludedSettings) {
+func (s *AppSettings) GetIncludedSettings() (partial *IncludedSettings, errors []error) {
+	errors = make([]error, 0)
+
 	partial = &IncludedSettings{
-		Extensions: make(map[string]Extension),
-		Startups:   make(map[string]Startup),
+		Extension: make(map[string]Extension),
+		Startup:   make(map[string]Startup),
 	}
 
 	if s.Main.Include == "" {
-		return partial
+		return
 	}
 
 	infos, err := ioutil.ReadDir(s.Main.Include)
 	if err != nil {
-		log.Println("Failed to read dir ", s.Main.Include, err)
+		errors = append(errors, fmt.Errorf("failed to read dir %s: %s", s.Main.Include, err))
 		return
 	}
 
@@ -71,26 +70,28 @@ func (s *AppSettings) GetIncludedSettings() (partial *IncludedSettings) {
 
 		err := utils.LoadTomlFile(partialPath, &partialCfg)
 		if err != nil {
-			log.Println("ERROR: failed to load file ", partialPath, err)
+			errors = append(errors,
+				fmt.Errorf("failed to load file %s: %s", partialPath, err))
 			continue
 		}
 
 		//merge into settings
-		for key, ext := range partialCfg.Extensions {
+		for key, ext := range partialCfg.Extension {
 			_, m := s.Extensions[key]
-			_, p := partial.Extensions[key]
+			_, p := partial.Extension[key]
 			if m || p {
-				log.Printf("Extension override in '%s' name '%s'\n", partialPath, key)
+				errors = append(errors,
+					fmt.Errorf("extension override in '%s' name '%s'", partialPath, key))
 				continue
 			}
 
 			ext.key = key
-			partial.Extensions[key] = ext
+			partial.Extension[key] = ext
 		}
 
-		for key, startup := range partialCfg.Startups {
+		for key, startup := range partialCfg.Startup {
 			startup.key = key
-			partial.Startups[key] = startup
+			partial.Startup[key] = startup
 		}
 	}
 

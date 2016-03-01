@@ -7,7 +7,7 @@ import (
 
 //StartupCmd startup command config
 type Startup struct {
-	After []After
+	After []string
 	Name  string
 	Data  string
 	Args  map[string]interface{}
@@ -38,7 +38,7 @@ func (s Startup) Weight(i *IncludedSettings, chain ...string) (int64, error) {
 	for _, a := range s.After {
 		if x, ok := Priority[a]; ok {
 			w += x
-		} else if d, ok := i.Startups[string(a)]; ok {
+		} else if d, ok := i.Startup[a]; ok {
 			dw, err := d.Weight(i, nextChain...)
 			if err != nil {
 				return 0, err

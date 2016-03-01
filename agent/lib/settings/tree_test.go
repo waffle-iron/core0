@@ -9,30 +9,30 @@ import (
 
 var (
 	settings IncludedSettings = IncludedSettings{
-		Startups: map[string]Startup{
+		Startup: map[string]Startup{
 			"ovc": Startup{
 				key:   "ovc",
-				After: []After{"mongo", "influx"},
+				After: []string{"mongo", "influx"},
 			},
 			"fstab": Startup{
 				key:   "fstab",
-				After: []After{AfterInit, "udev"},
+				After: []string{AfterInit, "udev"},
 			},
 			"mongo": Startup{
 				key:   "mongo",
-				After: []After{AfterBoot},
+				After: []string{AfterBoot},
 			},
 			"sshd": Startup{
 				key:   "sshd",
-				After: []After{AfterNet},
+				After: []string{AfterNet},
 			},
 			"influx": Startup{
 				key:   "influx",
-				After: []After{AfterBoot},
+				After: []string{AfterBoot},
 			},
 			"udev": Startup{
 				key:   "udev",
-				After: []After{AfterInit},
+				After: []string{AfterInit},
 			},
 		},
 	}
@@ -154,18 +154,18 @@ func TestTreeSliceBoot(t *testing.T) {
 
 func TestGetTreeDefaultWeight(t *testing.T) {
 	settings := IncludedSettings{
-		Startups: map[string]Startup{
+		Startup: map[string]Startup{
 			"mount": Startup{
 				key:   "mount",
-				After: []After{AfterInit},
+				After: []string{AfterInit},
 			},
 			"mongo": Startup{
 				key:   "mongo",
-				After: []After{},
+				After: []string{},
 			},
 			"influx": Startup{
 				key:   "influx",
-				After: []After{},
+				After: []string{},
 			},
 		},
 	}
@@ -192,14 +192,14 @@ func TestGetTreeDefaultWeight(t *testing.T) {
 
 func TestGetTreeMissingDependency(t *testing.T) {
 	settings := IncludedSettings{
-		Startups: map[string]Startup{
+		Startup: map[string]Startup{
 			"mongo": Startup{
 				key:   "mongo",
-				After: []After{AfterBoot},
+				After: []string{AfterBoot},
 			},
 			"ovc": Startup{
 				key:   "ovc",
-				After: []After{"mongo", "influx"},
+				After: []string{"mongo", "influx"},
 			},
 		},
 	}
@@ -218,22 +218,22 @@ func TestGetTreeMissingDependency(t *testing.T) {
 
 func TestGetTreeCyclicDependency(t *testing.T) {
 	settings := IncludedSettings{
-		Startups: map[string]Startup{
+		Startup: map[string]Startup{
 			"independent": Startup{
 				key:   "independent",
-				After: []After{},
+				After: []string{},
 			},
 			"influx": Startup{
 				key:   "influx",
-				After: []After{},
+				After: []string{},
 			},
 			"mongo": Startup{
 				key:   "mongo",
-				After: []After{"ovc"},
+				After: []string{"ovc"},
 			},
 			"ovc": Startup{
 				key:   "ovc",
-				After: []After{"mongo", "influx"},
+				After: []string{"mongo", "influx"},
 			},
 		},
 	}

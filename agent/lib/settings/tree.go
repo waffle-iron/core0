@@ -57,11 +57,11 @@ func (t *treeImpl) Slice(s, e int64) []Startup {
 func (i *IncludedSettings) GetStartupTree() (StartupTree, []error) {
 	var errors []error
 	tree := &treeImpl{
-		startups: make([]Startup, 0, len(i.Startups)),
+		startups: make([]Startup, 0, len(i.Startup)),
 		weights:  make(map[int]int64),
 	}
 
-	for _, s := range i.Startups {
+	for _, s := range i.Startup {
 		w, err := s.Weight(i)
 		if err != nil {
 			//we don't return on error because a broken service MUST NOT bring the whole system
