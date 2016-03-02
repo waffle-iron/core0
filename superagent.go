@@ -13,7 +13,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
-	"github.com/g8os/core/agent/lib/system"
 	"os"
 )
 
@@ -112,7 +111,6 @@ func main() {
 	})
 
 	//start the child processes cleaner
-	system.CollectDefunct()
 
 	//start process mgr.
 	mgr.Run()

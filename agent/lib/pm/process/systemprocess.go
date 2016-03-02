@@ -16,12 +16,15 @@ type systemProcessImpl struct {
 	pid      int
 	process  *psutils.Process
 	children []*psutils.Process
+
+	table PIDTable
 }
 
-func NewSystemProcess(cmd *core.Cmd) Process {
+func NewSystemProcess(table PIDTable, cmd *core.Cmd) Process {
 	return &systemProcessImpl{
 		cmd:      cmd,
 		children: make([]*psutils.Process, 0),
+		table:    table,
 	}
 }
 
@@ -191,8 +194,15 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 	}
 
 	//starttime := time.Duration(time.Now().UnixNano()) / time.Millisecond // start time in msec
+	err = process.table.Register(func() (int, error) {
+		err := cmd.Start()
+		if err != nil {
+			return 0, err
+		}
 
-	err = cmd.Start()
+		return cmd.Process.Pid, nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -242,15 +252,11 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 
 		<-outConsumer.Signal()
 		<-errConsumer.Signal()
+		state := process.table.Wait(process.pid)
 
-		err := cmd.Wait()
-		if err != nil {
-			log.Println(err)
-		}
+		log.Println("Process ", process.cmd, " exited with state", state.ExitStatus())
 
-		log.Println("Process ", process.cmd, " exited with state", cmd.ProcessState.Success())
-
-		if cmd.ProcessState.Success() {
+		if state.ExitStatus() == 0 {
 			channel <- stream.MessageExitSuccess
 		} else {
 			channel <- stream.MessageExitError

@@ -3,11 +3,21 @@ package process
 import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/stream"
+	"syscall"
 )
 
 const (
 	CommandExecute = "execute"
 )
+
+type GetPID func() (int, error)
+
+type PIDTable interface {
+	//Register atomic registration of PID. MUST grantee that that no wait4 will happen
+	//on any of the child process until the register operation is done.
+	Register(g GetPID) error
+	Wait(pid int) *syscall.WaitStatus
+}
 
 //ProcessStats holds process cpu and memory usage
 type ProcessStats struct {
@@ -27,4 +37,4 @@ type Process interface {
 	GetStats() *ProcessStats
 }
 
-type ProcessFactory func(*core.Cmd) Process
+type ProcessFactory func(PIDTable, *core.Cmd) Process

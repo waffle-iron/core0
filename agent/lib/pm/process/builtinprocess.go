@@ -30,7 +30,7 @@ func NewInternalProcess(cmd *core.Cmd, runnable Runnable) Process {
 internalProcessFactory factory to build Runnable processes
 */
 func NewInternalProcessFactory(runnable Runnable) ProcessFactory {
-	factory := func(cmd *core.Cmd) Process {
+	factory := func(_ PIDTable, cmd *core.Cmd) Process {
 		return NewInternalProcess(cmd, runnable)
 	}
 

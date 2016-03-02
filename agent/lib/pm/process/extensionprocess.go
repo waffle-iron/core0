@@ -13,7 +13,7 @@ type extensionProcess struct {
 
 func NewExtensionProcessFactory(exe string, workdir string, cmdargs []string, env []string) ProcessFactory {
 
-	constructor := func(cmd *core.Cmd) Process {
+	constructor := func(table PIDTable, cmd *core.Cmd) Process {
 		args := cmd.Args.Clone(false)
 		args.Set("name", exe)
 
@@ -43,7 +43,7 @@ func NewExtensionProcessFactory(exe string, workdir string, cmdargs []string, en
 		}
 
 		return &extensionProcess{
-			system: NewSystemProcess(extcmd),
+			system: NewSystemProcess(table, extcmd),
 			cmd:    cmd,
 		}
 	}

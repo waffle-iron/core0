@@ -97,7 +97,7 @@ func (runner *runnerImpl) run() *core.JobResult {
 		jobresult.Time = int64(endtime - starttime)
 	}()
 
-	process := runner.factory(runner.command)
+	process := runner.factory(runner.manager, runner.command)
 
 	runner.process = process
 

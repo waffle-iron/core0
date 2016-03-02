@@ -3,15 +3,18 @@ package pm
 import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/pm/core"
-	//"github.com/g8os/core/agent/lib/pm/process"
+	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/pm/stream"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -33,7 +36,7 @@ type StatsFlushHandler func(stats *stats.Stats)
 type PM struct {
 	mid      uint32
 	midfile  string
-	midMux   *sync.Mutex
+	midMux   sync.Mutex
 	cmds     chan *core.Cmd
 	runners  map[string]Runner
 	statsdes map[string]*stats.Statsd
@@ -44,6 +47,9 @@ type PM struct {
 	resultHandlers     []ResultHandler
 	statsFlushHandlers []StatsFlushHandler
 	queueMgr           *cmdQueueManager
+
+	pids    map[int]chan *syscall.WaitStatus
+	pidsMux sync.Mutex
 }
 
 var pm *PM
@@ -54,7 +60,6 @@ func NewPM(midfile string, maxJobs int) *PM {
 		cmds:     make(chan *core.Cmd),
 		midfile:  midfile,
 		mid:      loadMid(midfile),
-		midMux:   &sync.Mutex{},
 		runners:  make(map[string]Runner),
 		maxJobs:  maxJobs,
 		jobsCond: sync.NewCond(&sync.Mutex{}),
@@ -63,6 +68,8 @@ func NewPM(midfile string, maxJobs int) *PM {
 		resultHandlers:     make([]ResultHandler, 0, 3),
 		statsFlushHandlers: make([]StatsFlushHandler, 0, 3),
 		queueMgr:           newCmdQueueManager(),
+
+		pids: make(map[int]chan *syscall.WaitStatus),
 	}
 
 	return pm
@@ -131,54 +138,103 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
+func (pm *PM) run() {
+	for {
+		pm.jobsCond.L.Lock()
+
+		for len(pm.runners) >= pm.maxJobs {
+			pm.jobsCond.Wait()
+		}
+		pm.jobsCond.L.Unlock()
+
+		var cmd *core.Cmd
+
+		//we have 2 possible sources of cmds.
+		//1- cmds that doesn't require waiting on a queue, those can run immediately
+		//2- cmds that were waiting on a queue (so they must execute serially)
+		select {
+		case cmd = <-pm.cmds:
+		case cmd = <-pm.queueMgr.Producer():
+		}
+
+		factory := GetProcessFactory(cmd)
+		//process := NewProcess(cmd)
+
+		if factory == nil {
+			log.Println("Unknow command", cmd.Name)
+			errResult := core.NewBasicJobResult(cmd)
+			errResult.State = core.StateUnknownCmd
+			pm.resultCallback(cmd, errResult)
+			continue
+		}
+
+		_, exists := pm.runners[cmd.ID]
+		if exists {
+			errResult := core.NewBasicJobResult(cmd)
+			errResult.State = core.StateDuplicateID
+			errResult.Data = "A job exists with the same ID"
+			pm.resultCallback(cmd, errResult)
+			continue
+		}
+
+		runner := NewRunner(pm, cmd, factory)
+		pm.runners[cmd.ID] = runner
+
+		go runner.Run()
+	}
+}
+
+func (pm *PM) processWait() {
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGCHLD)
+	for _ = range ch {
+		var status syscall.WaitStatus
+		var rusage syscall.Rusage
+
+		pid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, &rusage)
+		if err != nil {
+			log.Printf("wait error %s\n", err)
+			continue
+		}
+
+		//Avoid reading the process state before the Register call is complete.
+		pm.pidsMux.Lock()
+		ch, ok := pm.pids[pid]
+		pm.pidsMux.Unlock()
+
+		if ok {
+			go func() {
+				ch <- &status
+				close(ch)
+				delete(pm.pids, pid)
+			}()
+		}
+	}
+}
+
+func (pm *PM) Register(g process.GetPID) error {
+	pm.pidsMux.Lock()
+	defer pm.pidsMux.Unlock()
+	pid, err := g()
+	if err != nil {
+		return err
+	}
+
+	ch := make(chan *syscall.WaitStatus)
+	pm.pids[pid] = ch
+
+	return nil
+}
+
+func (pm *PM) Wait(pid int) *syscall.WaitStatus {
+	return <-pm.pids[pid]
+}
+
 //Run starts the process manager.
 func (pm *PM) Run() {
 	//process and start all commands according to args.
-	go func() {
-		for {
-			pm.jobsCond.L.Lock()
-
-			for len(pm.runners) >= pm.maxJobs {
-				pm.jobsCond.Wait()
-			}
-			pm.jobsCond.L.Unlock()
-
-			var cmd *core.Cmd
-
-			//we have 2 possible sources of cmds.
-			//1- cmds that doesn't require waiting on a queue, those can run immediately
-			//2- cmds that were waiting on a queue (so they must execute serially)
-			select {
-			case cmd = <-pm.cmds:
-			case cmd = <-pm.queueMgr.Producer():
-			}
-
-			factory := GetProcessFactory(cmd)
-			//process := NewProcess(cmd)
-
-			if factory == nil {
-				log.Println("Unknow command", cmd.Name)
-				errResult := core.NewBasicJobResult(cmd)
-				errResult.State = core.StateUnknownCmd
-				pm.resultCallback(cmd, errResult)
-				continue
-			}
-
-			_, exists := pm.runners[cmd.ID]
-			if exists {
-				errResult := core.NewBasicJobResult(cmd)
-				errResult.State = core.StateDuplicateID
-				errResult.Data = "A job exists with the same ID"
-				pm.resultCallback(cmd, errResult)
-				continue
-			}
-
-			runner := NewRunner(pm, cmd, factory)
-			pm.runners[cmd.ID] = runner
-
-			go runner.Run()
-		}
-	}()
+	go pm.processWait()
+	go pm.run()
 }
 
 func (pm *PM) cleanUp(runner Runner) {
