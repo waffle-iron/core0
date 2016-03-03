@@ -1,0 +1,6 @@
+[startup.redis]
+name = "execute"
+
+[startup.redis.args]
+name = "redis-server"
+args = ["--port", "7777"]
