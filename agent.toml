@@ -62,6 +62,9 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
         SOCKET = "/tmp/jumpscript.sock"
         PYTHONPATH = "../:/opt/jumpscale8/lib"
         JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent8/jumpscripts/"
+        REDIS_HOST = "localhost"
+        REDIS_PORT = "7777"
+
 
     [extensions.bash]
     binary = "bash"
