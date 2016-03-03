@@ -24,7 +24,7 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 [extensions]
     [extensions.bash]
     binary = "bash"
-    args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash $T; EXIT=$?; rm -rf $T; exit $EXIT']
+    args = ['-c', 'T=`mktemp` && cat > $T && bash $T; EXIT=$?; rm -rf $T; exit $EXIT']
 
 [logging]
     [logging.console]
