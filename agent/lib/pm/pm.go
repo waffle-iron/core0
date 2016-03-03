@@ -244,10 +244,20 @@ func (pm *PM) Run() {
 	go pm.processCmds()
 }
 
+/*
+RunSlice runs a slice of processes honoring dependencies. It won't just
+start in order, but will also make sure a service won't start until it's dependencies are
+running.
+*/
 func (pm *PM) RunSlice(slice settings.StartupSlice) {
-	state := make(map[string]bool)
+	state := NewStateMachine()
+	var wg sync.WaitGroup
+
+	provided := make(map[string]int)
+	needed := make(map[string]int)
 
 	for _, startup := range slice {
+		log.Println("Startup command ", startup)
 		if startup.Args == nil {
 			startup.Args = make(map[string]interface{})
 		}
@@ -261,17 +271,40 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 			Args: core.NewMapArgs(startup.Args),
 		}
 
+		provided[cmd.ID] = 1
+		for _, k := range startup.After {
+			needed[k] = 1
+		}
+
 		meterInt := cmd.Args.GetInt("stats_interval")
 		if meterInt == 0 {
 			cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
 		}
 
-		log.Printf("Starting %s\n", cmd)
-
-		pm.runCmd(cmd, func(s bool) {
-			state[cmd.ID] = s
-		})
+		wg.Add(1)
+		go func(after []string, c *core.Cmd) {
+			canRun := state.Wait(after...)
+			log.Printf("Starting %s after %s\n", cmd, after)
+			if canRun {
+				log.Printf("Starting %s\n", c)
+				pm.runCmd(c, func(s bool) {
+					state.Release(c.ID, s)
+				})
+			} else {
+				log.Printf("ERROR: Can't start %s because one of the dependencies failed\n", c)
+			}
+			wg.Done()
+		}(startup.After, cmd)
 	}
+	//release all dependencies that are not provided by this slice.
+	for k := range needed {
+		if _, ok := provided[k]; !ok {
+			log.Println("Auto releasing of", k)
+			state.Release(k, true)
+		}
+	}
+
+	wg.Wait()
 }
 
 func (pm *PM) cleanUp(runner Runner) {

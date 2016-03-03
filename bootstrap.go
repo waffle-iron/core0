@@ -42,7 +42,6 @@ func Bootstrap(mgr *pm.PM) {
 			log.Println("ERROR: ", err)
 		}
 	}
-
 	//register core extensions
 	registerExtensions(settings.Settings.Extensions)
 

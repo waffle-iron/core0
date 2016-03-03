@@ -23,7 +23,7 @@ type stateMachineImpl struct {
 	states map[string]bool
 
 	waiting []waitReq
-	rch     chan releaseReq
+	rch     chan *releaseReq
 
 	m sync.Mutex
 }
@@ -32,7 +32,7 @@ func NewStateMachine() StateMachine {
 	s := &stateMachineImpl{
 		states:  make(map[string]bool),
 		waiting: make([]waitReq, 0),
-		rch:     make(chan releaseReq),
+		rch:     make(chan *releaseReq),
 	}
 
 	go s.loop()
@@ -101,7 +101,7 @@ func (s *stateMachineImpl) Wait(keys ...string) bool {
 }
 
 func (s *stateMachineImpl) Release(key string, state bool) {
-	s.rch <- releaseReq{
+	s.rch <- &releaseReq{
 		k: key,
 		s: state,
 	}
