@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/pm"
-	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
 	"log"
 )
@@ -32,28 +31,7 @@ func startupServices(mgr *pm.PM, included *settings.IncludedSettings) {
 		}
 	}
 
-	for _, startup := range tree.Services() {
-		if startup.Args == nil {
-			startup.Args = make(map[string]interface{})
-		}
-
-		cmd := &core.Cmd{
-			Gid:  settings.Options.Gid(),
-			Nid:  settings.Options.Nid(),
-			ID:   startup.Key(),
-			Name: startup.Name,
-			Data: startup.Data,
-			Args: core.NewMapArgs(startup.Args),
-		}
-
-		meterInt := cmd.Args.GetInt("stats_interval")
-		if meterInt == 0 {
-			cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
-		}
-
-		log.Printf("Starting %s\n", cmd)
-		mgr.RunCmd(cmd)
-	}
+	mgr.RunSlice(tree.Slice(0, -1))
 }
 
 //Bootstrap registers extensions and startup system services.

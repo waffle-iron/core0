@@ -9,6 +9,7 @@ import (
 	"github.com/g8os/core/agent/lib/utils"
 	"log"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,8 @@ const (
 
 	meterPeriod = 30 * time.Second
 )
+
+type RunnerHook func(bool)
 
 type Runner interface {
 	Command() *core.Cmd
@@ -33,9 +36,22 @@ type runnerImpl struct {
 
 	process process.Process
 	statsd  *stats.Statsd
+
+	hooks []RunnerHook
+	once  sync.Once
 }
 
-func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) Runner {
+/*
+NewRunner creates a new runner object that is bind to this PM instance.
+
+:manager: Bind this runner to this PM instance
+:command: Command to run
+:factory: Process factory associated with command type.
+:hooks: Optionals hooks that are called if the process is considered RUNNING successfully.
+        The process is considered running, if it ran with no errors for 2 seconds, or exited before the 2 seconds passes
+        with SUCCESS exit code.
+*/
+func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, hooks ...RunnerHook) Runner {
 	statsInterval := command.Args.GetInt("stats_interval")
 
 	if statsInterval == 0 {
@@ -50,6 +66,7 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 		command: command,
 		factory: factory,
 		kill:    make(chan int),
+		hooks:   hooks,
 		statsd: stats.NewStatsd(
 			prefix,
 			time.Duration(statsInterval)*time.Millisecond,
@@ -118,6 +135,7 @@ func (runner *runnerImpl) run() *core.JobResult {
 
 	timeout := runner.timeout()
 	meter := time.After(meterPeriod)
+	successTimer := time.After(2 * time.Second)
 loop:
 	for {
 		select {
@@ -132,6 +150,9 @@ loop:
 		case <-meter:
 			runner.meter()
 			meter = time.After(meterPeriod)
+		case <-successTimer:
+			//if process is still running after the timer has passed, we consider it successful
+			runner.callHooks(true)
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
 				result = message
@@ -192,6 +213,10 @@ func (runner *runnerImpl) Run() {
 loop:
 	for {
 		result = runner.run()
+		if result.State == core.StateSuccess {
+			runner.callHooks(true)
+		}
+
 		if result.State == core.StateKilled {
 			//we never restart a killed process.
 			break
@@ -232,6 +257,16 @@ loop:
 			break
 		}
 	}
+
+	runner.callHooks(false)
+}
+
+func (runner *runnerImpl) callHooks(s bool) {
+	runner.once.Do(func() {
+		for _, hook := range runner.hooks {
+			hook(s)
+		}
+	})
 }
 
 func (runner *runnerImpl) Kill() {

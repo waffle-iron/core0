@@ -5,6 +5,7 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/settings"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
 	psutil "github.com/shirou/gopsutil/process"
@@ -138,7 +139,36 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
-func (pm *PM) run() {
+func (pm *PM) runCmd(cmd *core.Cmd, hooks ...RunnerHook) Runner {
+	factory := GetProcessFactory(cmd)
+	//process := NewProcess(cmd)
+
+	if factory == nil {
+		log.Println("Unknow command", cmd.Name)
+		errResult := core.NewBasicJobResult(cmd)
+		errResult.State = core.StateUnknownCmd
+		pm.resultCallback(cmd, errResult)
+		return nil
+	}
+
+	_, exists := pm.runners[cmd.ID]
+	if exists {
+		errResult := core.NewBasicJobResult(cmd)
+		errResult.State = core.StateDuplicateID
+		errResult.Data = "A job exists with the same ID"
+		pm.resultCallback(cmd, errResult)
+		return nil
+	}
+
+	runner := NewRunner(pm, cmd, factory, hooks...)
+	pm.runners[cmd.ID] = runner
+
+	go runner.Run()
+
+	return runner
+}
+
+func (pm *PM) processCmds() {
 	for {
 		pm.jobsCond.L.Lock()
 
@@ -157,30 +187,7 @@ func (pm *PM) run() {
 		case cmd = <-pm.queueMgr.Producer():
 		}
 
-		factory := GetProcessFactory(cmd)
-		//process := NewProcess(cmd)
-
-		if factory == nil {
-			log.Println("Unknow command", cmd.Name)
-			errResult := core.NewBasicJobResult(cmd)
-			errResult.State = core.StateUnknownCmd
-			pm.resultCallback(cmd, errResult)
-			continue
-		}
-
-		_, exists := pm.runners[cmd.ID]
-		if exists {
-			errResult := core.NewBasicJobResult(cmd)
-			errResult.State = core.StateDuplicateID
-			errResult.Data = "A job exists with the same ID"
-			pm.resultCallback(cmd, errResult)
-			continue
-		}
-
-		runner := NewRunner(pm, cmd, factory)
-		pm.runners[cmd.ID] = runner
-
-		go runner.Run()
+		pm.runCmd(cmd)
 	}
 }
 
@@ -234,7 +241,37 @@ func (pm *PM) Wait(pid int) *syscall.WaitStatus {
 func (pm *PM) Run() {
 	//process and start all commands according to args.
 	go pm.processWait()
-	go pm.run()
+	go pm.processCmds()
+}
+
+func (pm *PM) RunSlice(slice settings.StartupSlice) {
+	state := make(map[string]bool)
+
+	for _, startup := range slice {
+		if startup.Args == nil {
+			startup.Args = make(map[string]interface{})
+		}
+
+		cmd := &core.Cmd{
+			Gid:  settings.Options.Gid(),
+			Nid:  settings.Options.Nid(),
+			ID:   startup.Key(),
+			Name: startup.Name,
+			Data: startup.Data,
+			Args: core.NewMapArgs(startup.Args),
+		}
+
+		meterInt := cmd.Args.GetInt("stats_interval")
+		if meterInt == 0 {
+			cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
+		}
+
+		log.Printf("Starting %s\n", cmd)
+
+		pm.runCmd(cmd, func(s bool) {
+			state[cmd.ID] = s
+		})
+	}
 }
 
 func (pm *PM) cleanUp(runner Runner) {
