@@ -37,8 +37,9 @@ type runnerImpl struct {
 	process process.Process
 	statsd  *stats.Statsd
 
-	hooks []RunnerHook
-	once  sync.Once
+	hooks       []RunnerHook
+	hooksOnExit bool
+	once        sync.Once
 }
 
 /*
@@ -51,7 +52,7 @@ NewRunner creates a new runner object that is bind to this PM instance.
         The process is considered running, if it ran with no errors for 2 seconds, or exited before the 2 seconds passes
         with SUCCESS exit code.
 */
-func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, hooks ...RunnerHook) Runner {
+func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, hooksOnExit bool, hooks ...RunnerHook) Runner {
 	statsInterval := command.Args.GetInt("stats_interval")
 
 	if statsInterval == 0 {
@@ -62,11 +63,12 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, h
 		command.Args.GetStringDefault("domain", "unknown"), command.Args.GetStringDefault("name", "unknown"))
 
 	return &runnerImpl{
-		manager: manager,
-		command: command,
-		factory: factory,
-		kill:    make(chan int),
-		hooks:   hooks,
+		manager:     manager,
+		command:     command,
+		factory:     factory,
+		kill:        make(chan int),
+		hooks:       hooks,
+		hooksOnExit: hooksOnExit,
 		statsd: stats.NewStatsd(
 			prefix,
 			time.Duration(statsInterval)*time.Millisecond,
@@ -135,7 +137,7 @@ func (runner *runnerImpl) run() *core.JobResult {
 
 	timeout := runner.timeout()
 	meter := time.After(meterPeriod)
-	successTimer := time.After(2 * time.Second)
+	runTimer := time.After(2 * time.Second)
 loop:
 	for {
 		select {
@@ -150,9 +152,11 @@ loop:
 		case <-meter:
 			runner.meter()
 			meter = time.After(meterPeriod)
-		case <-successTimer:
-			//if process is still running after the timer has passed, we consider it successful
-			runner.callHooks(true)
+		case <-runTimer:
+			//if process is still running after the timer has passed, we consider it running
+			if !runner.hooksOnExit {
+				runner.callHooks(true)
+			}
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
 				result = message

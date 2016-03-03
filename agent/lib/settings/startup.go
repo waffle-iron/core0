@@ -7,10 +7,11 @@ import (
 
 //StartupCmd startup command config
 type Startup struct {
-	After []string
-	Name  string
-	Data  string
-	Args  map[string]interface{}
+	After    []string
+	MustExit bool
+	Name     string
+	Data     string
+	Args     map[string]interface{}
 
 	key string
 }

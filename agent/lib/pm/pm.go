@@ -139,7 +139,7 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
-func (pm *PM) runCmd(cmd *core.Cmd, hooks ...RunnerHook) Runner {
+func (pm *PM) runCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
 	factory := GetProcessFactory(cmd)
 	//process := NewProcess(cmd)
 
@@ -160,7 +160,7 @@ func (pm *PM) runCmd(cmd *core.Cmd, hooks ...RunnerHook) Runner {
 		return nil
 	}
 
-	runner := NewRunner(pm, cmd, factory, hooks...)
+	runner := NewRunner(pm, cmd, factory, hooksOnExit, hooks...)
 	pm.runners[cmd.ID] = runner
 
 	go runner.Run()
@@ -187,7 +187,7 @@ func (pm *PM) processCmds() {
 		case cmd = <-pm.queueMgr.Producer():
 		}
 
-		pm.runCmd(cmd)
+		pm.runCmd(cmd, false)
 	}
 }
 
@@ -282,19 +282,20 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 		}
 
 		wg.Add(1)
-		go func(after []string, c *core.Cmd) {
-			canRun := state.Wait(after...)
-			log.Printf("Starting %s after %s\n", cmd, after)
+		go func(up settings.Startup, c *core.Cmd) {
+			log.Printf("Waiting for %s to run %s\n", up.After, cmd)
+			canRun := state.Wait(up.After...)
+
 			if canRun {
 				log.Printf("Starting %s\n", c)
-				pm.runCmd(c, func(s bool) {
+				pm.runCmd(c, up.MustExit, func(s bool) {
 					state.Release(c.ID, s)
 				})
 			} else {
 				log.Printf("ERROR: Can't start %s because one of the dependencies failed\n", c)
 			}
 			wg.Done()
-		}(startup.After, cmd)
+		}(startup, cmd)
 	}
 	//release all dependencies that are not provided by this slice.
 	for k := range needed {
