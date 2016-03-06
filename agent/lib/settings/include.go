@@ -26,6 +26,8 @@ const (
 
 	//Default for startup commands that doesn't specify dependency
 	AfterBoot = After("boot")
+
+	ToTheEnd = After("----")
 )
 
 var (
@@ -35,6 +37,8 @@ var (
 		AfterInit: 1,
 		AfterNet:  1000,
 		AfterBoot: 1000000,
+
+		ToTheEnd: -1,
 	}
 )
 

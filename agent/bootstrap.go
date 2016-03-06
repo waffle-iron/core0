@@ -5,6 +5,7 @@ import (
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
 	"log"
+	"time"
 )
 
 type Bootstrap struct {
@@ -57,11 +58,25 @@ func (b *Bootstrap) registerExtensions(extensions map[string]settings.Extension)
 }
 
 func (b *Bootstrap) startupServices(s, e settings.After) {
-	b.m.RunSlice(b.t.Slice(s.Weight(), e.Weight()))
+	log.Printf("Starting up '%s' services\n", s)
+	slice := b.t.Slice(s.Weight(), e.Weight())
+	b.m.RunSlice(slice)
 }
 
-func (b *Bootstrap) startupNet() {
-	log.Println(".... Setting up networking ....")
+func (b *Bootstrap) startupNet() error {
+	netmgr, err := settings.Settings.GetNetworkManager()
+	if err != nil {
+		return err
+	}
+	for _, inf := range netmgr.Interfaces() {
+		log.Printf("Setting up interface '%s'\n", inf.Name())
+
+		if err := inf.Configure(); err != nil {
+			log.Println("ERROR:", err)
+		}
+	}
+
+	return nil
 }
 
 //Bootstrap registers extensions and startup system services.
@@ -75,11 +90,22 @@ func (b *Bootstrap) Bootstrap() {
 	//start up all init services ([init, net[ slice)
 	b.startupServices(settings.AfterInit, settings.AfterNet)
 
-	b.startupNet()
+	for {
+		err := b.startupNet()
+		if err == nil {
+			break
+		}
+
+		log.Printf("Failed to configure networking: %s\n", err)
+		log.Println("Retrying in 2 seconds")
+
+		time.Sleep(2 * time.Second)
+		log.Println("Retrying setting up network")
+	}
 
 	//start up all net services ([net, boot[ slice)
 	b.startupServices(settings.AfterNet, settings.AfterBoot)
 
 	//start up all boot services ([boot, end] slice)
-	b.startupServices(settings.AfterBoot, settings.AfterBoot)
+	b.startupServices(settings.AfterBoot, settings.ToTheEnd)
 }

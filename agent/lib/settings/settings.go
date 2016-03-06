@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"github.com/g8os/core/agent/lib/network"
 	"github.com/g8os/core/agent/lib/utils"
 	"net/url"
 	"strings"
@@ -66,6 +67,7 @@ type AppSettings struct {
 		MaxJobs       int
 		MessageIDFile string
 		Include       string
+		Network       string
 	}
 
 	Controllers map[string]Controller
@@ -111,6 +113,10 @@ func (s *AppSettings) Validate() []error {
 	}
 
 	return errors
+}
+
+func (s *AppSettings) GetNetworkManager() (network.NetworkManager, error) {
+	return network.GetNetworkManager(s.Main.Network)
 }
 
 //GetSettings loads main settings from a filename

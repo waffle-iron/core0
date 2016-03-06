@@ -251,10 +251,9 @@ running.
 */
 func (pm *PM) RunSlice(slice settings.StartupSlice) {
 	state := NewStateMachine()
-	var wg sync.WaitGroup
-
 	provided := make(map[string]int)
 	needed := make(map[string]int)
+	all := make([]string, 0)
 
 	for _, startup := range slice {
 		log.Println("Startup command ", startup)
@@ -271,6 +270,8 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 			Args: core.NewMapArgs(startup.Args),
 		}
 
+		all = append(all, cmd.ID)
+
 		provided[cmd.ID] = 1
 		for _, k := range startup.After {
 			needed[k] = 1
@@ -281,7 +282,6 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 			cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
 		}
 
-		wg.Add(1)
 		go func(up settings.Startup, c *core.Cmd) {
 			log.Printf("Waiting for %s to run %s\n", up.After, cmd)
 			canRun := state.Wait(up.After...)
@@ -294,7 +294,6 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 			} else {
 				log.Printf("ERROR: Can't start %s because one of the dependencies failed\n", c)
 			}
-			wg.Done()
 		}(startup, cmd)
 	}
 	//release all dependencies that are not provided by this slice.
@@ -305,7 +304,8 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 		}
 	}
 
-	wg.Wait()
+	//wait for the full slice to run
+	state.Wait(all...)
 }
 
 func (pm *PM) cleanUp(runner Runner) {

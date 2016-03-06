@@ -4,6 +4,7 @@
 max_jobs = 100
 message_ID_file = "./.mid"
 include = "./conf"
+network = "./network.toml"
 
 [controllers]
     [controllers.main]
