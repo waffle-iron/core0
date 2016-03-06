@@ -37,7 +37,7 @@ func (s Startup) Weight(i *IncludedSettings, chain ...string) (int64, error) {
 	}
 
 	for _, a := range s.After {
-		if x, ok := Priority[a]; ok {
+		if x, ok := Priority[After(a)]; ok {
 			w += x
 		} else if d, ok := i.Startup[a]; ok {
 			dw, err := d.Weight(i, nextChain...)

@@ -56,7 +56,7 @@ func main() {
 	agent.RegisterHubbleFunctions(controllers)
 
 	//register the extensions from the main configuration
-	for extKey, extCfg := range config.Extensions {
+	for extKey, extCfg := range config.Extension {
 		var env []string
 		if len(extCfg.Env) > 0 {
 			env = make([]string, 0, len(extCfg.Env))
@@ -115,7 +115,8 @@ func main() {
 	//start process mgr.
 	mgr.Run()
 
-	Bootstrap(mgr)
+	bootstrap := agent.NewBootstrap(mgr)
+	bootstrap.Bootstrap()
 
 	//start jobs pollers.
 	agent.StartPollers(mgr, controllers)

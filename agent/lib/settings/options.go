@@ -51,7 +51,7 @@ var Options AppOptions
 func init() {
 	help := false
 	flag.BoolVar(&help, "h", false, "Print this help screen")
-	flag.StringVar(&Options.cfg, "c", "/etc/g8os/net.toml", "Path to config file")
+	flag.StringVar(&Options.cfg, "c", "/etc/g8os/g8os.toml", "Path to config file")
 
 	flag.IntVar(&Options.gid, "gid", 0, "Grid ID")
 	flag.IntVar(&Options.nid, "nid", 0, "Node ID")

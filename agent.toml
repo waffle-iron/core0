@@ -21,57 +21,57 @@ include = "./conf"
 [channel]
 cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
 
-[extensions]
-    #the very basic agent extensions. Also please check the toml files under
-    #the Main.Include folder for more extensions
-    [extensions.syncthing]
-    binary = "./syncthing"
-    cwd = "./extensions/syncthing"
-    args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
 
-    [extensions.sync]
-    #syncthing extension
-    binary = "python"
-    cwd = "./extensions/sync"
-    args = ["{name}.py"]
-        [extensions.sync.env]
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
-        SYNCTHING_URL = "http://localhost:28384"
+#the very basic agent extensions. Also please check the toml files under
+#the Main.Include folder for more extensions
+[extension.syncthing]
+binary = "./syncthing"
+cwd = "./extensions/syncthing"
+args = ["-home", "./home", "-gui-address", "127.0.0.1:28384"]
 
-    [extensions.jumpscript]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["wrapper.py", "{domain}", "{name}"]
-        [extensions.jumpscript.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../"
+[extension.sync]
+#syncthing extension
+binary = "python"
+cwd = "./extensions/sync"
+args = ["{name}.py"]
+    [extension.sync.env]
+    PYTHONPATH = "../:/opt/jumpscale8/lib"
+    SYNCTHING_URL = "http://localhost:28384"
 
-    [extensions.jumpscript_content]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["wrapper_content.py"]
-        [extensions.jumpscript_content.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../"
+[extension.jumpscript]
+binary = "python"
+cwd = "./extensions/jumpscript"
+args = ["wrapper.py", "{domain}", "{name}"]
+    [extension.jumpscript.env]
+    SOCKET = "/tmp/jumpscript.sock"
+    PYTHONPATH = "../"
 
-    [extensions.js_daemon]
-    binary = "python"
-    cwd = "./extensions/jumpscript"
-    args = ["executor.py"]
-        [extensions.js_daemon.env]
-        SOCKET = "/tmp/jumpscript.sock"
-        PYTHONPATH = "../:/opt/jumpscale8/lib"
-        JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent8/jumpscripts/"
+[extension.jumpscript_content]
+binary = "python"
+cwd = "./extensions/jumpscript"
+args = ["wrapper_content.py"]
+    [extension.jumpscript_content.env]
+    SOCKET = "/tmp/jumpscript.sock"
+    PYTHONPATH = "../"
 
-    [extensions.bash]
-    binary = "bash"
-    args = ['-c', 'T=`mktemp` && cat > $T && bash $T; EXIT=$?; rm -rf $T; exit $EXIT']
+[extension.js_daemon]
+binary = "python"
+cwd = "./extensions/jumpscript"
+args = ["executor.py"]
+    [extension.js_daemon.env]
+    SOCKET = "/tmp/jumpscript.sock"
+    PYTHONPATH = "../:/opt/jumpscale8/lib"
+    JUMPSCRIPTS_HOME = "/opt/jumpscale8/apps/agent8/jumpscripts/"
+
+[extension.bash]
+binary = "bash"
+args = ['-c', 'T=`mktemp` && cat > $T && bash $T; EXIT=$?; rm -rf $T; exit $EXIT']
 
 [logging]
     [logging.db]
     type = "DB"
     address = "./logs"
-    levels = [1, 2, 4, 7, 8, 9, 11]  # (all error messages + debug) empty for all
+    levels = [2, 4, 7, 8, 9, 11]  # (all error messages + debug) empty for all
 
     [logging.ac]
     type = "AC"
@@ -84,15 +84,13 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
     type = "console"
     levels = [2, 4, 7, 8, 9]
 
-#    [logging.redis]
-#    type = "redis"
-#    address = "localhost:9999"
-
 [stats]
 interval = 60000 # milliseconds (1 min)
+
 [stats.ac]
-    enabled = false
-    controllers = [] # empty for all controllers, or controllers keys
+enabled = false
+controllers = [] # empty for all controllers, or controllers keys
+
 [stats.redis]
 enabled = true
 flush_interval = 100 # millisecond

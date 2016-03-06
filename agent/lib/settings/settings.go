@@ -70,7 +70,7 @@ type AppSettings struct {
 
 	Controllers map[string]Controller
 
-	Extensions map[string]Extension
+	Extension map[string]Extension
 
 	Logging map[string]Logger
 

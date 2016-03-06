@@ -7,21 +7,31 @@ import (
 	"path"
 )
 
+type After string
+
+func (a After) Weight() int64 {
+	if v, ok := Priority[a]; ok {
+		return v
+	} else {
+		return 0
+	}
+}
+
 const (
 	//Init happens before handshake
-	AfterInit = "init"
+	AfterInit = After("init")
 
 	//Core happens with core is up and running (also networking)
-	AfterNet = "net"
+	AfterNet = After("net")
 
 	//Default for startup commands that doesn't specify dependency
-	AfterBoot = "boot"
+	AfterBoot = After("boot")
 )
 
 var (
 	CyclicDependency = fmt.Errorf("cyclic dependency")
 
-	Priority = map[string]int64{
+	Priority = map[After]int64{
 		AfterInit: 1,
 		AfterNet:  1000,
 		AfterBoot: 1000000,
@@ -77,7 +87,7 @@ func (s *AppSettings) GetIncludedSettings() (partial *IncludedSettings, errors [
 
 		//merge into settings
 		for key, ext := range partialCfg.Extension {
-			_, m := s.Extensions[key]
+			_, m := s.Extension[key]
 			_, p := partial.Extension[key]
 			if m || p {
 				errors = append(errors,
