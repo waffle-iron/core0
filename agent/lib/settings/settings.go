@@ -2,7 +2,6 @@ package settings
 
 import (
 	"fmt"
-	"github.com/g8os/core/agent/lib/network"
 	"github.com/g8os/core/agent/lib/utils"
 	"net/url"
 	"strings"
@@ -113,10 +112,6 @@ func (s *AppSettings) Validate() []error {
 	}
 
 	return errors
-}
-
-func (s *AppSettings) GetNetworkManager() (network.NetworkManager, error) {
-	return network.GetNetworkManager(s.Main.Network)
 }
 
 //GetSettings loads main settings from a filename

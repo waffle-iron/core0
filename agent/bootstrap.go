@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/g8os/core/agent/lib/network"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
 	"log"
@@ -62,11 +63,11 @@ func (b *Bootstrap) startupServices(s, e settings.After) {
 }
 
 func (b *Bootstrap) startupNet() error {
-	netmgr, err := settings.Settings.GetNetworkManager()
+	netMgr, err := network.GetNetworkManager(settings.Settings.Main.Network)
 	if err != nil {
 		return err
 	}
-	for _, inf := range netmgr.Interfaces() {
+	for _, inf := range netMgr.Interfaces() {
 		log.Printf("Setting up interface '%s'\n", inf.Name())
 
 		if err := inf.Configure(); err != nil {

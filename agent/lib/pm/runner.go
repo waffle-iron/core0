@@ -34,6 +34,7 @@ type waitHook struct {
 
 func NewWaitHook() WaitHook {
 	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	return &waitHook{
 		wg: wg,
 	}
@@ -56,6 +57,7 @@ type Runner interface {
 	Run()
 	Kill()
 	Process() process.Process
+	Wait() *core.JobResult
 }
 
 type runnerImpl struct {
@@ -69,7 +71,11 @@ type runnerImpl struct {
 
 	hooks       []RunnerHook
 	hooksOnExit bool
-	once        sync.Once
+	hookOnce    sync.Once
+
+	waitOnce sync.Once
+	result   *core.JobResult
+	wg       sync.WaitGroup
 }
 
 /*
@@ -92,18 +98,22 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, h
 	prefix := fmt.Sprintf("%d.%d.%s.%s.%s", command.Gid, command.Nid, command.Name,
 		command.Args.GetStringDefault("domain", "unknown"), command.Args.GetStringDefault("name", "unknown"))
 
-	return &runnerImpl{
+	runner := &runnerImpl{
 		manager:     manager,
 		command:     command,
 		factory:     factory,
 		kill:        make(chan int),
 		hooks:       hooks,
 		hooksOnExit: hooksOnExit,
+
 		statsd: stats.NewStatsd(
 			prefix,
 			time.Duration(statsInterval)*time.Millisecond,
 			manager.statsFlushCallback),
 	}
+
+	runner.wg.Add(1)
+	return runner
 }
 
 func (runner *runnerImpl) Command() *core.Cmd {
@@ -236,7 +246,12 @@ func (runner *runnerImpl) Run() {
 	defer func() {
 		runner.statsd.Stop()
 		if result != nil {
+			runner.result = result
 			runner.manager.resultCallback(runner.command, result)
+
+			runner.waitOnce.Do(func() {
+				runner.wg.Done()
+			})
 		}
 
 		runner.manager.cleanUp(runner)
@@ -296,7 +311,7 @@ loop:
 }
 
 func (runner *runnerImpl) callHooks(s bool) {
-	runner.once.Do(func() {
+	runner.hookOnce.Do(func() {
 		for _, hook := range runner.hooks {
 			hook(s)
 		}
@@ -309,4 +324,9 @@ func (runner *runnerImpl) Kill() {
 
 func (runner *runnerImpl) Process() process.Process {
 	return runner.process
+}
+
+func (runner *runnerImpl) Wait() *core.JobResult {
+	runner.wg.Wait()
+	return runner.result
 }
