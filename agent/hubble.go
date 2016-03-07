@@ -8,7 +8,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/settings"
-	"log"
 	"net/http"
 	"net/url"
 	"time"

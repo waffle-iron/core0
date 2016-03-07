@@ -5,7 +5,6 @@ import (
 	"github.com/g8os/core/agent/lib/network"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -30,7 +29,7 @@ func NewBootstrap() *Bootstrap {
 	included, errors := settings.Settings.GetIncludedSettings()
 	if len(errors) > 0 {
 		for _, err := range errors {
-			log.Println("ERROR: ", err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -40,7 +39,7 @@ func NewBootstrap() *Bootstrap {
 	if len(errors) > 0 {
 		//print service tree errors (cyclic dependencies, or missing dependencies)
 		for _, err := range errors {
-			log.Println("ERROR: ", err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -69,7 +68,7 @@ func (b *Bootstrap) registerExtensions(extensions map[string]settings.Extension)
 }
 
 func (b *Bootstrap) startupServices(s, e settings.After) {
-	log.Printf("Starting up '%s' services\n", s)
+	log.Infof("Starting up '%s' services", s)
 	slice := b.t.Slice(s.Weight(), e.Weight())
 	pm.GetManager().RunSlice(slice)
 }
@@ -78,10 +77,10 @@ func (b *Bootstrap) pingController(controller *settings.Controller) bool {
 	c := controller.GetClient()
 	u := c.BuildURL("ping")
 
-	log.Println("Pinging controller '%s'", u)
+	log.Infof("Pinging controller '%s'", u)
 	r, err := c.Client.Get(u)
 	if err != nil {
-		log.Printf("ERROR: can't reach %s\n", controller.URL)
+		log.Errorf("Can't reach %s\n", controller.URL)
 		return false
 	}
 	defer r.Body.Close()
@@ -121,7 +120,7 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 		}
 
 		if err := static.ConfigureStatic(ip, inf.Name()); err != nil {
-			log.Printf("ERROR: force static IP '%s' on '%s': %s\n", sip, inf.Name(), err)
+			log.Errorf("Force static IP '%s' on '%s' failed: %s\n", sip, inf.Name(), err)
 		}
 
 		if ok := b.pingControllers(); ok {
@@ -131,7 +130,7 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 		inf.Clear()
 		//reset interface to original setup.
 		if err := inf.Configure(); err != nil {
-			log.Println("ERROR:", err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -151,10 +150,10 @@ func (b *Bootstrap) setupNetworking() error {
 
 	//apply the interfaces settings as configured.
 	for _, inf := range interfaces {
-		log.Printf("Setting up interface '%s'\n", inf.Name())
+		log.Infof("Setting up interface '%s'", inf.Name())
 		inf.Clear()
 		if err := inf.Configure(); err != nil {
-			log.Println("ERROR:", err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -174,7 +173,7 @@ func (b *Bootstrap) setupNetworking() error {
 
 		inf.Clear()
 		if err := dhcp.Configure(netMgr, inf.Name()); err != nil {
-			log.Println("ERROR: Force dhcp ", err)
+			log.Errorf("Force dhcp %s", err)
 		}
 
 		if ok := b.pingControllers(); ok {
@@ -184,7 +183,7 @@ func (b *Bootstrap) setupNetworking() error {
 		inf.Clear()
 		//reset interface to original setup.
 		if err := inf.Configure(); err != nil {
-			log.Println("ERROR:", err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -209,11 +208,11 @@ func (b *Bootstrap) Bootstrap() {
 			break
 		}
 
-		log.Printf("Failed to configure networking: %s\n", err)
-		log.Println("Retrying in 2 seconds")
+		log.Errorf("Failed to configure networking: %s", err)
+		log.Infof("Retrying in 2 seconds")
 
 		time.Sleep(2 * time.Second)
-		log.Println("Retrying setting up network")
+		log.Infof("Retrying setting up network")
 
 		//DEBUG
 		break
