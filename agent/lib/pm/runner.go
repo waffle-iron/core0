@@ -21,6 +21,36 @@ const (
 
 type RunnerHook func(bool)
 
+type WaitHook interface {
+	Hook(ok bool)
+	Wait() bool
+}
+
+type waitHook struct {
+	wg *sync.WaitGroup
+	o  sync.Once
+	ok bool
+}
+
+func NewWaitHook() WaitHook {
+	wg := &sync.WaitGroup{}
+	return &waitHook{
+		wg: wg,
+	}
+}
+
+func (w *waitHook) Hook(ok bool) {
+	w.o.Do(func() {
+		w.ok = ok
+		w.wg.Done()
+	})
+}
+
+func (w *waitHook) Wait() bool {
+	w.wg.Wait()
+	return w.ok
+}
+
 type Runner interface {
 	Command() *core.Cmd
 	Run()
