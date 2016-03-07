@@ -3,7 +3,6 @@ package network
 import (
 	"fmt"
 	"github.com/vishvananda/netlink"
-	"log"
 	"net"
 )
 
@@ -30,7 +29,7 @@ func (s *staticProtocol) ConfigureStatic(ip *net.IPNet, inf string) error {
 
 	addr := &netlink.Addr{IPNet: ip}
 	addrs, err := netlink.AddrList(link, netlink.FAMILY_ALL)
-	log.Println("Addresses: ", addrs)
+	log.Debugf("Addresses: %s", addrs)
 	if err != nil {
 		return err
 	}

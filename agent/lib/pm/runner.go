@@ -7,7 +7,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/stream"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -281,7 +280,7 @@ loop:
 		if result.State != core.StateSuccess && maxRestart > 0 {
 			runs++
 			if runs < maxRestart {
-				log.Println("Restarting", runner.command, "due to upnormal exit status, trials", runs+1, "/", maxRestart)
+				log.Infof("Restarting '%s' due to upnormal exit status, trials: %d/%d", runner.command, runs+1, maxRestart)
 				restarting = true
 				restartIn = 1 * time.Second
 			}
@@ -294,11 +293,11 @@ loop:
 		}
 
 		if restarting {
-			log.Println("Recurring", runner.command, "in", restartIn)
+			log.Infof("Recurring '%s' in %d", runner.command, restartIn)
 			select {
 			case <-time.After(restartIn):
 			case <-runner.kill:
-				log.Println("Command ", runner.command, "Killed during scheduler sleep")
+				log.Infof("Command %s Killed during scheduler sleep", runner.command)
 				result.State = core.StateKilled
 				break loop
 			}

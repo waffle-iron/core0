@@ -3,7 +3,6 @@ package pm
 import (
 	"container/list"
 	"github.com/g8os/core/agent/lib/pm/core"
-	"log"
 	"sync"
 )
 
@@ -45,16 +44,16 @@ func (mgr *cmdQueueManager) dispatcherLoop() {
 		queueName := cmd.Args.GetString("queue")
 		if queueName == "" {
 			//not a queued command just log a warning and continue
-			log.Println("WARNING: Queue manager received a command with no set queue", cmd)
+			log.Warningf("Queue manager received a command with no set queue (%s)", cmd)
 			continue
 		}
 
-		log.Println("Pushing command to queue", queueName)
+		log.Infof("Pushing command to queue '%s'", queueName)
 		//push command to correct queue
 		mgr.lock.Lock()
 		queue, ok := mgr.queues[queueName]
 		if !ok {
-			log.Println("Queue", queueName, "doesn't exist, initializing...")
+			log.Debugf("Queue '%s' doesn't exist, initializing...", queueName)
 			queue = list.New()
 			mgr.queues[queueName] = queue
 		}
@@ -77,7 +76,7 @@ func (mgr *cmdQueueManager) producerLoop() {
 	for {
 		queueName := <-mgr.signal
 
-		log.Println("Queue", queueName, "ready...")
+		log.Debugf("Queue '%s' ready...", queueName)
 		mgr.lock.Lock()
 		queue, ok := mgr.queues[queueName]
 		if !ok {
@@ -89,7 +88,7 @@ func (mgr *cmdQueueManager) producerLoop() {
 		if queue.Len() == 0 {
 			//last command on this queue exited successfully.
 			//we can safely delete it.
-			log.Println("Queue", queueName, "is empty, cleaning up...")
+			log.Infof("Cleaning up  queue '%s'", queueName)
 			delete(mgr.queues, queueName)
 			mgr.lock.Unlock()
 			continue

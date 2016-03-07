@@ -4,7 +4,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -23,19 +22,19 @@ func ConfigureLogging(controllers map[string]*settings.ControllerClient) {
 		switch strings.ToLower(logcfg.Type) {
 		case "db":
 			if dbLoggerConfigured {
-				log.Fatal("Only one db logger can be configured")
+				log.Fatalf("Only one db logger can be configured")
 			}
 			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
 			os.Mkdir(logcfg.Address, 0755)
 			db, err := bolt.Open(path.Join(logcfg.Address, "logs.db"), 0644, nil)
 			db.MaxBatchDelay = 100 * time.Millisecond
 			if err != nil {
-				log.Fatal("Failed to open logs database", err)
+				log.Fatalf("Failed to open logs database: %s", err)
 			}
 
 			handler, err := NewDBLogger(db, logcfg.Levels)
 			if err != nil {
-				log.Fatal("DB logger failed to initialize", err)
+				log.Fatalf("DB logger failed to initialize: %s", err)
 			}
 			mgr.AddMessageHandler(handler.Log)
 			registerGetMsgsFunction(db)

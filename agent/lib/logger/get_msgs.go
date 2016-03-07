@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/boltdb/bolt"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/utils"
-	"github.com/boltdb/bolt"
-	"log"
 )
 
 type logQuery struct {
@@ -96,7 +95,7 @@ func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd) (interface{}, error) {
 
 		job := logs.Bucket([]byte(query.JobID))
 		if job == nil {
-			log.Println("Failed to open job bucket")
+			log.Errorf("Failed to open job bucket")
 			return nil
 		}
 		cursor := job.Cursor()
@@ -104,7 +103,7 @@ func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd) (interface{}, error) {
 			row := make(map[string]interface{})
 			err := json.Unmarshal(value, &row)
 			if err != nil {
-				log.Printf("Failed to load job log '%s'\n", value)
+				log.Errorf("Failed to load job log '%s'", value)
 				return err
 			}
 			if utils.In(levels, int(row["level"].(float64))) {

@@ -8,15 +8,19 @@ import (
 	"github.com/g8os/core/agent/lib/settings"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
+	"github.com/op/go-logging"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
+)
+
+var (
+	log = logging.MustGetLogger("pm")
 )
 
 //MeterHandler represents a callback type
@@ -73,7 +77,7 @@ func InitProcessManager(midfile string, maxJobs int) *PM {
 		pids: make(map[int]chan *syscall.WaitStatus),
 	}
 
-	log.Println("Process manager intialization completed")
+	log.Infof("Process manager intialization completed")
 	return pm
 }
 
@@ -89,12 +93,12 @@ func GetManager() *PM {
 func loadMid(midfile string) uint32 {
 	content, err := ioutil.ReadFile(midfile)
 	if err != nil {
-		log.Println(err)
+		log.Errorf("%s", err)
 		return 0
 	}
 	v, err := strconv.ParseUint(string(content), 10, 32)
 	if err != nil {
-		log.Println(err)
+		log.Errorf("%s", err)
 		return 0
 	}
 	return uint32(v)
@@ -148,7 +152,7 @@ func (pm *PM) RunCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runne
 	//process := NewProcess(cmd)
 
 	if factory == nil {
-		log.Println("Unknow command", cmd.Name)
+		log.Errorf("Unknow command '%s'", cmd.Name)
 		errResult := core.NewBasicJobResult(cmd)
 		errResult.State = core.StateUnknownCmd
 		pm.resultCallback(cmd, errResult)
@@ -204,7 +208,7 @@ func (pm *PM) processWait() {
 
 		pid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, &rusage)
 		if err != nil {
-			log.Printf("wait error %s\n", err)
+			log.Errorf("Wait error: %s", err)
 			continue
 		}
 
@@ -260,7 +264,6 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 	all := make([]string, 0)
 
 	for _, startup := range slice {
-		log.Println("Startup command ", startup)
 		if startup.Args == nil {
 			startup.Args = make(map[string]interface{})
 		}
@@ -287,23 +290,23 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 		}
 
 		go func(up settings.Startup, c *core.Cmd) {
-			log.Printf("Waiting for %s to run %s\n", up.After, cmd)
+			log.Debugf("Waiting for %s to run %s", up.After, cmd)
 			canRun := state.Wait(up.After...)
 
 			if canRun {
-				log.Printf("Starting %s\n", c)
+				log.Infof("Starting %s", c)
 				pm.RunCmd(c, up.MustExit, func(s bool) {
 					state.Release(c.ID, s)
 				})
 			} else {
-				log.Printf("ERROR: Can't start %s because one of the dependencies failed\n", c)
+				log.Errorf("Can't start %s because one of the dependencies failed", c)
 			}
 		}(startup, cmd)
 	}
 	//release all dependencies that are not provided by this slice.
 	for k := range needed {
 		if _, ok := provided[k]; !ok {
-			log.Println("Auto releasing of", k)
+			log.Debugf("Auto releasing of '%s'", k)
 			state.Release(k, true)
 		}
 	}

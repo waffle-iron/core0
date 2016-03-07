@@ -3,8 +3,13 @@ package settings
 import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/utils"
+	"github.com/op/go-logging"
 	"net/url"
 	"strings"
+)
+
+var (
+	log = logging.MustGetLogger("settings")
 )
 
 const (

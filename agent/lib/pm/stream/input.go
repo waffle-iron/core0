@@ -2,14 +2,17 @@ package stream
 
 import (
 	"bufio"
+	"github.com/op/go-logging"
 	"io"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-var pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
+var (
+	log             = logging.MustGetLogger("stream")
+	pmMsgPattern, _ = regexp.Compile("^(\\d+)(:{2,3})(.*)$")
+)
 
 type Consumer interface {
 	Consume(MessageHandler)
@@ -48,7 +51,7 @@ func (consumer *consumerImpl) consume(handler MessageHandler) {
 		line, err := reader.ReadString('\n')
 
 		if err != nil && err != io.EOF {
-			log.Println(err)
+			log.Errorf("%s", err)
 			return
 		}
 

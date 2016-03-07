@@ -6,7 +6,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/stream"
 	"github.com/g8os/core/agent/lib/utils"
 	"github.com/garyburd/redigo/redis"
-	"log"
 	"time"
 )
 
@@ -43,11 +42,11 @@ func (l *redisLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		log.Println("Failed to serialize message for redis logger", err)
+		log.Errorf("Failed to serialize message for redis logger: %s", err)
 		return
 	}
 
 	if err := db.Send("RPUSH", RedisLoggerQueue, bytes); err != nil {
-		log.Println("Failed to push log message to redis", err)
+		log.Errorf("Failed to push log message to redis: %s", err)
 	}
 }

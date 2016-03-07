@@ -2,7 +2,6 @@ package settings
 
 import (
 	"github.com/stretchr/testify/assert"
-	"log"
 	"sort"
 	"testing"
 )
@@ -209,8 +208,6 @@ func TestGetTreeMissingDependency(t *testing.T) {
 		t.Fail()
 	}
 
-	log.Println(errors)
-
 	if ok := assert.Len(t, tree.Services(), 1); !ok {
 		t.Fatal()
 	}
@@ -242,8 +239,6 @@ func TestGetTreeCyclicDependency(t *testing.T) {
 	if ok := assert.NotEmpty(t, errors); !ok {
 		t.Fail()
 	}
-
-	log.Println(errors)
 
 	if ok := assert.Len(t, tree.Services(), 2); !ok {
 		t.Fatal()

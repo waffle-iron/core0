@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/settings"
 	"github.com/g8os/core/agent/lib/utils"
-	"log"
+	"github.com/op/go-logging"
+)
+
+var (
+	log = logging.MustGetLogger("core")
 )
 
 /*
@@ -173,7 +177,7 @@ func (args *MapArgs) GetIntArray(key string) []int {
 		//requires expansion.
 		values, err := utils.Expand(t)
 		if err != nil {
-			log.Println("Invalid array string", t)
+			log.Errorf("Invalid array string '%s'", t)
 			return []int{}
 		}
 		args.data[key] = values

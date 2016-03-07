@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ func getHTTPClient(security *Security) *http.Client {
 	if security.CertificateAuthority != "" {
 		pem, err := ioutil.ReadFile(security.CertificateAuthority)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 
 		tlsConfig.RootCAs = x509.NewCertPool()
@@ -35,13 +34,13 @@ func getHTTPClient(security *Security) *http.Client {
 
 	if security.ClientCertificate != "" {
 		if security.ClientCertificateKey == "" {
-			log.Fatal("Missing certificate key file")
+			log.Fatalf("Missing certificate key file")
 		}
 
 		cert, err := tls.LoadX509KeyPair(security.ClientCertificate,
 			security.ClientCertificateKey)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 
 		tlsConfig.Certificates = []tls.Certificate{cert}
