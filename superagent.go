@@ -47,10 +47,11 @@ func main() {
 		controllers[key] = agent.NewControllerClient(&controllerCfg)
 	}
 
-	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
+	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
 
+	mgr := pm.GetManager()
 	//configure logging handlers from configurations
-	logger.ConfigureLogging(mgr, controllers)
+	logger.ConfigureLogging(controllers)
 
 	//configure hubble functions from configurations
 	agent.RegisterHubbleFunctions(controllers)
@@ -115,11 +116,11 @@ func main() {
 	//start process mgr.
 	mgr.Run()
 
-	bootstrap := agent.NewBootstrap(mgr)
+	bootstrap := agent.NewBootstrap()
 	bootstrap.Bootstrap()
 
 	//start jobs pollers.
-	agent.StartPollers(mgr, controllers)
+	agent.StartPollers(controllers)
 
 	//wait
 	select {}

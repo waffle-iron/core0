@@ -16,8 +16,9 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient) {
+func ConfigureLogging(controllers map[string]*agent.ControllerClient) {
 	//apply logging handlers.
+	mgr := pm.GetManager()
 	dbLoggerConfigured := false
 	for _, logcfg := range settings.Settings.Logging {
 		switch strings.ToLower(logcfg.Type) {

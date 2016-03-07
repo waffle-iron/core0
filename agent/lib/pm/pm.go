@@ -56,7 +56,7 @@ type PM struct {
 var pm *PM
 
 //NewPM creates a new PM
-func NewPM(midfile string, maxJobs int) *PM {
+func InitProcessManager(midfile string, maxJobs int) *PM {
 	pm = &PM{
 		cmds:     make(chan *core.Cmd),
 		midfile:  midfile,
@@ -79,6 +79,9 @@ func NewPM(midfile string, maxJobs int) *PM {
 //TODO: That's not clean, find another way to make this available for other
 //code
 func GetManager() *PM {
+	if pm == nil {
+		panic("Process manager is not intialized")
+	}
 	return pm
 }
 
@@ -101,17 +104,17 @@ func saveMid(midfile string, mid uint32) {
 }
 
 //RunCmd runs and manage command
-func (pm *PM) RunCmd(cmd *core.Cmd) {
+func (pm *PM) PushCmd(cmd *core.Cmd) {
 	pm.cmds <- cmd
 }
 
 /*
-RunCmdQueued Same as RunCmd put will queue the command for later execution when there are no
+RunCmdQueued Same as RunCmdAsync put will queue the command for later execution when there are no
 other commands runs on the same queue.
 
 The queue name is retrieved from cmd.Args[queue]
 */
-func (pm *PM) RunCmdQueued(cmd *core.Cmd) {
+func (pm *PM) PushCmdToQueue(cmd *core.Cmd) {
 	pm.queueMgr.Push(cmd)
 }
 
@@ -139,7 +142,7 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
-func (pm *PM) runCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
+func (pm *PM) RunCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
 	factory := GetProcessFactory(cmd)
 	//process := NewProcess(cmd)
 
@@ -187,7 +190,7 @@ func (pm *PM) processCmds() {
 		case cmd = <-pm.queueMgr.Producer():
 		}
 
-		pm.runCmd(cmd, false)
+		pm.RunCmd(cmd, false)
 	}
 }
 
@@ -288,7 +291,7 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 
 			if canRun {
 				log.Printf("Starting %s\n", c)
-				pm.runCmd(c, up.MustExit, func(s bool) {
+				pm.RunCmd(c, up.MustExit, func(s bool) {
 					state.Release(c.ID, s)
 				})
 			} else {

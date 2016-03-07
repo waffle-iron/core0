@@ -9,12 +9,11 @@ import (
 )
 
 type Bootstrap struct {
-	m *pm.PM
 	i *settings.IncludedSettings
 	t settings.StartupTree
 }
 
-func NewBootstrap(mgr *pm.PM) *Bootstrap {
+func NewBootstrap() *Bootstrap {
 	included, errors := settings.Settings.GetIncludedSettings()
 	if len(errors) > 0 {
 		for _, err := range errors {
@@ -33,7 +32,6 @@ func NewBootstrap(mgr *pm.PM) *Bootstrap {
 	}
 
 	b := &Bootstrap{
-		m: mgr,
 		i: included,
 		t: t,
 	}
@@ -60,7 +58,7 @@ func (b *Bootstrap) registerExtensions(extensions map[string]settings.Extension)
 func (b *Bootstrap) startupServices(s, e settings.After) {
 	log.Printf("Starting up '%s' services\n", s)
 	slice := b.t.Slice(s.Weight(), e.Weight())
-	b.m.RunSlice(slice)
+	pm.GetManager().RunSlice(slice)
 }
 
 func (b *Bootstrap) startupNet() error {

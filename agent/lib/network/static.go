@@ -7,11 +7,7 @@ import (
 	"net"
 )
 
-var defaultRouteIp *net.IPNet
-
 func init() {
-	defaultRouteIp, _ = netlink.ParseIPNet("0.0.0.0/0")
-
 	protocols["static"] = &staticProtocol{}
 }
 

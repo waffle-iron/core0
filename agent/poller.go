@@ -16,14 +16,12 @@ import (
 
 type poller struct {
 	key        string
-	manager    *pm.PM
 	controller *ControllerClient
 }
 
-func newPoller(key string, manager *pm.PM, controller *ControllerClient) *poller {
+func newPoller(key string, controller *ControllerClient) *poller {
 	poll := &poller{
 		key:        key,
-		manager:    manager,
 		controller: controller,
 	}
 
@@ -128,9 +126,9 @@ func (poll *poller) longPoll() {
 		log.Println("Starting command", cmd)
 
 		if cmd.Args.GetString("queue") == "" {
-			poll.manager.RunCmd(cmd)
+			pm.GetManager().PushCmd(cmd)
 		} else {
-			poll.manager.RunCmdQueued(cmd)
+			pm.GetManager().PushCmdToQueue(cmd)
 		}
 	}
 }
@@ -138,7 +136,7 @@ func (poll *poller) longPoll() {
 /*
 StartPollers starts the long polling routines and feed the manager with received commands
 */
-func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient) {
+func StartPollers(controllers map[string]*ControllerClient) {
 	var keys []string
 	if len(settings.Settings.Channel.Cmds) > 0 {
 		keys = settings.Settings.Channel.Cmds
@@ -152,7 +150,7 @@ func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient) {
 			log.Fatalf("No contoller with name '%s'\n", key)
 		}
 
-		poll := newPoller(key, manager, controller)
+		poll := newPoller(key, controller)
 		go poll.longPoll()
 	}
 }
