@@ -221,9 +221,6 @@ func (b *Bootstrap) Bootstrap() {
 
 		time.Sleep(2 * time.Second)
 		log.Infof("Retrying setting up network")
-
-		//DEBUG
-		break
 	}
 
 	//start up all net services ([net, boot[ slice)
