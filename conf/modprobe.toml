@@ -1,0 +1,11 @@
+[startup.modprobe]
+name = "bash"
+after = ["init"]
+must_exit = true
+data = """
+
+# load all required hardware modules here
+modprobe e1000e
+modprobe e1000
+modprobe e100
+"""

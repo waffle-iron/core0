@@ -1,16 +1,53 @@
-# Agent8 #
+# Core
 
+Systemd replacement for G8OS
 
-### Functions of a Agent8
-- is a process manager
-- a remote command executor that gets it's jobs and tasks by polling from AC (Agent Controller 2).
-- tcp portforwarder
-- statistics aggregator & forwarder
+## Sample setup
+- Build and copy `core` to machine /sbin/
+- `mkdir -p /etc/g8os/g8os.d/`
+- Write file `/etc/g8os/g8os.toml` with the following contents
+```toml
+#leave /tmp and /opt/jumpscale8 in this file, gets replaced during installation
 
-The Agent will also monitor the jobs, updating the AC with `stats` and `logs`. All according to specs. 
+[main]
+max_jobs = 100
+message_ID_file = "/var/run/core.mid"
+include = "/etc/g8os/g8os.d"
+network = "/etc/g8os/network.toml"
 
-# Architecture
+[channel]
+cmds = [] # empty for long polling from all defined controllers, or specif controllers keys
 
-![](https://docs.google.com/drawings/d/1qsOzbv2XbwChgsLVV8qCydmH0ki9QLkaB336kt7D1Cg/pub?w=960&h=720)
+[extension]
+    [extension.bash]
+    binary = "bash"
+    args = ['-c', 'T=`mktemp` && cat > $T && chmod +x $T && bash -c $T; EXIT=$?; rm -rf $T; exit $EXIT']
 
-For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController8/AgentController8.html#).
+[logging]
+    [logging.console]
+    type = "console"
+    levels = [1, 2]
+
+[stats]
+interval = 60000 # milliseconds (1 min)
+[stats.ac]
+    enabled = false
+    controllers = [] # empty for all controllers, or controllers keys
+[stats.redis]
+    enabled = false
+    flush_interval = 100 # millisecond
+    address = "localhost:6379"
+
+[hubble]
+controllers = [] # accept forwarding commands and connections from all controllers. Or specific controllers by name
+```
+- Write file `/etc/g8os/network.toml` with content
+```
+[network]
+auto = true
+```
+- cp file `conf/getty.toml`, `conf/sshd.toml` and `conf/modprobe.toml` from the source tree to `/etc/g8os/g8os.d`
+- cp the `init` file from the source tree to `/sbin/init` (make sure to backup your original `init` file so you
+can go back to `systemd`
+
+Reboot machine
