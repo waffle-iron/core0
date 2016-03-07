@@ -26,14 +26,14 @@ type StatsFlusher interface {
 }
 
 type acStatsBuffer struct {
-	destinations []*ControllerClient
+	destinations []*settings.ControllerClient
 	buffer       utils.Buffer
 }
 
 /*
 NewStatsBuffer creates new StatsBuffer
 */
-func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient) StatsFlusher {
+func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*settings.ControllerClient) StatsFlusher {
 	var destKeys []string
 	if len(settings.Settings.Stats.Ac.Controllers) > 0 {
 		destKeys = settings.Settings.Stats.Ac.Controllers
@@ -41,7 +41,7 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 		destKeys = getKeys(controllers)
 	}
 
-	destinations := make([]*ControllerClient, 0, len(destKeys))
+	destinations := make([]*settings.ControllerClient, 0, len(destKeys))
 	for _, key := range destKeys {
 		controller, ok := controllers[key]
 		if !ok {

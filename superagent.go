@@ -41,10 +41,19 @@ func main() {
 
 	var config = settings.Settings
 
+	//add the fallback controller by default.
+	if config.Controllers == nil {
+		config.Controllers = make(map[string]settings.Controller)
+	}
+
+	config.Controllers["__fallback__"] = settings.Controller{
+		URL: agent.FallbackControllerURL,
+	}
+
 	//build list with ACs that we will poll from.
-	controllers := make(map[string]*agent.ControllerClient)
+	controllers := make(map[string]*settings.ControllerClient)
 	for key, controllerCfg := range config.Controllers {
-		controllers[key] = agent.NewControllerClient(&controllerCfg)
+		controllers[key] = controllerCfg.GetClient()
 	}
 
 	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
@@ -114,6 +123,7 @@ func main() {
 	//start the child processes cleaner
 
 	//start process mgr.
+	log.Println("Starting manager")
 	mgr.Run()
 
 	bootstrap := agent.NewBootstrap()

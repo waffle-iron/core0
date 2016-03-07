@@ -1,10 +1,9 @@
-package agent
+package settings
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/g8os/core/agent/lib/settings"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,19 +17,10 @@ ControllerClient represents an active agent controller connection.
 type ControllerClient struct {
 	URL    string
 	Client *http.Client
-	Config *settings.Controller
+	Config *Controller
 }
 
-func getKeys(m map[string]*ControllerClient) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
-func getHTTPClient(security *settings.Security) *http.Client {
+func getHTTPClient(security *Security) *http.Client {
 	var tlsConfig tls.Config
 
 	if security.CertificateAuthority != "" {
@@ -71,11 +61,11 @@ func getHTTPClient(security *settings.Security) *http.Client {
 /*
 NewControllerClient gets a new agent controller connection
 */
-func NewControllerClient(cfg *settings.Controller) *ControllerClient {
+func (c *Controller) GetClient() *ControllerClient {
 	client := &ControllerClient{
-		URL:    strings.TrimRight(cfg.URL, "/"),
-		Client: getHTTPClient(&cfg.Security),
-		Config: cfg,
+		URL:    strings.TrimRight(c.URL, "/"),
+		Client: getHTTPClient(&c.Security),
+		Config: c,
 	}
 
 	return client
@@ -86,7 +76,7 @@ BuildURL builds the request URL for agent
 */
 func (client *ControllerClient) BuildURL(endpoint string) string {
 	return fmt.Sprintf("%s/%d/%d/%s", client.URL,
-		settings.Options.Gid(),
-		settings.Options.Nid(),
+		Options.Gid(),
+		Options.Nid(),
 		endpoint)
 }

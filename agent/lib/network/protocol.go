@@ -3,7 +3,7 @@ package network
 import "fmt"
 
 type Protocol interface {
-	Configure(n *networkingSettings, inf string) error
+	Configure(mgr NetworkManager, inf string) error
 }
 
 var (

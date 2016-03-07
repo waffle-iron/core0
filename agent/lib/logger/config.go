@@ -2,7 +2,6 @@ package logger
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/g8os/core/agent"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
 	"log"
@@ -16,7 +15,7 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(controllers map[string]*agent.ControllerClient) {
+func ConfigureLogging(controllers map[string]*settings.ControllerClient) {
 	//apply logging handlers.
 	mgr := pm.GetManager()
 	dbLoggerConfigured := false

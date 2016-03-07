@@ -7,24 +7,26 @@ import (
 	"net"
 )
 
+const (
+	ProtocolStatic = "static"
+)
+
+type StaticProtocol interface {
+	Protocol
+	ConfigureStatic(ip *net.IPNet, inf string) error
+}
+
 func init() {
-	protocols["static"] = &staticProtocol{}
+	protocols[ProtocolStatic] = &staticProtocol{}
 }
 
 type staticProtocol struct{}
 
-func (s *staticProtocol) Configure(n *networkingSettings, inf string) error {
+func (s *staticProtocol) ConfigureStatic(ip *net.IPNet, inf string) error {
 	link, err := netlink.LinkByName(inf)
 	if err != nil {
 		return err
 	}
-
-	setting, ok := n.Static[inf]
-	if !ok {
-		return fmt.Errorf("missing static configuration for interface '%s'", inf)
-	}
-
-	ip, err := netlink.ParseIPNet(setting.IP)
 
 	addr := &netlink.Addr{IPNet: ip}
 	addrs, err := netlink.AddrList(link, netlink.FAMILY_ALL)
@@ -51,6 +53,26 @@ func (s *staticProtocol) Configure(n *networkingSettings, inf string) error {
 		return err
 	}
 
+	return nil
+}
+
+func (s *staticProtocol) Configure(mgr NetworkManager, inf string) error {
+	link, err := netlink.LinkByName(inf)
+	if err != nil {
+		return err
+	}
+
+	setting, ok := mgr.getConfig().Static[inf]
+	if !ok {
+		return fmt.Errorf("missing static configuration for interface '%s'", inf)
+	}
+
+	ip, err := netlink.ParseIPNet(setting.IP)
+
+	if err := s.ConfigureStatic(ip, inf); err != nil {
+		return err
+	}
+
 	if setting.Gateway == "" {
 		return nil
 	}
@@ -63,7 +85,7 @@ func (s *staticProtocol) Configure(n *networkingSettings, inf string) error {
 
 	route := &netlink.Route{
 		LinkIndex: link.Attrs().Index,
-		Src:       addr.IPNet.IP,
+		Src:       ip.IP,
 		Gw:        rip,
 	}
 

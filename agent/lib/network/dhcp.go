@@ -6,8 +6,12 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 )
 
+const (
+	ProtocolDHCP = "dhcp"
+)
+
 func init() {
-	protocols["dhcp"] = &dhcpProtocol{}
+	protocols[ProtocolDHCP] = &dhcpProtocol{}
 }
 
 type dhcpProtocol struct {
@@ -29,7 +33,7 @@ func (d *dhcpProtocol) killDhcpcd(inf string) {
 	runner.Wait()
 }
 
-func (d *dhcpProtocol) Configure(n *networkingSettings, inf string) error {
+func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
 	d.killDhcpcd(inf)
 
 	cmd := &core.Cmd{

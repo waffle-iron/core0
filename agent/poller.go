@@ -16,10 +16,19 @@ import (
 
 type poller struct {
 	key        string
-	controller *ControllerClient
+	controller *settings.ControllerClient
 }
 
-func newPoller(key string, controller *ControllerClient) *poller {
+func getKeys(m map[string]*settings.ControllerClient) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func newPoller(key string, controller *settings.ControllerClient) *poller {
 	poll := &poller{
 		key:        key,
 		controller: controller,
@@ -136,7 +145,7 @@ func (poll *poller) longPoll() {
 /*
 StartPollers starts the long polling routines and feed the manager with received commands
 */
-func StartPollers(controllers map[string]*ControllerClient) {
+func StartPollers(controllers map[string]*settings.ControllerClient) {
 	var keys []string
 	if len(settings.Settings.Channel.Cmds) > 0 {
 		keys = settings.Settings.Channel.Cmds

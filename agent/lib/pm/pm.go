@@ -73,6 +73,7 @@ func InitProcessManager(midfile string, maxJobs int) *PM {
 		pids: make(map[int]chan *syscall.WaitStatus),
 	}
 
+	log.Println("Process manager intialization completed")
 	return pm
 }
 
