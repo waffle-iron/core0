@@ -14,10 +14,15 @@ func init() {
 	protocols[ProtocolDHCP] = &dhcpProtocol{}
 }
 
+type DHCPProtocol interface {
+	Protocol
+	Stop(inf string)
+}
+
 type dhcpProtocol struct {
 }
 
-func (d *dhcpProtocol) killDhcpcd(inf string) {
+func (d *dhcpProtocol) Stop(inf string) {
 	cmd := &core.Cmd{
 		Name: "execute",
 		Args: core.NewMapArgs(
@@ -34,7 +39,7 @@ func (d *dhcpProtocol) killDhcpcd(inf string) {
 }
 
 func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
-	d.killDhcpcd(inf)
+	d.Stop(inf)
 
 	cmd := &core.Cmd{
 		Name: "execute",

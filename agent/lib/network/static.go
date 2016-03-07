@@ -22,6 +22,8 @@ func init() {
 type staticProtocol struct{}
 
 func (s *staticProtocol) ConfigureStatic(ip *net.IPNet, inf string) error {
+	log.Debugf("Configure '%s' with static ip '%s'", inf, ip)
+
 	link, err := netlink.LinkByName(inf)
 	if err != nil {
 		return err
@@ -29,7 +31,6 @@ func (s *staticProtocol) ConfigureStatic(ip *net.IPNet, inf string) error {
 
 	addr := &netlink.Addr{IPNet: ip}
 	addrs, err := netlink.AddrList(link, netlink.FAMILY_ALL)
-	log.Debugf("Addresses: %s", addrs)
 	if err != nil {
 		return err
 	}

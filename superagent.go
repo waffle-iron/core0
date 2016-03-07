@@ -48,16 +48,15 @@ func main() {
 		log.Fatalf("\nConfig validation error, please fix and try again.")
 	}
 
-	var config = settings.Settings
-
-	//add the fallback controller by default.
-	if config.Controllers == nil {
-		config.Controllers = make(map[string]settings.Controller)
+	if settings.Settings.Controllers == nil {
+		settings.Settings.Controllers = make(map[string]settings.Controller)
 	}
 
-	config.Controllers["__fallback__"] = settings.Controller{
+	settings.Settings.Controllers["__fallback__"] = settings.Controller{
 		URL: agent.FallbackControllerURL,
-	}
+	} //add the fallback controller by default.
+
+	var config = settings.Settings
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*settings.ControllerClient)

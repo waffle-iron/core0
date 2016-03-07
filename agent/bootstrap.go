@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	FallbackControllerURL = "http://10.254.254.254:9066/"
+	FallbackControllerURL = "http://10.254.254.254:8966/"
 )
 
 var (
-	FallbackMask   = net.IPMask([]byte{255, 255, 255, 0})
-	FallbakIPRange = net.IP([]byte{10, 254, 254, 0})
+	FallbackMask = net.IPv4Mask(255, 255, 255, 0)
 )
 
 type Bootstrap struct {
@@ -91,7 +90,9 @@ func (b *Bootstrap) pingController(controller *settings.Controller) bool {
 }
 
 func (b *Bootstrap) pingControllers() bool {
+	log.Infof("Testing controller reachability to %s", settings.Settings.Controllers)
 	for _, controller := range settings.Settings.Controllers {
+		log.Infof("Trying controller '%s'", controller.URL)
 		if ok := b.pingController(&controller); ok {
 			//we were able to reach at least one controller
 			return ok
@@ -108,11 +109,14 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 		proto, _ := network.GetProtocol(network.ProtocolStatic)
 		static := proto.(network.StaticProtocol)
 
-		sip := net.IPv4(FallbakIPRange[0], FallbakIPRange[1], FallbakIPRange[2], 0)
-		for sip[3] == 0 || sip[3] >= 254 {
-			rand.Read(sip[3:])
-			//TODO: check conflict
+		buf := make([]byte, 1)
+		for buf[0] == 0 || buf[0] >= 254 {
+			rand.Read(buf)
 		}
+
+		sip := net.IPv4(10, 254, 254, buf[0])
+
+		log.Debugf("Random static IP '%s/%s'", sip, FallbackMask)
 
 		ip := &net.IPNet{
 			IP:   sip,
@@ -163,7 +167,9 @@ func (b *Bootstrap) setupNetworking() error {
 	}
 
 	//force dhcp on all interfaces, and try again.
-	dhcp, _ := network.GetProtocol(network.ProtocolDHCP)
+	log.Infof("Trying dhcp on all interfaces one by one")
+	proto, _ := network.GetProtocol(network.ProtocolDHCP)
+	dhcp := proto.(network.DHCPProtocol)
 	for _, inf := range interfaces {
 		//try interfaces one by one
 		if inf.Protocol() == network.ProtocolDHCP {
@@ -179,7 +185,9 @@ func (b *Bootstrap) setupNetworking() error {
 		if ok := b.pingControllers(); ok {
 			return nil
 		}
-
+		//stop dhcp
+		dhcp.Stop(inf.Name())
+		//clear interface
 		inf.Clear()
 		//reset interface to original setup.
 		if err := inf.Configure(); err != nil {
