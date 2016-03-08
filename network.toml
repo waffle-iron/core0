@@ -1,7 +1,10 @@
-[interface.eth0]
-protocol = "none"
+[network]
+auto = true
 
-[static.eth0]
-ip = "192.168.1.1/24"
-gateway = ""
+#please leave the lo settings as is, otherwise your
+#lo device won't have an IP.
+[interface.lo]
+protocol = "static"
 
+[static.lo]
+ip = "127.0.0.1/8"

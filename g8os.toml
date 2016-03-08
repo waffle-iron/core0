@@ -26,9 +26,12 @@ cmds = [] # empty for long polling from all defined controllers, or specif contr
 #the very basic agent extensions. Also please check the toml files under
 #the Main.Include folder for more extensions
 [extension.syncthing]
-binary = "syncthing"
+binary = "/usr/local/bin/syncthing"
 cwd = "/usr/lib/g8os/extensions/"
 args = ["-home", "./syncthing", "-gui-address", "127.0.0.1:28384"]
+
+[extension.syncthing.env]
+HOME="/usr/lib/g8os/extensions/syncthing"
 
 [extension.sync]
 #syncthing extension
