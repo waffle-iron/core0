@@ -45,6 +45,12 @@ controllers = [] # accept forwarding commands and connections from all controlle
 ```
 [network]
 auto = true
+
+[interface.lo]
+protocol = "static"
+
+[static.lo]
+ip = "127.0.0.1/8"
 ```
 - cp file `conf/getty.toml`, `conf/sshd.toml` and `conf/modprobe.toml` from the source tree to `/etc/g8os/g8os.d`
 - cp the `init` file from the source tree to `/sbin/init` (make sure to backup your original `init` file so you

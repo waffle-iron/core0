@@ -106,6 +106,10 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 	//we force static IPS on our network interfaces according to the following roles.
 	for _, inf := range interfaces {
 		inf.Clear()
+		if inf.Name() == "lo" {
+			continue
+		}
+
 		proto, _ := network.GetProtocol(network.ProtocolStatic)
 		static := proto.(network.StaticProtocol)
 
@@ -172,7 +176,7 @@ func (b *Bootstrap) setupNetworking() error {
 	dhcp := proto.(network.DHCPProtocol)
 	for _, inf := range interfaces {
 		//try interfaces one by one
-		if inf.Protocol() == network.ProtocolDHCP {
+		if inf.Protocol() == network.ProtocolDHCP || inf.Name() == "lo" {
 			//this interface already uses dhcp, no need to try that again
 			continue
 		}
