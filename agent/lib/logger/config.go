@@ -25,8 +25,12 @@ func ConfigureLogging(controllers map[string]*settings.ControllerClient) {
 				log.Fatalf("Only one db logger can be configured")
 			}
 			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-			os.Mkdir(logcfg.Address, 0755)
+			os.MkdirAll(logcfg.Address, 0755)
 			db, err := bolt.Open(path.Join(logcfg.Address, "logs.db"), 0644, nil)
+			if err != nil {
+				log.Errorf("Failed to configure db logger: %s", err)
+				continue
+			}
 			db.MaxBatchDelay = 100 * time.Millisecond
 			if err != nil {
 				log.Fatalf("Failed to open logs database: %s", err)
