@@ -102,8 +102,7 @@ func (b *Bootstrap) pingControllers() bool {
 	return false
 }
 
-func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) error {
-	//we force static IPS on our network interfaces according to the following roles.
+func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface, fallbackController *settings.Controller) error {
 	for _, inf := range interfaces {
 		inf.Clear()
 		if inf.Name() == "lo" {
@@ -131,7 +130,7 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 			log.Errorf("Force static IP '%s' on '%s' failed: %s\n", sip, inf.Name(), err)
 		}
 
-		if ok := b.pingControllers(); ok {
+		if ok := b.pingController(fallbackController); ok {
 			return nil
 		}
 
@@ -146,6 +145,11 @@ func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface) erro
 }
 
 func (b *Bootstrap) setupNetworking() error {
+	if settings.Settings.Main.Network == "" {
+		log.Warning("No network config file found, skipping network setup")
+		return nil
+	}
+
 	netMgr, err := network.GetNetworkManager(settings.Settings.Main.Network)
 	if err != nil {
 		return err
@@ -199,8 +203,20 @@ func (b *Bootstrap) setupNetworking() error {
 		}
 	}
 
+	//we force static IPS on our network interfaces according to the following roles.
+	controller := settings.Controller{
+		URL: FallbackControllerURL,
+	} //add the fallback controller by default.
+
 	//damn, we still can't reach the configured controller. we have to start our fallback plan
-	return b.setupFallbackNetworking(interfaces)
+	if err := b.setupFallbackNetworking(interfaces, &controller); err == nil {
+		//was able to reach fallback controller
+		//push fallback controller to the controllers list
+		settings.Settings.Controllers["__fallback__"] = controller
+		return nil
+	} else {
+		return err
+	}
 }
 
 //Bootstrap registers extensions and startup system services.

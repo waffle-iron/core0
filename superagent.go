@@ -52,11 +52,17 @@ func main() {
 		settings.Settings.Controllers = make(map[string]settings.Controller)
 	}
 
-	settings.Settings.Controllers["__fallback__"] = settings.Controller{
-		URL: agent.FallbackControllerURL,
-	} //add the fallback controller by default.
-
 	var config = settings.Settings
+
+	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
+
+	//start process mgr.
+	log.Infof("Starting process manager")
+	mgr := pm.GetManager()
+	mgr.Run()
+
+	bootstrap := agent.NewBootstrap()
+	bootstrap.Bootstrap()
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*settings.ControllerClient)
@@ -64,9 +70,6 @@ func main() {
 		controllers[key] = controllerCfg.GetClient()
 	}
 
-	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
-
-	mgr := pm.GetManager()
 	//configure logging handlers from configurations
 	log.Infof("Configure logging")
 	logger.ConfigureLogging(controllers)
@@ -113,15 +116,6 @@ func main() {
 		}
 		resp.Body.Close()
 	})
-
-	//start the child processes cleaner
-
-	//start process mgr.
-	log.Infof("Starting process manager")
-	mgr.Run()
-
-	bootstrap := agent.NewBootstrap()
-	bootstrap.Bootstrap()
 
 	log.Infof("Configure and startup hubble agents")
 	//configure hubble functions from configurations
