@@ -330,7 +330,7 @@ func (pm *PM) Runners() map[string]Runner {
 //Killall kills all running processes.
 func (pm *PM) Killall() {
 	for _, v := range pm.runners {
-		go v.Kill()
+		v.Kill()
 	}
 }
 
