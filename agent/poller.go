@@ -8,7 +8,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -16,14 +15,21 @@ import (
 
 type poller struct {
 	key        string
-	manager    *pm.PM
-	controller *ControllerClient
+	controller *settings.ControllerClient
 }
 
-func newPoller(key string, manager *pm.PM, controller *ControllerClient) *poller {
+func getKeys(m map[string]*settings.ControllerClient) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func newPoller(key string, controller *settings.ControllerClient) *poller {
 	poll := &poller{
 		key:        key,
-		manager:    manager,
 		controller: controller,
 	}
 
@@ -61,7 +67,7 @@ func (poll *poller) longPoll() {
 
 			resp, err := client.Post(url, "application/json", reader)
 			if err != nil {
-				log.Println("Failed to send startup event to AC", url, err)
+				log.Warningf("Failed to send startup event to controller '%s': %s", url, err)
 			} else {
 				resp.Body.Close()
 				sendStartup = false
@@ -70,7 +76,7 @@ func (poll *poller) longPoll() {
 
 		response, err := client.Get(pollURL)
 		if err != nil {
-			log.Println("No new commands, retrying ...", controller.URL, err)
+			log.Infof("No new commands, retrying ... '%s' [%s]", controller.URL, err)
 			//HTTP Timeout
 			if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "EOF") {
 				//make sure to send startup even on the next try. In case
@@ -88,13 +94,13 @@ func (poll *poller) longPoll() {
 
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			log.Println("Failed to load response content", err)
+			log.Errorf("Failed to load response content: %s", err)
 			continue
 		}
 
 		response.Body.Close()
 		if response.StatusCode != 200 {
-			log.Println("Failed to retrieve jobs", response.Status, string(body))
+			log.Errorf("Failed to retrieve jobs (%s): %s", response.Status, string(body))
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -106,7 +112,7 @@ func (poll *poller) longPoll() {
 
 		cmd, err := core.LoadCmd(body)
 		if err != nil {
-			log.Println("Failed to load cmd", err, string(body))
+			log.Errorf("Failed to load cmd (%s): %s", err, string(body))
 			continue
 		}
 
@@ -125,12 +131,12 @@ func (poll *poller) longPoll() {
 		cmd.Gid = settings.Options.Gid()
 		cmd.Nid = settings.Options.Nid()
 
-		log.Println("Starting command", cmd)
+		log.Infof("Starting command %s", cmd)
 
 		if cmd.Args.GetString("queue") == "" {
-			poll.manager.RunCmd(cmd)
+			pm.GetManager().PushCmd(cmd)
 		} else {
-			poll.manager.RunCmdQueued(cmd)
+			pm.GetManager().PushCmdToQueue(cmd)
 		}
 	}
 }
@@ -138,7 +144,7 @@ func (poll *poller) longPoll() {
 /*
 StartPollers starts the long polling routines and feed the manager with received commands
 */
-func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient) {
+func StartPollers(controllers map[string]*settings.ControllerClient) {
 	var keys []string
 	if len(settings.Settings.Channel.Cmds) > 0 {
 		keys = settings.Settings.Channel.Cmds
@@ -149,10 +155,10 @@ func StartPollers(manager *pm.PM, controllers map[string]*ControllerClient) {
 	for _, key := range keys {
 		controller, ok := controllers[key]
 		if !ok {
-			log.Fatalf("No contoller with name '%s'\n", key)
+			log.Fatalf("No contoller with name '%s'", key)
 		}
 
-		poll := newPoller(key, manager, controller)
+		poll := newPoller(key, controller)
 		go poll.longPoll()
 	}
 }

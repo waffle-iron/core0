@@ -5,17 +5,22 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/g8os/core/agent/lib/settings"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
+	"github.com/op/go-logging"
 	psutil "github.com/shirou/gopsutil/process"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
+)
+
+var (
+	log = logging.MustGetLogger("pm")
 )
 
 //MeterHandler represents a callback type
@@ -55,7 +60,7 @@ type PM struct {
 var pm *PM
 
 //NewPM creates a new PM
-func NewPM(midfile string, maxJobs int) *PM {
+func InitProcessManager(midfile string, maxJobs int) *PM {
 	pm = &PM{
 		cmds:     make(chan *core.Cmd),
 		midfile:  midfile,
@@ -72,24 +77,28 @@ func NewPM(midfile string, maxJobs int) *PM {
 		pids: make(map[int]chan *syscall.WaitStatus),
 	}
 
+	log.Infof("Process manager intialization completed")
 	return pm
 }
 
 //TODO: That's not clean, find another way to make this available for other
 //code
 func GetManager() *PM {
+	if pm == nil {
+		panic("Process manager is not intialized")
+	}
 	return pm
 }
 
 func loadMid(midfile string) uint32 {
 	content, err := ioutil.ReadFile(midfile)
 	if err != nil {
-		log.Println(err)
+		log.Errorf("%s", err)
 		return 0
 	}
 	v, err := strconv.ParseUint(string(content), 10, 32)
 	if err != nil {
-		log.Println(err)
+		log.Errorf("%s", err)
 		return 0
 	}
 	return uint32(v)
@@ -100,17 +109,17 @@ func saveMid(midfile string, mid uint32) {
 }
 
 //RunCmd runs and manage command
-func (pm *PM) RunCmd(cmd *core.Cmd) {
+func (pm *PM) PushCmd(cmd *core.Cmd) {
 	pm.cmds <- cmd
 }
 
 /*
-RunCmdQueued Same as RunCmd put will queue the command for later execution when there are no
+RunCmdQueued Same as RunCmdAsync put will queue the command for later execution when there are no
 other commands runs on the same queue.
 
 The queue name is retrieved from cmd.Args[queue]
 */
-func (pm *PM) RunCmdQueued(cmd *core.Cmd) {
+func (pm *PM) PushCmdToQueue(cmd *core.Cmd) {
 	pm.queueMgr.Push(cmd)
 }
 
@@ -138,7 +147,36 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
-func (pm *PM) run() {
+func (pm *PM) RunCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
+	factory := GetProcessFactory(cmd)
+	//process := NewProcess(cmd)
+
+	if factory == nil {
+		log.Errorf("Unknow command '%s'", cmd.Name)
+		errResult := core.NewBasicJobResult(cmd)
+		errResult.State = core.StateUnknownCmd
+		pm.resultCallback(cmd, errResult)
+		return nil
+	}
+
+	_, exists := pm.runners[cmd.ID]
+	if exists {
+		errResult := core.NewBasicJobResult(cmd)
+		errResult.State = core.StateDuplicateID
+		errResult.Data = "A job exists with the same ID"
+		pm.resultCallback(cmd, errResult)
+		return nil
+	}
+
+	runner := NewRunner(pm, cmd, factory, hooksOnExit, hooks...)
+	pm.runners[cmd.ID] = runner
+
+	go runner.Run()
+
+	return runner
+}
+
+func (pm *PM) processCmds() {
 	for {
 		pm.jobsCond.L.Lock()
 
@@ -157,30 +195,7 @@ func (pm *PM) run() {
 		case cmd = <-pm.queueMgr.Producer():
 		}
 
-		factory := GetProcessFactory(cmd)
-		//process := NewProcess(cmd)
-
-		if factory == nil {
-			log.Println("Unknow command", cmd.Name)
-			errResult := core.NewBasicJobResult(cmd)
-			errResult.State = core.StateUnknownCmd
-			pm.resultCallback(cmd, errResult)
-			continue
-		}
-
-		_, exists := pm.runners[cmd.ID]
-		if exists {
-			errResult := core.NewBasicJobResult(cmd)
-			errResult.State = core.StateDuplicateID
-			errResult.Data = "A job exists with the same ID"
-			pm.resultCallback(cmd, errResult)
-			continue
-		}
-
-		runner := NewRunner(pm, cmd, factory)
-		pm.runners[cmd.ID] = runner
-
-		go runner.Run()
+		pm.RunCmd(cmd, false)
 	}
 }
 
@@ -193,7 +208,7 @@ func (pm *PM) processWait() {
 
 		pid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, &rusage)
 		if err != nil {
-			log.Printf("wait error %s\n", err)
+			log.Errorf("Wait error: %s", err)
 			continue
 		}
 
@@ -234,7 +249,70 @@ func (pm *PM) Wait(pid int) *syscall.WaitStatus {
 func (pm *PM) Run() {
 	//process and start all commands according to args.
 	go pm.processWait()
-	go pm.run()
+	go pm.processCmds()
+}
+
+/*
+RunSlice runs a slice of processes honoring dependencies. It won't just
+start in order, but will also make sure a service won't start until it's dependencies are
+running.
+*/
+func (pm *PM) RunSlice(slice settings.StartupSlice) {
+	state := NewStateMachine()
+	provided := make(map[string]int)
+	needed := make(map[string]int)
+	all := make([]string, 0)
+
+	for _, startup := range slice {
+		if startup.Args == nil {
+			startup.Args = make(map[string]interface{})
+		}
+
+		cmd := &core.Cmd{
+			Gid:  settings.Options.Gid(),
+			Nid:  settings.Options.Nid(),
+			ID:   startup.Key(),
+			Name: startup.Name,
+			Data: startup.Data,
+			Args: core.NewMapArgs(startup.Args),
+		}
+
+		all = append(all, cmd.ID)
+
+		provided[cmd.ID] = 1
+		for _, k := range startup.After {
+			needed[k] = 1
+		}
+
+		meterInt := cmd.Args.GetInt("stats_interval")
+		if meterInt == 0 {
+			cmd.Args.Set("stats_interval", settings.Settings.Stats.Interval)
+		}
+
+		go func(up settings.Startup, c *core.Cmd) {
+			log.Debugf("Waiting for %s to run %s", up.After, cmd)
+			canRun := state.Wait(up.After...)
+
+			if canRun {
+				log.Infof("Starting %s", c)
+				pm.RunCmd(c, up.MustExit, func(s bool) {
+					state.Release(c.ID, s)
+				})
+			} else {
+				log.Errorf("Can't start %s because one of the dependencies failed", c)
+			}
+		}(startup, cmd)
+	}
+	//release all dependencies that are not provided by this slice.
+	for k := range needed {
+		if _, ok := provided[k]; !ok {
+			log.Debugf("Auto releasing of '%s'", k)
+			state.Release(k, true)
+		}
+	}
+
+	//wait for the full slice to run
+	state.Wait(all...)
 }
 
 func (pm *PM) cleanUp(runner Runner) {
@@ -252,7 +330,7 @@ func (pm *PM) Runners() map[string]Runner {
 //Killall kills all running processes.
 func (pm *PM) Killall() {
 	for _, v := range pm.runners {
-		go v.Kill()
+		v.Kill()
 	}
 }
 

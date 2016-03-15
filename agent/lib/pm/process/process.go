@@ -3,11 +3,16 @@ package process
 import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/stream"
+	"github.com/op/go-logging"
 	"syscall"
 )
 
 const (
 	CommandExecute = "execute"
+)
+
+var (
+	log = logging.MustGetLogger("process")
 )
 
 type GetPID func() (int, error)

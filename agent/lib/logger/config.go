@@ -2,10 +2,8 @@ package logger
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/g8os/core/agent"
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/settings"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -16,26 +14,31 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(mgr *pm.PM, controllers map[string]*agent.ControllerClient) {
+func ConfigureLogging(controllers map[string]*settings.ControllerClient) {
 	//apply logging handlers.
+	mgr := pm.GetManager()
 	dbLoggerConfigured := false
 	for _, logcfg := range settings.Settings.Logging {
 		switch strings.ToLower(logcfg.Type) {
 		case "db":
 			if dbLoggerConfigured {
-				log.Fatal("Only one db logger can be configured")
+				log.Fatalf("Only one db logger can be configured")
 			}
 			//sqlFactory := logger.NewSqliteFactory(logcfg.LogDir)
-			os.Mkdir(logcfg.Address, 0755)
+			os.MkdirAll(logcfg.Address, 0755)
 			db, err := bolt.Open(path.Join(logcfg.Address, "logs.db"), 0644, nil)
+			if err != nil {
+				log.Errorf("Failed to configure db logger: %s", err)
+				continue
+			}
 			db.MaxBatchDelay = 100 * time.Millisecond
 			if err != nil {
-				log.Fatal("Failed to open logs database", err)
+				log.Fatalf("Failed to open logs database: %s", err)
 			}
 
 			handler, err := NewDBLogger(db, logcfg.Levels)
 			if err != nil {
-				log.Fatal("DB logger failed to initialize", err)
+				log.Fatalf("DB logger failed to initialize: %s", err)
 			}
 			mgr.AddMessageHandler(handler.Log)
 			registerGetMsgsFunction(db)

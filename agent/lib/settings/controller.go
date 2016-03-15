@@ -1,12 +1,11 @@
-package agent
+package settings
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/g8os/core/agent/lib/settings"
 	"io/ioutil"
-	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -18,25 +17,16 @@ ControllerClient represents an active agent controller connection.
 type ControllerClient struct {
 	URL    string
 	Client *http.Client
-	Config *settings.Controller
+	Config *Controller
 }
 
-func getKeys(m map[string]*ControllerClient) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
-func getHTTPClient(security *settings.Security) *http.Client {
+func getHTTPClient(security *Security) *http.Client {
 	var tlsConfig tls.Config
 
 	if security.CertificateAuthority != "" {
 		pem, err := ioutil.ReadFile(security.CertificateAuthority)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 
 		tlsConfig.RootCAs = x509.NewCertPool()
@@ -45,13 +35,13 @@ func getHTTPClient(security *settings.Security) *http.Client {
 
 	if security.ClientCertificate != "" {
 		if security.ClientCertificateKey == "" {
-			log.Fatal("Missing certificate key file")
+			log.Fatalf("Missing certificate key file")
 		}
 
 		cert, err := tls.LoadX509KeyPair(security.ClientCertificate,
 			security.ClientCertificateKey)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 
 		tlsConfig.Certificates = []tls.Certificate{cert}
@@ -60,6 +50,9 @@ func getHTTPClient(security *settings.Security) *http.Client {
 	return &http.Client{
 		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.DialTimeout(network, addr, 10*time.Second)
+			},
 			DisableKeepAlives:   true,
 			Proxy:               http.ProxyFromEnvironment,
 			TLSHandshakeTimeout: 10 * time.Second,
@@ -71,11 +64,11 @@ func getHTTPClient(security *settings.Security) *http.Client {
 /*
 NewControllerClient gets a new agent controller connection
 */
-func NewControllerClient(cfg *settings.Controller) *ControllerClient {
+func (c *Controller) GetClient() *ControllerClient {
 	client := &ControllerClient{
-		URL:    strings.TrimRight(cfg.URL, "/"),
-		Client: getHTTPClient(&cfg.Security),
-		Config: cfg,
+		URL:    strings.TrimRight(c.URL, "/"),
+		Client: getHTTPClient(&c.Security),
+		Config: c,
 	}
 
 	return client
@@ -86,7 +79,7 @@ BuildURL builds the request URL for agent
 */
 func (client *ControllerClient) BuildURL(endpoint string) string {
 	return fmt.Sprintf("%s/%d/%d/%s", client.URL,
-		settings.Options.Gid(),
-		settings.Options.Nid(),
+		Options.Gid(),
+		Options.Nid(),
 		endpoint)
 }

@@ -3,8 +3,13 @@ package settings
 import (
 	"fmt"
 	"github.com/g8os/core/agent/lib/utils"
+	"github.com/op/go-logging"
 	"net/url"
 	"strings"
+)
+
+var (
+	log = logging.MustGetLogger("settings")
 )
 
 const (
@@ -66,11 +71,12 @@ type AppSettings struct {
 		MaxJobs       int
 		MessageIDFile string
 		Include       string
+		Network       string
 	}
 
 	Controllers map[string]Controller
 
-	Extensions map[string]Extension
+	Extension map[string]Extension
 
 	Logging map[string]Logger
 

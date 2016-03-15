@@ -5,7 +5,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	psutil "github.com/shirou/gopsutil/process"
-	"log"
 	"os"
 )
 
@@ -20,7 +19,7 @@ type aggregatedStatsMgr struct {
 func init() {
 	agent, err := psutil.NewProcess(int32(os.Getpid()))
 	if err != nil {
-		log.Println("Failed to get referent to agent process", err)
+		log.Errorf("Failed to get reference to agent process: %s", err)
 	}
 
 	mgr := &aggregatedStatsMgr{
@@ -52,7 +51,7 @@ func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Cmd) (interface{}, e
 		if err == nil {
 			stat.CPU += agentCPU
 		} else {
-			log.Println(err)
+			log.Errorf("%s", err)
 		}
 
 		agentMem, err := mgr.agent.MemoryInfo()
@@ -61,7 +60,7 @@ func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Cmd) (interface{}, e
 			stat.Swap += agentMem.Swap
 			stat.VMS += agentMem.VMS
 		} else {
-			log.Println(err)
+			log.Errorf("%s", err)
 		}
 	}
 

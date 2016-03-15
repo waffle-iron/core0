@@ -7,7 +7,6 @@ import (
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
 	"github.com/garyburd/redigo/redis"
-	"log"
 	"time"
 )
 
@@ -26,14 +25,14 @@ type StatsFlusher interface {
 }
 
 type acStatsBuffer struct {
-	destinations []*ControllerClient
+	destinations []*settings.ControllerClient
 	buffer       utils.Buffer
 }
 
 /*
 NewStatsBuffer creates new StatsBuffer
 */
-func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*ControllerClient) StatsFlusher {
+func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[string]*settings.ControllerClient) StatsFlusher {
 	var destKeys []string
 	if len(settings.Settings.Stats.Ac.Controllers) > 0 {
 		destKeys = settings.Settings.Stats.Ac.Controllers
@@ -41,7 +40,7 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 		destKeys = getKeys(controllers)
 	}
 
-	destinations := make([]*ControllerClient, 0, len(destKeys))
+	destinations := make([]*settings.ControllerClient, 0, len(destKeys))
 	for _, key := range destKeys {
 		controller, ok := controllers[key]
 		if !ok {
@@ -61,7 +60,7 @@ func NewACStatsBuffer(capacity int, flushInt time.Duration, controllers map[stri
 }
 
 func (buffer *acStatsBuffer) onflush(stats []interface{}) {
-	log.Println("Flushing stats to AC", len(stats))
+	log.Debugf("Flushing stats to controller '%d'", len(stats))
 	if len(stats) == 0 {
 		return
 	}
@@ -72,7 +71,7 @@ func (buffer *acStatsBuffer) onflush(stats []interface{}) {
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
 		if err != nil {
-			log.Println("Failed to send stats result to AC", url, err)
+			log.Errorf("Failed to send stats result to controller '%s': %s", url, err)
 			return
 		}
 		resp.Body.Close()
@@ -120,6 +119,6 @@ func (r *redisStatsBuffer) onFlush(stats []interface{}) {
 	call = append(call, stats...)
 
 	if err := db.Send("RPUSH", call...); err != nil {
-		log.Println("Failed to push stats messages to redis", err)
+		log.Errorf("Failed to push stats messages to redis: %s", err)
 	}
 }

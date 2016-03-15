@@ -4,18 +4,20 @@ import (
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
-	"os"
+	"syscall"
 )
 
 const (
-	cmdRestart = "restart"
+	cmdReboot = "reboot"
 )
 
 func init() {
-	pm.CmdMap[cmdRestart] = process.NewInternalProcessFactory(restart)
+	pm.CmdMap[cmdReboot] = process.NewInternalProcessFactory(restart)
 }
 
 func restart(cmd *core.Cmd) (interface{}, error) {
-	os.Exit(0)
+	pm.GetManager().Killall()
+	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 	return nil, nil
 }

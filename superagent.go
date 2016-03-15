@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/g8os/core/agent"
@@ -13,8 +12,18 @@ import (
 	"github.com/g8os/core/agent/lib/pm"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/settings"
+	"github.com/op/go-logging"
 	"os"
 )
+
+var (
+	log = logging.MustGetLogger("main")
+)
+
+func init() {
+	formatter := logging.MustStringFormatter("%{color}%{module} %{level:.1s} > %{message} %{color:reset}")
+	logging.SetFormatter(formatter)
+}
 
 func main() {
 	if errors := settings.Options.Validate(); len(errors) != 0 {
@@ -33,41 +42,39 @@ func main() {
 
 	if errors := settings.Settings.Validate(); len(errors) > 0 {
 		for _, err := range errors {
-			log.Println(err)
+			log.Errorf("%s", err)
 		}
 
-		log.Fatal("\nConfig validation error, please fix and try again.")
+		log.Fatalf("\nConfig validation error, please fix and try again.")
+	}
+
+	if settings.Settings.Controllers == nil {
+		settings.Settings.Controllers = make(map[string]settings.Controller)
 	}
 
 	var config = settings.Settings
 
-	//build list with ACs that we will poll from.
-	controllers := make(map[string]*agent.ControllerClient)
-	for key, controllerCfg := range config.Controllers {
-		controllers[key] = agent.NewControllerClient(&controllerCfg)
-	}
+	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
 
-	mgr := pm.NewPM(config.Main.MessageIDFile, config.Main.MaxJobs)
+	//start process mgr.
+	log.Infof("Starting process manager")
+	mgr := pm.GetManager()
+	mgr.Run()
+
+	bootstrap := agent.NewBootstrap()
+	bootstrap.Bootstrap()
+
+	//build list with ACs that we will poll from.
+	controllers := make(map[string]*settings.ControllerClient)
+	for key, controllerCfg := range config.Controllers {
+		controllers[key] = controllerCfg.GetClient()
+	}
 
 	//configure logging handlers from configurations
-	logger.ConfigureLogging(mgr, controllers)
+	log.Infof("Configure logging")
+	logger.ConfigureLogging(controllers)
 
-	//configure hubble functions from configurations
-	agent.RegisterHubbleFunctions(controllers)
-
-	//register the extensions from the main configuration
-	for extKey, extCfg := range config.Extensions {
-		var env []string
-		if len(extCfg.Env) > 0 {
-			env = make([]string, 0, len(extCfg.Env))
-			for ek, ev := range extCfg.Env {
-				env = append(env, fmt.Sprintf("%v=%v", ek, ev))
-			}
-		}
-
-		pm.RegisterCmd(extKey, extCfg.Binary, extCfg.Cwd, extCfg.Args, env)
-	}
-
+	log.Infof("Setting up stats buffers")
 	if config.Stats.Redis.Enabled {
 		redis := agent.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
 		mgr.AddStatsFlushHandler(redis.Handler)
@@ -93,7 +100,7 @@ func main() {
 		if !ok {
 			//command isn't bind to any controller. This can be a startup command.
 			if result.State != core.StateSuccess {
-				log.Printf("Got orphan result: %s", res)
+				log.Warningf("Got orphan result: %s", res)
 			}
 
 			return
@@ -104,21 +111,18 @@ func main() {
 		reader := bytes.NewBuffer(res)
 		resp, err := controller.Client.Post(url, "application/json", reader)
 		if err != nil {
-			log.Println("Failed to send job result to AC", url, err)
+			log.Errorf("Failed to send job result to controller '%s': %s", url, err)
 			return
 		}
 		resp.Body.Close()
 	})
 
-	//start the child processes cleaner
-
-	//start process mgr.
-	mgr.Run()
-
-	Bootstrap(mgr)
+	log.Infof("Configure and startup hubble agents")
+	//configure hubble functions from configurations
+	agent.RegisterHubbleFunctions(controllers)
 
 	//start jobs pollers.
-	agent.StartPollers(mgr, controllers)
+	agent.StartPollers(controllers)
 
 	//wait
 	select {}

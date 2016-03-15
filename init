@@ -6,4 +6,4 @@ mount -t devpts none /dev/pts
 
 source /etc/profile
 
-exec /sbin/core -gid 1 -nid 1 -roles g8os
+exec /sbin/core -gid 1 -nid 1 -roles g8os > /var/log/core.log 2>&1

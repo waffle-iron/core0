@@ -8,7 +8,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
 	"github.com/g8os/core/agent/lib/settings"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -127,7 +126,7 @@ RegisterHubbleFunctions Registers all the handlers for hubble commands this incl
 - hubble_list_tunnels
 
 */
-func RegisterHubbleFunctions(controllers map[string]*ControllerClient) {
+func RegisterHubbleFunctions(controllers map[string]*settings.ControllerClient) {
 	var proxisKeys []string
 	if len(settings.Settings.Hubble.Controllers) == 0 {
 		proxisKeys = getKeys(controllers)

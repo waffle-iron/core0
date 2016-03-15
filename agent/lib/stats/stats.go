@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/op/go-logging"
 	"strings"
 	"time"
+)
+
+var (
+	log = logging.MustGetLogger("stats")
 )
 
 const (
@@ -136,7 +140,7 @@ func (statsd *Statsd) flush() {
 
 	flushSeconds := int64(statsd.flushInt / time.Second)
 	if flushSeconds <= 0 {
-		log.Println("Invalid stats flush internval:", flushSeconds)
+		log.Errorf("Invalid stats flush internval: %d", flushSeconds)
 		return
 	}
 
@@ -194,7 +198,7 @@ func (statsd *Statsd) Run() {
 				}
 
 				if buffer.optype() != msg.optype {
-					log.Println("Inconsistent aggregation operation on key", msg.key)
+					log.Errorf("Inconsistent aggregation operation on key %s", msg.key)
 					return
 				}
 

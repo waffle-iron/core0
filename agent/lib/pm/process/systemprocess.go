@@ -5,7 +5,6 @@ import (
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/stream"
 	psutils "github.com/shirou/gopsutil/process"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -48,7 +47,7 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("processUtils panic", r)
+			log.Warningf("processUtils panic: %s", r)
 		}
 	}()
 
@@ -76,7 +75,7 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 
 		childCPU, err := child.CPUPercent(0)
 		if err != nil {
-			log.Println(err)
+			log.Errorf("%s", err)
 			//remove the dead process.
 			process.children = append(process.children[:i], process.children[i+1:]...)
 			continue
@@ -90,7 +89,7 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 			stats.Swap += childMem.Swap
 			stats.VMS += childMem.VMS
 		} else {
-			log.Println(err)
+			log.Errorf("%s", err)
 		}
 	}
 
@@ -141,10 +140,10 @@ func (process *systemProcessImpl) processInternalMessage(msg *stream.Message) {
 			// wrong message format, just ignore.
 			return
 		}
-		log.Println("Tracking external process:", childPid)
+		log.Infof("Tracking external process: %d", childPid)
 		child, err := psutils.NewProcess(int32(childPid))
 		if err != nil {
-			log.Println(err)
+			log.Errorf("%s", err)
 		}
 		process.children = append(process.children, child)
 	}
@@ -153,11 +152,11 @@ func (process *systemProcessImpl) processInternalMessage(msg *stream.Message) {
 func (process *systemProcessImpl) killChildren() {
 	for _, child := range process.children {
 		//kill grand-child process.
-		log.Println("Killing grandchild process", child.Pid)
+		log.Infof("Killing grandchild process '%d'", child.Pid)
 
 		err := child.Kill()
 		if err != nil {
-			log.Println("Failed to kill child process", err)
+			log.Errorf("Failed to kill child process: %s", err)
 		}
 	}
 }
@@ -239,7 +238,7 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 		//write data to command stdin.
 		_, err = stdin.Write([]byte(process.cmd.Data))
 		if err != nil {
-			log.Println("Failed to write to process stdin", err)
+			log.Errorf("Failed to write to process stdin: %s", err)
 		}
 	}
 
@@ -254,7 +253,7 @@ func (process *systemProcessImpl) Run() (<-chan *stream.Message, error) {
 		<-errConsumer.Signal()
 		state := process.table.Wait(process.pid)
 
-		log.Println("Process ", process.cmd, " exited with state", state.ExitStatus())
+		log.Infof("Process %s exited with state: %d", process.cmd, state.ExitStatus())
 
 		if state.ExitStatus() == 0 {
 			channel <- stream.MessageExitSuccess

@@ -7,8 +7,8 @@ import (
 	"github.com/g8os/core/agent/lib/pm/stream"
 	"github.com/g8os/core/agent/lib/stats"
 	"github.com/g8os/core/agent/lib/utils"
-	"log"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,11 +18,45 @@ const (
 	meterPeriod = 30 * time.Second
 )
 
+type RunnerHook func(bool)
+
+type WaitHook interface {
+	Hook(ok bool)
+	Wait() bool
+}
+
+type waitHook struct {
+	wg *sync.WaitGroup
+	o  sync.Once
+	ok bool
+}
+
+func NewWaitHook() WaitHook {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	return &waitHook{
+		wg: wg,
+	}
+}
+
+func (w *waitHook) Hook(ok bool) {
+	w.o.Do(func() {
+		w.ok = ok
+		w.wg.Done()
+	})
+}
+
+func (w *waitHook) Wait() bool {
+	w.wg.Wait()
+	return w.ok
+}
+
 type Runner interface {
 	Command() *core.Cmd
 	Run()
 	Kill()
 	Process() process.Process
+	Wait() *core.JobResult
 }
 
 type runnerImpl struct {
@@ -33,9 +67,27 @@ type runnerImpl struct {
 
 	process process.Process
 	statsd  *stats.Statsd
+
+	hooks       []RunnerHook
+	hooksOnExit bool
+	hookOnce    sync.Once
+
+	waitOnce sync.Once
+	result   *core.JobResult
+	wg       sync.WaitGroup
 }
 
-func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) Runner {
+/*
+NewRunner creates a new runner object that is bind to this PM instance.
+
+:manager: Bind this runner to this PM instance
+:command: Command to run
+:factory: Process factory associated with command type.
+:hooks: Optionals hooks that are called if the process is considered RUNNING successfully.
+        The process is considered running, if it ran with no errors for 2 seconds, or exited before the 2 seconds passes
+        with SUCCESS exit code.
+*/
+func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, hooksOnExit bool, hooks ...RunnerHook) Runner {
 	statsInterval := command.Args.GetInt("stats_interval")
 
 	if statsInterval == 0 {
@@ -45,16 +97,22 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory) R
 	prefix := fmt.Sprintf("%d.%d.%s.%s.%s", command.Gid, command.Nid, command.Name,
 		command.Args.GetStringDefault("domain", "unknown"), command.Args.GetStringDefault("name", "unknown"))
 
-	return &runnerImpl{
-		manager: manager,
-		command: command,
-		factory: factory,
-		kill:    make(chan int),
+	runner := &runnerImpl{
+		manager:     manager,
+		command:     command,
+		factory:     factory,
+		kill:        make(chan int),
+		hooks:       hooks,
+		hooksOnExit: hooksOnExit,
+
 		statsd: stats.NewStatsd(
 			prefix,
 			time.Duration(statsInterval)*time.Millisecond,
 			manager.statsFlushCallback),
 	}
+
+	runner.wg.Add(1)
+	return runner
 }
 
 func (runner *runnerImpl) Command() *core.Cmd {
@@ -118,6 +176,7 @@ func (runner *runnerImpl) run() *core.JobResult {
 
 	timeout := runner.timeout()
 	meter := time.After(meterPeriod)
+	runTimer := time.After(2 * time.Second)
 loop:
 	for {
 		select {
@@ -132,6 +191,11 @@ loop:
 		case <-meter:
 			runner.meter()
 			meter = time.After(meterPeriod)
+		case <-runTimer:
+			//if process is still running after the timer has passed, we consider it running
+			if !runner.hooksOnExit {
+				runner.callHooks(true)
+			}
 		case message := <-channel:
 			if utils.In(stream.ResultMessageLevels, message.Level) {
 				result = message
@@ -181,7 +245,12 @@ func (runner *runnerImpl) Run() {
 	defer func() {
 		runner.statsd.Stop()
 		if result != nil {
+			runner.result = result
 			runner.manager.resultCallback(runner.command, result)
+
+			runner.waitOnce.Do(func() {
+				runner.wg.Done()
+			})
 		}
 
 		runner.manager.cleanUp(runner)
@@ -192,6 +261,10 @@ func (runner *runnerImpl) Run() {
 loop:
 	for {
 		result = runner.run()
+		if result.State == core.StateSuccess {
+			runner.callHooks(true)
+		}
+
 		if result.State == core.StateKilled {
 			//we never restart a killed process.
 			break
@@ -207,7 +280,7 @@ loop:
 		if result.State != core.StateSuccess && maxRestart > 0 {
 			runs++
 			if runs < maxRestart {
-				log.Println("Restarting", runner.command, "due to upnormal exit status, trials", runs+1, "/", maxRestart)
+				log.Infof("Restarting '%s' due to upnormal exit status, trials: %d/%d", runner.command, runs+1, maxRestart)
 				restarting = true
 				restartIn = 1 * time.Second
 			}
@@ -220,11 +293,11 @@ loop:
 		}
 
 		if restarting {
-			log.Println("Recurring", runner.command, "in", restartIn)
+			log.Infof("Recurring '%s' in %d", runner.command, restartIn)
 			select {
 			case <-time.After(restartIn):
 			case <-runner.kill:
-				log.Println("Command ", runner.command, "Killed during scheduler sleep")
+				log.Infof("Command %s Killed during scheduler sleep", runner.command)
 				result.State = core.StateKilled
 				break loop
 			}
@@ -232,6 +305,16 @@ loop:
 			break
 		}
 	}
+
+	runner.callHooks(false)
+}
+
+func (runner *runnerImpl) callHooks(s bool) {
+	runner.hookOnce.Do(func() {
+		for _, hook := range runner.hooks {
+			hook(s)
+		}
+	})
 }
 
 func (runner *runnerImpl) Kill() {
@@ -240,4 +323,9 @@ func (runner *runnerImpl) Kill() {
 
 func (runner *runnerImpl) Process() process.Process {
 	return runner.process
+}
+
+func (runner *runnerImpl) Wait() *core.JobResult {
+	runner.wg.Wait()
+	return runner.result
 }

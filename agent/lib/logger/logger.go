@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/boltdb/bolt"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/stream"
 	"github.com/g8os/core/agent/lib/utils"
-	"github.com/boltdb/bolt"
-	"log"
+	"github.com/op/go-logging"
 	"net/http"
 	"time"
+)
+
+var (
+	log = logging.MustGetLogger("logger")
 )
 
 /*
@@ -73,13 +77,13 @@ func (logger *DBLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 		logs := tx.Bucket([]byte("logs"))
 		jobBucket, err := logs.CreateBucketIfNotExists([]byte(cmd.ID))
 		if err != nil {
-			log.Println("Logger:", err)
+			log.Errorf("%s", err)
 			return err
 		}
 
 		value, err := json.Marshal(msg)
 		if err != nil {
-			log.Println("Logger:", err)
+			log.Errorf("%s", err)
 			return err
 		}
 
@@ -141,7 +145,7 @@ func (logger *ACLogger) send(objs []interface{}) {
 
 	msgs, err := json.Marshal(objs)
 	if err != nil {
-		log.Println("Failed to serialize the logs")
+		log.Errorf("Failed to serialize the logs")
 		return
 	}
 
@@ -149,7 +153,7 @@ func (logger *ACLogger) send(objs []interface{}) {
 	for endpoint, client := range logger.endpoints {
 		resp, err := client.Post(endpoint, "application/json", reader)
 		if err != nil {
-			log.Println("Failed to send log batch to AC", endpoint, err)
+			log.Errorf("Failed to send log batch to controller '%s': %s", endpoint, err)
 			continue
 		}
 		defer resp.Body.Close()
@@ -176,5 +180,5 @@ func (logger *ConsoleLogger) Log(cmd *core.Cmd, msg *stream.Message) {
 		return
 	}
 
-	log.Println(cmd, msg)
+	log.Infof("%s %s", cmd, msg)
 }

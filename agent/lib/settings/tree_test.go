@@ -2,7 +2,6 @@ package settings
 
 import (
 	"github.com/stretchr/testify/assert"
-	"log"
 	"sort"
 	"testing"
 )
@@ -16,23 +15,23 @@ var (
 			},
 			"fstab": Startup{
 				key:   "fstab",
-				After: []string{AfterInit, "udev"},
+				After: []string{string(AfterInit), "udev"},
 			},
 			"mongo": Startup{
 				key:   "mongo",
-				After: []string{AfterBoot},
+				After: []string{string(AfterBoot)},
 			},
 			"sshd": Startup{
 				key:   "sshd",
-				After: []string{AfterNet},
+				After: []string{string(AfterNet)},
 			},
 			"influx": Startup{
 				key:   "influx",
-				After: []string{AfterBoot},
+				After: []string{string(AfterBoot)},
 			},
 			"udev": Startup{
 				key:   "udev",
-				After: []string{AfterInit},
+				After: []string{string(AfterInit)},
 			},
 		},
 	}
@@ -157,7 +156,7 @@ func TestGetTreeDefaultWeight(t *testing.T) {
 		Startup: map[string]Startup{
 			"mount": Startup{
 				key:   "mount",
-				After: []string{AfterInit},
+				After: []string{string(AfterInit)},
 			},
 			"mongo": Startup{
 				key:   "mongo",
@@ -195,7 +194,7 @@ func TestGetTreeMissingDependency(t *testing.T) {
 		Startup: map[string]Startup{
 			"mongo": Startup{
 				key:   "mongo",
-				After: []string{AfterBoot},
+				After: []string{string(AfterBoot)},
 			},
 			"ovc": Startup{
 				key:   "ovc",
@@ -208,8 +207,6 @@ func TestGetTreeMissingDependency(t *testing.T) {
 	if ok := assert.NotEmpty(t, errors); !ok {
 		t.Fail()
 	}
-
-	log.Println(errors)
 
 	if ok := assert.Len(t, tree.Services(), 1); !ok {
 		t.Fatal()
@@ -242,8 +239,6 @@ func TestGetTreeCyclicDependency(t *testing.T) {
 	if ok := assert.NotEmpty(t, errors); !ok {
 		t.Fail()
 	}
-
-	log.Println(errors)
 
 	if ok := assert.Len(t, tree.Services(), 2); !ok {
 		t.Fatal()

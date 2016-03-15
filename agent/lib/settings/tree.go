@@ -5,6 +5,8 @@ import (
 	"sort"
 )
 
+type StartupSlice []Startup
+
 type StartupTree interface {
 	//Services a list of sorted startup services based on service weights.
 	Services() []Startup
@@ -12,7 +14,7 @@ type StartupTree interface {
 	//Slice gets a slice of the sorted start up processes that are lying between a
 	//certain weight range. e can be set to -1 which means (end of list)
 	//[s, e[
-	Slice(s, e int64) []Startup
+	Slice(s, e int64) StartupSlice
 }
 
 type treeImpl struct {
@@ -37,8 +39,8 @@ func (t *treeImpl) Swap(i, j int) {
 	t.weights[i], t.weights[j] = t.weights[j], t.weights[i]
 }
 
-func (t *treeImpl) Slice(s, e int64) []Startup {
-	slice := make([]Startup, 0)
+func (t *treeImpl) Slice(s, e int64) StartupSlice {
+	slice := make(StartupSlice, 0)
 	for i, p := range t.startups {
 		w := t.weights[i]
 		if w < s {
