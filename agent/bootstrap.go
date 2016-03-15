@@ -155,6 +155,10 @@ func (b *Bootstrap) setupNetworking() error {
 		return err
 	}
 
+	if err := netMgr.Initialize(); err != nil {
+		return err
+	}
+
 	interfaces, err := netMgr.Interfaces()
 	if err != nil {
 		return fmt.Errorf("failed to get network interfaces: %s", err)
@@ -180,8 +184,10 @@ func (b *Bootstrap) setupNetworking() error {
 	dhcp := proto.(network.DHCPProtocol)
 	for _, inf := range interfaces {
 		//try interfaces one by one
-		if inf.Protocol() == network.ProtocolDHCP || inf.Name() == "lo" {
-			//this interface already uses dhcp, no need to try that again
+		if inf.Protocol() == network.NoneProtocol || inf.Protocol() == network.ProtocolDHCP || inf.Name() == "lo" {
+			//we don't use none interface, they only must be brought up
+			//also dhcp interface, we skip because we already tried dhcp method on them.
+			//lo device must stay in static.
 			continue
 		}
 

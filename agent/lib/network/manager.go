@@ -20,16 +20,19 @@ type staticSettings struct {
 	Gateway string
 }
 
+type tapSettings struct {
+	Up bool
+}
+
 type networkSettings struct {
 	Auto bool
 }
 
 type networkingSettings struct {
-	Network networkSettings
-
+	Network   networkSettings
 	Interface map[string]interfaceSettings
-
-	Static map[string]staticSettings
+	Static    map[string]staticSettings
+	Tap       map[string]tapSettings
 }
 
 type Interface interface {
@@ -40,6 +43,7 @@ type Interface interface {
 }
 
 type NetworkManager interface {
+	Initialize() error
 	Interfaces() ([]Interface, error)
 	getConfig() *networkingSettings
 }
@@ -158,4 +162,19 @@ func (m *networkManager) Interfaces() ([]Interface, error) {
 	}
 
 	return l, nil
+}
+
+func (m *networkManager) Initialize() error {
+	for port, cfg := range m.settings.Tap {
+		if err := PortCreate(port); err != nil {
+			log.Errorf("Failed to create tuntap device '%s': %s", port, err)
+		}
+
+		if cfg.Up {
+			if err := DeviceUp(port); err != nil {
+				log.Errorf("Failed to bring up interface '%s': %s", port, err)
+			}
+		}
+	}
+	return nil
 }
