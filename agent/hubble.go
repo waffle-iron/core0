@@ -145,8 +145,7 @@ func RegisterHubbleFunctions(controllers map[string]*settings.ControllerClient) 
 		}
 
 		//start agent for that controller.
-		baseURL := controller.BuildURL("hubble")
-		parsedURL, err := url.Parse(baseURL)
+		parsedURL, err := url.Parse(fmt.Sprintf("%s/0/0/hubble", controller.URL))
 		if err != nil {
 			log.Fatal(err)
 		}
