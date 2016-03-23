@@ -1,0 +1,13 @@
+language: go
+
+go:
+  - 1.5
+  - 1.6
+
+before_install:
+  - go get github.com/tools/godep
+  - go get github.com/stretchr/testify
+
+install:
+  - godep restore
+  - go test -v ./...
