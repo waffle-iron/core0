@@ -8,9 +8,3 @@ protocol = "static"
 
 [static.lo]
 ip = "127.0.0.1/8"
-
-[tap.port1]
-up = true
-
-[tap.port2]
-up = true
