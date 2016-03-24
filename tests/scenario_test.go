@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/g8os/core/agent/lib/utils"
 	"github.com/g8os/core/tests/client"
+	"strings"
 )
 
 const (
@@ -24,19 +24,15 @@ const (
 
 var AgentCfgTmp = `
 [main]
-gid = {gid}
-nid = 1
 max_jobs = 100
 message_ID_file = "./.mid"
-history_file = "./.history"
-roles = {roles}
 
 [controllers]
     [controllers.main]
     url = "http://localhost:1221"
 
-[extensions]
-	[extensions.bash]
+[extension]
+	[extension.bash]
 	    binary = "bash"
 	    args = ['-c', 'T=$(mktemp) && cat > $T && chmod +x $T && bash -c $T; EXIT=$?; rm -rf $T; exit $EXIT']
 `
@@ -58,23 +54,26 @@ password = "acctrl"
 
 `
 
-var AgentRoles = map[int]string{
-	1: `["cpu"]`,
-	2: `["cpu", "storage"]`,
+var AgentRoles = map[int][]string{
+	1: []string{"cpu"},
+	2: []string{"cpu", "storage"},
 }
 
 func TestMain(m *testing.M) {
 	//start ac, and 2 agents.
 	goPath := os.Getenv("GOPATH")
-	agentPath := path.Join(goPath, "bin", "agent8")
-	controllerPath := path.Join(goPath, "bin", "agentcontroller8")
+	agentPath := path.Join(goPath, "bin", "core")
+	controllerPath := path.Join(goPath, "bin", "controller")
 
 	{
 		//build controller
 		log.Println("Building agent controller")
-		cmd := exec.Command("go", "install", "github.com/Jumpscale/agentcontroller8")
+		cmd := exec.Command("go", "install", "github.com/g8os/controller")
+		se, _ := cmd.StderrPipe()
+		defer se.Close()
 		if err := cmd.Run(); err != nil {
-			log.Fatal("Failed to buld controller", err)
+			msg, _ := ioutil.ReadAll(se)
+			log.Fatalf("Failed to buld controller(%s): %s", err, msg)
 		}
 	}
 
@@ -91,11 +90,9 @@ func TestMain(m *testing.M) {
 	var wg sync.WaitGroup
 	wg.Add(NumAgents + 1)
 
-	ctrlCfg := utils.Format(ControllerCfgTmp, map[string]interface{}{})
-
 	ctrlCfgPath := "/tmp/ac.toml"
 
-	ioutil.WriteFile(ctrlCfgPath, []byte(ctrlCfg), 0644)
+	ioutil.WriteFile(ctrlCfgPath, []byte(ControllerCfgTmp), 0644)
 
 	controller := exec.Command(controllerPath, "-c", ctrlCfgPath)
 	err := controller.Start()
@@ -117,19 +114,14 @@ func TestMain(m *testing.M) {
 
 	cmds := make([]*exec.Cmd, 0, NumAgents)
 
+	agentCfgPath := "/tmp/ag.toml"
+	ioutil.WriteFile(agentCfgPath, []byte(AgentCfgTmp), 0644)
 	//start agents.
 	for i := 0; i < NumAgents; i++ {
 		gid := i + 1
-		agentCfg := utils.Format(AgentCfgTmp, map[string]interface{}{
-			"gid":   gid,
-			"roles": AgentRoles[gid],
-		})
 
-		agentCfgPath := fmt.Sprintf("/tmp/ag-%d.toml", gid)
-
-		ioutil.WriteFile(agentCfgPath, []byte(agentCfg), 0644)
-
-		agent := exec.Command(agentPath, "-c", agentCfgPath)
+		agent := exec.Command(agentPath, "-gid", fmt.Sprintf("%d", gid), "-nid", "1",
+			"-roles", strings.Join(AgentRoles[gid], ","), "-c", agentCfgPath)
 		cmds = append(cmds, agent)
 
 		reader, err := agent.StderrPipe()
