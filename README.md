@@ -1,4 +1,7 @@
-# Core
+
+[![Build Status](https://travis-ci.org/g8os/core.svg?branch=master)](https://travis-ci.org/g8os/core)
+
+# Core 
 
 Systemd replacement for G8OS
 

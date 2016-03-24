@@ -1,9 +1,14 @@
 {
-	"ImportPath": "github.com/Jumpscale/agent8",
+	"ImportPath": "github.com/g8os/core",
 	"GoVersion": "go1.5.2",
+	"GodepVersion": "v60",
 	"Deps": [
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
+			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
+		},
+		{
+			"ImportPath": "github.com/Jumpscale/hubble/agent",
 			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
 		},
 		{
@@ -29,6 +34,11 @@
 			"Rev": "97ac8b05c02bbb755d36549e7e607433dfbef4b2"
 		},
 		{
+			"ImportPath": "github.com/go-ole/go-ole/oleutil",
+			"Comment": "v1.2.0-2-g97ac8b0",
+			"Rev": "97ac8b05c02bbb755d36549e7e607433dfbef4b2"
+		},
+		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Rev": "3986be78bf859e01f01af631ad76da5b269d270c"
 		},
@@ -41,12 +51,17 @@
 			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
 		},
 		{
-			"ImportPath": "github.com/pborman/uuid",
-			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
+			"ImportPath": "github.com/naoina/toml/ast",
+			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
 		},
 		{
-			"ImportPath": "github.com/rjeczalik/notify",
-			"Rev": "efbcb15a545abd0c7d546f0a15f4115c713a4c59"
+			"ImportPath": "github.com/op/go-logging",
+			"Comment": "v1-7-g970db52",
+			"Rev": "970db520ece77730c7e4724c61121037378659d9"
+		},
+		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/cpu",
@@ -90,6 +105,14 @@
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
 			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
+		},
+		{
+			"ImportPath": "github.com/vishvananda/netlink",
+			"Rev": "adb0f53af689dd38f1443eba79489feaacf0b22e"
+		},
+		{
+			"ImportPath": "github.com/vishvananda/netlink/nl",
+			"Rev": "adb0f53af689dd38f1443eba79489feaacf0b22e"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
