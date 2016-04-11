@@ -124,6 +124,14 @@ func main() {
 	//start jobs pollers.
 	agent.StartPollers(controllers)
 
+	//start local transport
+	log.Infof("Starting local transport")
+	local, err := agent.NewLocal("/var/run/core.sock")
+	if err != nil {
+		log.Errorf("Failed to start local transport: %s", err)
+	} else {
+		local.Serve()
+	}
 	//wait
 	select {}
 }

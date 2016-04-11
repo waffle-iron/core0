@@ -146,3 +146,12 @@ func LoadTomlFile(filename string, v interface{}) error {
 
 	return nil
 }
+
+func Exists(name string) bool {
+	_, err := os.Stat(name)
+	if err == nil {
+		return true
+	}
+
+	return !os.IsNotExist(err)
+}

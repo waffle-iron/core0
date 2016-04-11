@@ -1,6 +1,7 @@
 package pm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/g8os/core/agent/lib/pm/core"
 	"github.com/g8os/core/agent/lib/pm/process"
@@ -20,7 +21,9 @@ import (
 )
 
 var (
-	log = logging.MustGetLogger("pm")
+	log               = logging.MustGetLogger("pm")
+	UnknownCommandErr = errors.New("unkonw command")
+	DuplicateIDErr    = errors.New("duplicate job id")
 )
 
 //MeterHandler represents a callback type
@@ -147,29 +150,47 @@ func (pm *PM) AddStatsFlushHandler(handler StatsFlushHandler) {
 	pm.statsFlushHandlers = append(pm.statsFlushHandlers, handler)
 }
 
-func (pm *PM) RunCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
+func (pm *PM) GetRunner(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) (Runner, error) {
 	factory := GetProcessFactory(cmd)
 	//process := NewProcess(cmd)
 
 	if factory == nil {
+		return nil, UnknownCommandErr
+	}
+
+	_, exists := pm.runners[cmd.ID]
+	if exists {
+		return nil, DuplicateIDErr
+	}
+
+	runner := NewRunner(pm, cmd, factory, hooksOnExit, hooks...)
+	pm.runners[cmd.ID] = runner
+
+	return runner, nil
+}
+
+func (pm *PM) RunCmd(cmd *core.Cmd, hooksOnExit bool, hooks ...RunnerHook) Runner {
+	runner, err := pm.GetRunner(cmd, hooksOnExit, hooks...)
+	if err == UnknownCommandErr {
 		log.Errorf("Unknow command '%s'", cmd.Name)
 		errResult := core.NewBasicJobResult(cmd)
 		errResult.State = core.StateUnknownCmd
 		pm.resultCallback(cmd, errResult)
 		return nil
-	}
-
-	_, exists := pm.runners[cmd.ID]
-	if exists {
+	} else if err == DuplicateIDErr {
+		log.Errorf("Duplicate job id '%s'", cmd.ID)
 		errResult := core.NewBasicJobResult(cmd)
 		errResult.State = core.StateDuplicateID
-		errResult.Data = "A job exists with the same ID"
+		errResult.Data = err.Error()
+		pm.resultCallback(cmd, errResult)
+		return nil
+	} else if err != nil {
+		errResult := core.NewBasicJobResult(cmd)
+		errResult.State = core.StateError
+		errResult.Data = err.Error()
 		pm.resultCallback(cmd, errResult)
 		return nil
 	}
-
-	runner := NewRunner(pm, cmd, factory, hooksOnExit, hooks...)
-	pm.runners[cmd.ID] = runner
 
 	go runner.Run()
 
