@@ -107,7 +107,7 @@ func NewRunner(manager *PM, command *core.Cmd, factory process.ProcessFactory, h
 
 		statsd: stats.NewStatsd(
 			prefix,
-			time.Duration(statsInterval)*time.Millisecond,
+			time.Duration(statsInterval)*time.Second,
 			manager.statsFlushCallback),
 	}
 
