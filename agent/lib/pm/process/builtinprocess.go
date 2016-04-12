@@ -59,7 +59,7 @@ func (process *internalProcess) Run() (<-chan *stream.Message, error) {
 		}
 
 		if err != nil {
-			m, _ := json.Marshal(err)
+			m, _ := json.Marshal(err.Error())
 			msg.Message = string(m)
 		} else {
 			m, _ := json.Marshal(value)

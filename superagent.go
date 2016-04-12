@@ -99,10 +99,6 @@ func main() {
 
 		if !ok {
 			//command isn't bind to any controller. This can be a startup command.
-			if result.State != core.StateSuccess {
-				log.Warningf("Got orphan result: %s", res)
-			}
-
 			return
 		}
 
