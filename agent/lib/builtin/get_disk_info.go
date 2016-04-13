@@ -16,5 +16,5 @@ func init() {
 }
 
 func getDiskInfo(cmd *core.Cmd) (interface{}, error) {
-	return disk.DiskPartitions(true)
+	return disk.Partitions(true)
 }

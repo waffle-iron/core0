@@ -47,7 +47,7 @@ func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Cmd) (interface{}, e
 
 	//also get agent cpu and memory consumption.
 	if mgr.agent != nil {
-		agentCPU, err := mgr.agent.CPUPercent(0)
+		agentCPU, err := mgr.agent.Percent(0)
 		if err == nil {
 			stat.CPU += agentCPU
 		} else {

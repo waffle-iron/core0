@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/g8os/core",
-	"GoVersion": "go1.5.2",
+	"GoVersion": "go1.6",
 	"GodepVersion": "v60",
 	"Deps": [
 		{
@@ -65,38 +65,38 @@
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/cpu",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/disk",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/host",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/internal/common",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/mem",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/net",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/gopsutil/process",
-			"Comment": "1.0.0-232-gef151b7",
-			"Rev": "ef151b7ff7fe76308f89a389447b7b78dfa02e0f"
+			"Comment": "v2.0.0-1-g5daf090",
+			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
 		},
 		{
 			"ImportPath": "github.com/shirou/w32",

@@ -16,5 +16,5 @@ func init() {
 }
 
 func getCPUInfo(cmd *core.Cmd) (interface{}, error) {
-	return cpu.CPUInfo()
+	return cpu.Info()
 }

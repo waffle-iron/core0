@@ -16,5 +16,5 @@ func init() {
 }
 
 func getOsInfo(cmd *core.Cmd) (interface{}, error) {
-	return host.HostInfo()
+	return host.Info()
 }

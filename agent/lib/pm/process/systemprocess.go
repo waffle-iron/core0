@@ -55,8 +55,8 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 	if ps == nil {
 		return &stats
 	}
-
-	cpu, err := ps.CPUPercent(0)
+	ps.CPUAffinity()
+	cpu, err := ps.Percent(0)
 	if err == nil {
 		stats.CPU = cpu
 	}
@@ -73,7 +73,7 @@ func (process *systemProcessImpl) GetStats() *ProcessStats {
 	for i := 0; i < len(process.children); i++ {
 		child := process.children[i]
 
-		childCPU, err := child.CPUPercent(0)
+		childCPU, err := child.Percent(0)
 		if err != nil {
 			log.Errorf("%s", err)
 			//remove the dead process.

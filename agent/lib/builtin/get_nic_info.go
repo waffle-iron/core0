@@ -16,5 +16,5 @@ func init() {
 }
 
 func getNicInfo(cmd *core.Cmd) (interface{}, error) {
-	return net.NetInterfaces()
+	return net.Interfaces()
 }
