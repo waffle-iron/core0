@@ -12,7 +12,7 @@ name = "execute"
 after = ["hostname"]
 
 [startup.tty1.args]
-name = "/usr/bin/agetty"
+name = "agetty"
 args = ["tty1", "linux"]
 
 [startup.tty2]
@@ -20,5 +20,13 @@ name = "execute"
 after = ["hostname"]
 
 [startup.tty2.args]
-name = "/usr/bin/agetty"
+name = "agetty"
 args = ["tty2", "linux"]
+
+[startup.tty3]
+name = "execute"
+after = ["hostname"]
+
+[startup.tty3.args]
+name = "agetty"
+args = ["tty3", "linux"]
