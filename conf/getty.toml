@@ -14,6 +14,7 @@ after = ["hostname"]
 [startup.tty1.args]
 name = "agetty"
 args = ["tty1", "linux"]
+recurring_period = 1
 
 [startup.tty2]
 name = "execute"
@@ -22,6 +23,7 @@ after = ["hostname"]
 [startup.tty2.args]
 name = "agetty"
 args = ["tty2", "linux"]
+recurring_period = 1
 
 [startup.tty3]
 name = "execute"
@@ -30,3 +32,4 @@ after = ["hostname"]
 [startup.tty3.args]
 name = "agetty"
 args = ["tty3", "linux"]
+recurring_period = 1
