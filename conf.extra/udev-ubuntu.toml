@@ -1,0 +1,8 @@
+/lib/systemd/systemd-udevd
+
+[startup.udev]
+name = "execute"
+
+[startup.udev.args]
+name = "/lib/systemd/systemd-udevd"
+args = []
