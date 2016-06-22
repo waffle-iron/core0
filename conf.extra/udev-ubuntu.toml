@@ -1,5 +1,3 @@
-/lib/systemd/systemd-udevd
-
 [startup.udev]
 name = "execute"
 after = ["init"]
