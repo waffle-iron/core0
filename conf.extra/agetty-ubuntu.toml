@@ -7,13 +7,14 @@ must_exit = true
 name = "hostname"
 args = ["-F", "/etc/hostname"]
 
+
 [startup.tty1]
 name = "execute"
 after = ["hostname"]
 
 [startup.tty1.args]
-name = "agetty"
-args = ["tty1", "linux"]
+name = "setsid"
+args = ["-w", "/sbin/agetty", "tty1", "linux"]
 recurring_period = 1
 
 [startup.tty2]
@@ -21,8 +22,8 @@ name = "execute"
 after = ["hostname"]
 
 [startup.tty2.args]
-name = "agetty"
-args = ["tty2", "linux"]
+name = "setsid"
+args = ["-w", "/sbin/agetty", "tty2", "linux"]
 recurring_period = 1
 
 [startup.tty3]
@@ -30,6 +31,6 @@ name = "execute"
 after = ["hostname"]
 
 [startup.tty3.args]
-name = "agetty"
-args = ["tty3", "linux"]
+name = "setsid"
+args = ["-w", "/sbin/agetty", "tty3", "linux"]
 recurring_period = 1

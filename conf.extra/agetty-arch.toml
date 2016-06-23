@@ -1,0 +1,36 @@
+[startup.hostname]
+name = "execute"
+after = ["init"]
+must_exit = true
+
+[startup.hostname.args]
+name = "hostname"
+args = ["-F", "/etc/hostname"]
+
+
+[startup.tty1]
+name = "execute"
+after = ["hostname"]
+
+[startup.tty1.args]
+name = "setsid"
+args = ["-w", "/usr/bin/agetty", "tty1", "linux"]
+recurring_period = 1
+
+[startup.tty2]
+name = "execute"
+after = ["hostname"]
+
+[startup.tty2.args]
+name = "setsid"
+args = ["-w", "/usr/bin/agetty", "tty2", "linux"]
+recurring_period = 1
+
+[startup.tty3]
+name = "execute"
+after = ["hostname"]
+
+[startup.tty3.args]
+name = "setsid"
+args = ["-w", "/usr/bin/agetty", "tty3", "linux"]
+recurring_period = 1
