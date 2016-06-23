@@ -1,4 +1,4 @@
-[startuo._ssh]
+[startup._ssh]
 name = "bash"
 must_exit = true
 data = """
