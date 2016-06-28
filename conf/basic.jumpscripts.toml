@@ -1,11 +1,3 @@
-[startup.syncthing]
-name = "syncthing"
-
-[startup.syncthing.args]
-loglevels_db = '*'
-domain = "agent"
-name = "syncthing"
-
 [startup.jumpscript]
 name = "js_daemon"
 
@@ -13,3 +5,4 @@ name = "js_daemon"
 max_restart = 10
 domain = "agent"
 name = "jumpscript"
+
