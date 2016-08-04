@@ -108,6 +108,10 @@ func main() {
 
 		if !ok {
 			//command isn't bind to any controller. This can be a startup command.
+			if result.State != core.StateSuccess {
+				log.Errorf("Startup command failed with %s: %v", result.Data, result.Streams)
+			}
+
 			return
 		}
 
