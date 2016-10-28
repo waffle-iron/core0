@@ -3,9 +3,9 @@ package builtin
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/g8os/core/agent/lib/pm"
-	"github.com/g8os/core/agent/lib/pm/core"
-	"github.com/g8os/core/agent/lib/pm/process"
+	"github.com/g8os/core.base/pm"
+	"github.com/g8os/core.base/pm/core"
+	"github.com/g8os/core.base/pm/process"
 )
 
 const (

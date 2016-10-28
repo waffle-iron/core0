@@ -2,7 +2,7 @@ package network
 
 import (
 	"fmt"
-	"github.com/g8os/core/agent/lib/utils"
+	"github.com/g8os/core.base/utils"
 	"github.com/op/go-logging"
 	"github.com/vishvananda/netlink"
 )

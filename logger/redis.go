@@ -2,9 +2,9 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/g8os/core/agent/lib/pm/core"
-	"github.com/g8os/core/agent/lib/pm/stream"
-	"github.com/g8os/core/agent/lib/utils"
+	"github.com/g8os/core.base/pm/core"
+	"github.com/g8os/core.base/pm/stream"
+	"github.com/g8os/core.base/utils"
 	"github.com/garyburd/redigo/redis"
 	"time"
 )

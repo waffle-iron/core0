@@ -2,8 +2,8 @@ package network
 
 import (
 	"fmt"
-	"github.com/g8os/core/agent/lib/pm"
-	"github.com/g8os/core/agent/lib/pm/core"
+	"github.com/g8os/core.base/pm"
+	"github.com/g8os/core.base/pm/core"
 )
 
 const (

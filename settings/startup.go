@@ -2,7 +2,7 @@ package settings
 
 import (
 	"fmt"
-	"github.com/g8os/core/agent/lib/utils"
+	"github.com/g8os/core.base/utils"
 )
 
 //StartupCmd startup command config

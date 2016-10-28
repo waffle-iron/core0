@@ -2,8 +2,8 @@ package logger
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/g8os/core/agent/lib/pm"
-	"github.com/g8os/core/agent/lib/settings"
+	"github.com/g8os/core.base/pm"
+	"github.com/g8os/core.base/settings"
 	"net/http"
 	"os"
 	"path"
