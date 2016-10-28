@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func getFakeCmd(t *testing.T) *core.Cmd {
+func getFakeCmd(t *testing.T) *core.Command {
 	cmd, err := core.LoadCmd([]byte("{}"))
 	if err != nil {
 		t.Error("Could not create fake command")

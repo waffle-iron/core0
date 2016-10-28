@@ -21,7 +21,7 @@ var (
 Logger interface
 */
 type Logger interface {
-	Log(*core.Cmd, *stream.Message)
+	Log(*core.Command, *stream.Message)
 }
 
 /*
@@ -61,7 +61,7 @@ func NewDBLogger(db *bolt.DB, defaults []int) (Logger, error) {
 }
 
 //Log message
-func (logger *DBLogger) Log(cmd *core.Cmd, msg *stream.Message) {
+func (logger *DBLogger) Log(cmd *core.Command, msg *stream.Message) {
 	levels := logger.defaults
 	msgLevels := cmd.Args.GetIntArray("loglevels_db")
 
@@ -121,7 +121,7 @@ func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.D
 }
 
 //Log message
-func (logger *ACLogger) Log(cmd *core.Cmd, msg *stream.Message) {
+func (logger *ACLogger) Log(cmd *core.Command, msg *stream.Message) {
 	levels := logger.defaults
 	msgLevels := cmd.Args.GetIntArray("loglevels_db")
 
@@ -175,7 +175,7 @@ func NewConsoleLogger(defaults []int) Logger {
 }
 
 //Log messages
-func (logger *ConsoleLogger) Log(cmd *core.Cmd, msg *stream.Message) {
+func (logger *ConsoleLogger) Log(cmd *core.Command, msg *stream.Message) {
 	if len(logger.defaults) > 0 && !utils.In(logger.defaults, msg.Level) {
 		return
 	}

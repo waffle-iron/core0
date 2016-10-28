@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	cmdGetAggregatedStats = "get_aggregated_stats"
+	cmdGetAggregatedStats = "core.state"
 )
 
 type aggregatedStatsMgr struct {
@@ -29,7 +29,7 @@ func init() {
 	pm.CmdMap[cmdGetAggregatedStats] = process.NewInternalProcessFactory(mgr.getAggregatedStats)
 }
 
-func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Cmd) (interface{}, error) {
+func (mgr *aggregatedStatsMgr) getAggregatedStats(cmd *core.Command) (interface{}, error) {
 	stat := process.ProcessStats{}
 
 	for _, runner := range pm.GetManager().Runners() {

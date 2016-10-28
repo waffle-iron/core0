@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	cmdGetMemInfo = "get_mem_info"
+	cmdGetMemInfo = "info.mem"
 )
 
 func init() {
 	pm.CmdMap[cmdGetMemInfo] = process.NewInternalProcessFactory(getMemInfo)
 }
 
-func getMemInfo(cmd *core.Cmd) (interface{}, error) {
+func getMemInfo(cmd *core.Command) (interface{}, error) {
 	return mem.VirtualMemory()
 }

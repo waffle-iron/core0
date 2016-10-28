@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	cmdGetNicInfo = "get_nic_info"
+	cmdGetNicInfo = "info.nic"
 )
 
 func init() {
 	pm.CmdMap[cmdGetNicInfo] = process.NewInternalProcessFactory(getNicInfo)
 }
 
-func getNicInfo(cmd *core.Cmd) (interface{}, error) {
+func getNicInfo(cmd *core.Command) (interface{}, error) {
 	return net.Interfaces()
 }

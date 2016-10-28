@@ -23,7 +23,7 @@ type dhcpProtocol struct {
 }
 
 func (d *dhcpProtocol) Stop(inf string) {
-	cmd := &core.Cmd{
+	cmd := &core.Command{
 		Name: "execute",
 		Args: core.NewMapArgs(
 			map[string]interface{}{
@@ -41,7 +41,7 @@ func (d *dhcpProtocol) Stop(inf string) {
 func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
 	d.Stop(inf)
 
-	cmd := &core.Cmd{
+	cmd := &core.Command{
 		Name: "execute",
 		Args: core.NewMapArgs(
 			map[string]interface{}{

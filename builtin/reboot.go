@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	cmdReboot = "reboot"
+	cmdReboot = "core.reboot"
 )
 
 func init() {
 	pm.CmdMap[cmdReboot] = process.NewInternalProcessFactory(restart)
 }
 
-func restart(cmd *core.Cmd) (interface{}, error) {
+func restart(cmd *core.Command) (interface{}, error) {
 	pm.GetManager().Killall()
 	syscall.Sync()
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)

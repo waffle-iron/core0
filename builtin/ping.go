@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	cmdPing = "ping"
+	cmdPing = "core.ping"
 )
 
 func init() {
 	pm.CmdMap[cmdPing] = process.NewInternalProcessFactory(ping)
 }
 
-func ping(cmd *core.Cmd) (interface{}, error) {
+func ping(cmd *core.Command) (interface{}, error) {
 	return "pong", nil
 }

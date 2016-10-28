@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	cmdGetDiskInfo = "get_disk_info"
+	cmdGetDiskInfo = "info.disk"
 )
 
 func init() {
 	pm.CmdMap[cmdGetDiskInfo] = process.NewInternalProcessFactory(getDiskInfo)
 }
 
-func getDiskInfo(cmd *core.Cmd) (interface{}, error) {
+func getDiskInfo(cmd *core.Command) (interface{}, error) {
 	return disk.Partitions(true)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	cmdGetProcessStats = "get_process_stats"
+	cmdGetProcessStats = "process.state"
 )
 
 func init() {
@@ -20,25 +20,37 @@ type getProcessStatsData struct {
 	ID string `json:"id"`
 }
 
-func getProcessStats(cmd *core.Cmd) (interface{}, error) {
+func getProcessStats(cmd *core.Command) (interface{}, error) {
 	//load data
 	data := getProcessStatsData{}
-	err := json.Unmarshal([]byte(cmd.Data), &data)
+	err := json.Unmarshal(cmd.Arguments, &data)
 	if err != nil {
 		return nil, err
 	}
 
-	runner, ok := pm.GetManager().Runners()[data.ID]
+	stats := make([]*process.ProcessStats, 0, len(pm.GetManager().Runners()))
+	var runners []pm.Runner
 
-	if !ok {
-		return nil, fmt.Errorf("Process with id '%s' doesn't exist", data.ID)
-	}
+	if data.ID != "" {
+		runner, ok := pm.GetManager().Runners()[data.ID]
 
-	ps := runner.Process()
-	if ps != nil {
-		return ps.GetStats(), nil
+		if !ok {
+			return nil, fmt.Errorf("Process with id '%s' doesn't exist", data.ID)
+		}
+
+		runners = []pm.Runner{runner}
 	} else {
-		return &process.ProcessStats{}, nil
+		runners = pm.GetManager().Runners()
 	}
 
+	for _, runner := range runners {
+		process := runner.Process()
+		if process == nil {
+			continue
+		}
+
+		stats = append(stats, process.GetStats())
+	}
+
+	return stats, nil
 }

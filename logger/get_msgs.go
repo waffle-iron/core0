@@ -58,7 +58,7 @@ func getLevels(levels interface{}) ([]int, error) {
 	return results, nil
 }
 
-func (fnc *getMsgsFunc) getMsgs(cmd *core.Cmd) (interface{}, error) {
+func (fnc *getMsgsFunc) getMsgs(cmd *core.Command) (interface{}, error) {
 	query := logQuery{}
 
 	err := json.Unmarshal([]byte(cmd.Data), &query)

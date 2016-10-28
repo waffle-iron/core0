@@ -25,7 +25,7 @@ func NewRedisLogger(address string, password string, defaults []int) Logger {
 	}
 }
 
-func (l *redisLogger) Log(cmd *core.Cmd, msg *stream.Message) {
+func (l *redisLogger) Log(cmd *core.Command, msg *stream.Message) {
 	if len(l.defaults) > 0 && !utils.In(l.defaults, msg.Level) {
 		return
 	}

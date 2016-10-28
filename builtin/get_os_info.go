@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	cmdGetOsInfo = "get_os_info"
+	cmdGetOsInfo = "info.os"
 )
 
 func init() {
 	pm.CmdMap[cmdGetOsInfo] = process.NewInternalProcessFactory(getOsInfo)
 }
 
-func getOsInfo(cmd *core.Cmd) (interface{}, error) {
+func getOsInfo(cmd *core.Command) (interface{}, error) {
 	return host.Info()
 }

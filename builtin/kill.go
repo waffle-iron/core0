@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	cmdKill = "kill"
+	cmdKill = "core.kill"
 )
 
 func init() {
@@ -19,10 +19,10 @@ type killData struct {
 	ID string `json:"id"`
 }
 
-func kill(cmd *core.Cmd) (interface{}, error) {
+func kill(cmd *core.Command) (interface{}, error) {
 	//load data
 	data := killData{}
-	err := json.Unmarshal([]byte(cmd.Data), &data)
+	err := json.Unmarshal(cmd.Arguments, &data)
 
 	if err != nil {
 		return nil, err

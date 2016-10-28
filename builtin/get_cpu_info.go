@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	cmdGetCPUInfo = "get_cpu_info"
+	cmdGetCPUInfo = "info.cpu"
 )
 
 func init() {
 	pm.CmdMap[cmdGetCPUInfo] = process.NewInternalProcessFactory(getCPUInfo)
 }
 
-func getCPUInfo(cmd *core.Cmd) (interface{}, error) {
+func getCPUInfo(cmd *core.Command) (interface{}, error) {
 	return cpu.Info()
 }
