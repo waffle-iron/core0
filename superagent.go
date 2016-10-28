@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/g8os/core/agent"
-	_ "github.com/g8os/core/agent/lib/builtin"
-	"github.com/g8os/core/agent/lib/logger"
-	"github.com/g8os/core/agent/lib/pm"
-	"github.com/g8os/core/agent/lib/pm/core"
-	"github.com/g8os/core/agent/lib/settings"
+	"github.com/g8os/core0/agent"
+	_ "github.com/g8os/core0/agent/lib/builtin"
+	"github.com/g8os/core0/agent/lib/logger"
+	"github.com/g8os/core0/agent/lib/pm"
+	"github.com/g8os/core0/agent/lib/pm/core"
+	"github.com/g8os/core0/agent/lib/settings"
 	"github.com/op/go-logging"
 	"os"
 )
