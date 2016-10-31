@@ -46,8 +46,8 @@ func main() {
 		log.Fatalf("\nConfig validation error, please fix and try again.")
 	}
 
-	if settings.Settings.Controllers == nil {
-		settings.Settings.Controllers = make(map[string]settings.Controller)
+	if settings.Settings.Sink == nil {
+		settings.Settings.Sink = make(map[string]settings.SinkConfig)
 	}
 
 	var config = settings.Settings
@@ -72,19 +72,20 @@ func main() {
 	bs.Bootstrap()
 
 	//build list with ACs that we will poll from.
-	controllers := make(map[string]*settings.ControllerClient)
-	for key, controllerCfg := range config.Controllers {
-		cl, err := controllerCfg.GetClient()
+	sinks := make(map[string]*settings.SinkClient)
+	for key, sinkCfg := range config.Sink {
+		cl, err := sinkCfg.GetClient()
 		if err != nil {
-			log.Warning("Can't reach controller %s: %s", cl.URL, err)
+			log.Warning("Can't reach sink %s: %s", sinkCfg.URL, err)
+			continue
 		}
 
-		controllers[key] = cl
+		sinks[key] = cl
 	}
 
 	//configure logging handlers from configurations
 	log.Infof("Configure logging")
-	logger.ConfigureLogging(controllers)
+	logger.ConfigureLogging(sinks)
 
 	log.Infof("Setting up stats buffers")
 	if config.Stats.Redis.Enabled {
@@ -97,9 +98,8 @@ func main() {
 		log.Infof("Job result for command '%s' is '%s': %v", cmd, result.State, result)
 	})
 
-	log.Infof("Configure and startup hubble agents")
 	//start jobs sinks.
-	core.StartSinks(pm.GetManager(), controllers)
+	core.StartSinks(pm.GetManager(), sinks)
 
 	//wait
 	select {}

@@ -65,7 +65,7 @@ func (b *Bootstrap) startupServices(s, e settings.After) {
 	pm.GetManager().RunSlice(slice)
 }
 
-func (b *Bootstrap) pingController(controller *settings.Controller) bool {
+func (b *Bootstrap) pingController(controller *settings.SinkConfig) bool {
 	_, err := controller.GetClient()
 	if err != nil {
 		return false
@@ -74,8 +74,8 @@ func (b *Bootstrap) pingController(controller *settings.Controller) bool {
 }
 
 func (b *Bootstrap) pingControllers() bool {
-	log.Infof("Testing controller reachability to %s", settings.Settings.Controllers)
-	for _, controller := range settings.Settings.Controllers {
+	log.Infof("Testing controller reachability to %s", settings.Settings.Sink)
+	for _, controller := range settings.Settings.Sink {
 		log.Infof("Trying controller '%s'", controller.URL)
 		if ok := b.pingController(&controller); ok {
 			//we were able to reach at least one controller
@@ -86,7 +86,7 @@ func (b *Bootstrap) pingControllers() bool {
 	return false
 }
 
-func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface, fallbackController *settings.Controller) error {
+func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface, fallbackController *settings.SinkConfig) error {
 	for _, inf := range interfaces {
 		inf.Clear()
 		if inf.Name() == "lo" {
@@ -194,7 +194,7 @@ func (b *Bootstrap) setupNetworking() error {
 	}
 
 	//we force static IPS on our network interfaces according to the following roles.
-	controller := settings.Controller{
+	controller := settings.SinkConfig{
 		URL: FallbackControllerURL,
 	} //add the fallback controller by default.
 
@@ -202,7 +202,7 @@ func (b *Bootstrap) setupNetworking() error {
 	if err := b.setupFallbackNetworking(interfaces, &controller); err == nil {
 		//was able to reach fallback controller
 		//push fallback controller to the controllers list
-		settings.Settings.Controllers["__fallback__"] = controller
+		settings.Settings.Sink["__fallback__"] = controller
 		return nil
 	} else {
 		return err
