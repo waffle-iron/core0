@@ -95,7 +95,7 @@ func main() {
 
 	//handle process results. Forwards the result to the correct controller.
 	mgr.AddResultHandler(func(cmd *pmcore.Command, result *pmcore.JobResult) {
-		log.Infof("Job result for command '%s' is '%s': %v", cmd, result.State, result)
+		log.Infof("Job result for command '%s' is '%s'", cmd, result.State)
 	})
 
 	//start jobs sinks.
