@@ -1,0 +1,6 @@
+[startup.ipfs]
+name = "system"
+
+[startup.ipfs.args]
+name = "ipfs"
+args = ["daemon", "--init"]

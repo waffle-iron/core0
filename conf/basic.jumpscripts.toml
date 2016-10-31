@@ -1,8 +1,0 @@
-[startup.jumpscript]
-name = "js_daemon"
-
-[startup.jumpscript.args]
-max_restart = 10
-domain = "agent"
-name = "jumpscript"
-

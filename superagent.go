@@ -57,6 +57,12 @@ func main() {
 	//start process mgr.
 	log.Infof("Starting process manager")
 	mgr := pm.GetManager()
+
+	//handle process results. Forwards the result to the correct controller.
+	mgr.AddResultHandler(func(cmd *pmcore.Command, result *pmcore.JobResult) {
+		log.Infof("Job result for command '%s' is '%s'", cmd, result.State)
+	})
+
 	mgr.Run()
 
 	//start local transport
@@ -93,10 +99,6 @@ func main() {
 		mgr.AddStatsFlushHandler(redis.Handler)
 	}
 
-	//handle process results. Forwards the result to the correct controller.
-	mgr.AddResultHandler(func(cmd *pmcore.Command, result *pmcore.JobResult) {
-		log.Infof("Job result for command '%s' is '%s'", cmd, result.State)
-	})
 
 	//start jobs sinks.
 	core.StartSinks(pm.GetManager(), sinks)

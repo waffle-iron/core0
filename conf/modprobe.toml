@@ -2,9 +2,12 @@
 name = "bash"
 after = ["init"]
 must_exit = true
-data = """
+
+[startup.modprobe.args]
+stdin = """
 
 # load all required hardware modules here
+echo 'Loading kernel modules'
 modprobe e1000e
 modprobe e1000
 modprobe e100

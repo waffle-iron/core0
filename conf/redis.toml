@@ -1,0 +1,6 @@
+[startup.redis]
+name = "system"
+
+[startup.redis.args]
+name = "redis-server"
+args = ["--bind", "127.0.0.1", "--port", "7777"]
