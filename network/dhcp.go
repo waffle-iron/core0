@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
+	"github.com/g8os/core.base/pm/process"
 )
 
 const (
@@ -24,8 +25,8 @@ type dhcpProtocol struct {
 
 func (d *dhcpProtocol) Stop(inf string) {
 	cmd := &core.Command{
-		Name: "execute",
-		Args: core.NewMapArgs(
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
 			map[string]interface{}{
 				"name": "dhcpcd",
 				"args": []string{"-x", inf},
@@ -42,8 +43,8 @@ func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
 	d.Stop(inf)
 
 	cmd := &core.Command{
-		Name: "execute",
-		Args: core.NewMapArgs(
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
 			map[string]interface{}{
 				"name": "dhcpcd",
 				"args": []string{"-w", inf},

@@ -40,7 +40,9 @@ func getProcessStats(cmd *core.Command) (interface{}, error) {
 
 		runners = []pm.Runner{runner}
 	} else {
-		runners = pm.GetManager().Runners()
+		for _, runner := range pm.GetManager().Runners() {
+			runners = append(runners, runner)
+		}
 	}
 
 	for _, runner := range runners {

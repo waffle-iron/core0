@@ -35,5 +35,4 @@ legacy
 *.iml
 
 #binary
-core
-agent8
+core0

@@ -63,7 +63,7 @@ func NewDBLogger(db *bolt.DB, defaults []int) (Logger, error) {
 //Log message
 func (logger *DBLogger) Log(cmd *core.Command, msg *stream.Message) {
 	levels := logger.defaults
-	msgLevels := cmd.Args.GetIntArray("loglevels_db")
+	msgLevels := cmd.LogLevels
 
 	if len(msgLevels) > 0 {
 		levels = msgLevels
@@ -123,7 +123,7 @@ func NewACLogger(endpoints map[string]*http.Client, bufsize int, flushInt time.D
 //Log message
 func (logger *ACLogger) Log(cmd *core.Command, msg *stream.Message) {
 	levels := logger.defaults
-	msgLevels := cmd.Args.GetIntArray("loglevels_db")
+	msgLevels := cmd.LogLevels
 
 	if len(msgLevels) > 0 {
 		levels = msgLevels

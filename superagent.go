@@ -1,17 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/g8os/core0/agent"
-	_ "github.com/g8os/core0/agent/lib/builtin"
-	"github.com/g8os/core0/agent/lib/logger"
-	"github.com/g8os/core0/agent/lib/pm"
-	"github.com/g8os/core0/agent/lib/pm/core"
-	"github.com/g8os/core0/agent/lib/settings"
+	"github.com/g8os/core.base"
+	"github.com/g8os/core.base/pm"
+	pmcore "github.com/g8os/core.base/pm/core"
+	"github.com/g8os/core.base/settings"
+	"github.com/g8os/core0/bootstrap"
+	_ "github.com/g8os/core0/builtin"
+	"github.com/g8os/core0/logger"
 	"github.com/op/go-logging"
 	"os"
 )
@@ -28,7 +26,7 @@ func init() {
 func main() {
 	if errors := settings.Options.Validate(); len(errors) != 0 {
 		for _, err := range errors {
-			fmt.Printf("Validation Error: %s\n", err)
+			log.Errorf("Validation Error: %s\n", err)
 		}
 
 		os.Exit(1)
@@ -54,7 +52,7 @@ func main() {
 
 	var config = settings.Settings
 
-	pm.InitProcessManager(config.Main.MessageIDFile, config.Main.MaxJobs)
+	pm.InitProcessManager(config.Main.MaxJobs)
 
 	//start process mgr.
 	log.Infof("Starting process manager")
@@ -63,20 +61,25 @@ func main() {
 
 	//start local transport
 	log.Infof("Starting local transport")
-	local, err := agent.NewLocal("/var/run/core.sock")
+	local, err := core.NewLocal("/var/run/core.sock")
 	if err != nil {
 		log.Errorf("Failed to start local transport: %s", err)
 	} else {
 		go local.Serve()
 	}
 
-	bootstrap := agent.NewBootstrap()
-	bootstrap.Bootstrap()
+	bs := bootstrap.NewBootstrap()
+	bs.Bootstrap()
 
 	//build list with ACs that we will poll from.
 	controllers := make(map[string]*settings.ControllerClient)
 	for key, controllerCfg := range config.Controllers {
-		controllers[key] = controllerCfg.GetClient()
+		cl, err := controllerCfg.GetClient()
+		if err != nil {
+			log.Warning("Can't reach controller %s: %s", cl.URL, err)
+		}
+
+		controllers[key] = cl
 	}
 
 	//configure logging handlers from configurations
@@ -85,53 +88,18 @@ func main() {
 
 	log.Infof("Setting up stats buffers")
 	if config.Stats.Redis.Enabled {
-		redis := agent.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
+		redis := core.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
 		mgr.AddStatsFlushHandler(redis.Handler)
 	}
 
-	if config.Stats.Ac.Enabled {
-		//buffer stats massages and flush when one of the conditions is met (size of 1000 record or 120 sec passes from last
-		//flush)
-		statsBuffer := agent.NewACStatsBuffer(1000, 120*time.Second, controllers)
-		mgr.AddStatsFlushHandler(statsBuffer.Handler)
-	}
-
 	//handle process results. Forwards the result to the correct controller.
-	mgr.AddResultHandler(func(cmd *core.Cmd, result *core.JobResult) {
-		//send result to AC.
-		//NOTE: we always force the real gid and nid on the result.
-		result.Gid = options.Gid()
-		result.Nid = options.Nid()
-
-		res, _ := json.Marshal(result)
-		controller, ok := controllers[result.Args.GetTag()]
-
-		if !ok {
-			//command isn't bind to any controller. This can be a startup command.
-			if result.State != core.StateSuccess {
-				log.Errorf("Startup command failed with %s: %v", result.Data, result.Streams)
-			}
-
-			return
-		}
-
-		url := controller.BuildURL("result")
-
-		reader := bytes.NewBuffer(res)
-		resp, err := controller.Client.Post(url, "application/json", reader)
-		if err != nil {
-			log.Errorf("Failed to send job result to controller '%s': %s", url, err)
-			return
-		}
-		resp.Body.Close()
+	mgr.AddResultHandler(func(cmd *pmcore.Command, result *pmcore.JobResult) {
+		log.Infof("Job result for command '%s' is '%s': %v", cmd, result.State, result)
 	})
 
 	log.Infof("Configure and startup hubble agents")
-	//configure hubble functions from configurations
-	agent.RegisterHubbleFunctions(controllers)
-
-	//start jobs pollers.
-	agent.StartPollers(controllers)
+	//start jobs sinks.
+	core.StartSinks(pm.GetManager(), controllers)
 
 	//wait
 	select {}

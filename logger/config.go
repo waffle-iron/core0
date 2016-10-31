@@ -4,7 +4,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/settings"
-	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -44,42 +43,6 @@ func ConfigureLogging(controllers map[string]*settings.ControllerClient) {
 			registerGetMsgsFunction(db)
 
 			dbLoggerConfigured = true
-		case "ac":
-			endpoints := make(map[string]*http.Client)
-
-			if len(logcfg.Controllers) > 0 {
-				//specific ones.
-				for _, key := range logcfg.Controllers {
-					controller, ok := controllers[key]
-					if !ok {
-						log.Fatalf("Unknow controller '%s'", key)
-					}
-					url := controller.BuildURL("log")
-					endpoints[url] = controller.Client
-				}
-			} else {
-				//all ACs
-				for _, controller := range controllers {
-					url := controller.BuildURL("log")
-					endpoints[url] = controller.Client
-				}
-			}
-
-			batchsize := 1000 // default
-			flushint := 120   // default (in seconds)
-			if logcfg.BatchSize != 0 {
-				batchsize = logcfg.BatchSize
-			}
-			if logcfg.FlushInt != 0 {
-				flushint = logcfg.FlushInt
-			}
-
-			handler := NewACLogger(
-				endpoints,
-				batchsize,
-				time.Duration(flushint)*time.Second,
-				logcfg.Levels)
-			mgr.AddMessageHandler(handler.Log)
 		case "redis":
 			handler := NewRedisLogger(logcfg.Address, "", logcfg.Levels)
 			mgr.AddMessageHandler(handler.Log)

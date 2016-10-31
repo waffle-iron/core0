@@ -35,7 +35,6 @@ func (l *redisLogger) Log(cmd *core.Command, msg *stream.Message) {
 
 	data := make(map[string]interface{})
 	data["epoch"] = msg.Epoch / int64(time.Millisecond)
-	data["id"] = msg.ID
 	data["message"] = msg.Message
 	data["level"] = msg.Level
 	data["jobid"] = cmd.ID
