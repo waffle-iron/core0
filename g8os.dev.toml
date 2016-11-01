@@ -2,11 +2,11 @@
 
 [main]
 max_jobs = 200
-include = "./conf"
+include = "/root/conf"
 # network = "./network.toml"
 
 [sink.main]
-url = "redis://localhost:6379"
+url = "redis://172.17.0.1:6379"
 password = ""
 
 [channel]
@@ -32,4 +32,4 @@ interval = 60000 # milliseconds (1 min)
 [stats.redis]
 enabled = false
 flush_interval = 100 # millisecond
-address = "localhost:6379"
+address = "172.17.0.1:6379"

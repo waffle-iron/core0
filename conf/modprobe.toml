@@ -1,7 +1,7 @@
 [startup.modprobe]
 name = "bash"
 after = ["init"]
-must_exit = true
+running_delay = -1
 
 [startup.modprobe.args]
 stdin = """
