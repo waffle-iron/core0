@@ -34,9 +34,10 @@ func (d *dhcpProtocol) Stop(inf string) {
 		),
 	}
 
-	runner := pm.GetManager().RunCmd(cmd, -1)
-
-	runner.Wait()
+	runner, err := pm.GetManager().RunCmd(cmd, -1)
+	if err == nil {
+		runner.Wait()
+	}
 }
 
 func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
@@ -52,7 +53,11 @@ func (d *dhcpProtocol) Configure(mgr NetworkManager, inf string) error {
 		),
 	}
 
-	runner := pm.GetManager().RunCmd(cmd, -1)
+	runner, err := pm.GetManager().RunCmd(cmd, -1)
+
+	if err != nil {
+		return err
+	}
 
 	result := runner.Wait()
 
