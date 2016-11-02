@@ -61,7 +61,7 @@ func getLevels(levels interface{}) ([]int, error) {
 func (fnc *getMsgsFunc) getMsgs(cmd *core.Command) (interface{}, error) {
 	query := logQuery{}
 
-	err := json.Unmarshal(cmd.Arguments, &query)
+	err := json.Unmarshal(*cmd.Arguments, &query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse get_msgs query: %s", err)
 	}

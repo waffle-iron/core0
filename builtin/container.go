@@ -6,6 +6,9 @@ import (
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
+	"github.com/g8os/core.base/utils"
+	"github.com/garyburd/redigo/redis"
+	"github.com/pborman/uuid"
 	"os"
 	"os/exec"
 	"path"
@@ -14,8 +17,9 @@ import (
 )
 
 const (
-	cmdContainerCreate = "corex.create"
-	cmdContainerList   = "corex.list"
+	cmdContainerCreate   = "corex.create"
+	cmdContainerList     = "corex.list"
+	cmdContainerDispatch = "corex.dispatch"
 
 	coreXBinaryName = "coreX"
 
@@ -25,13 +29,28 @@ const (
 type containerManager struct {
 	sequence uint64
 	mutex    sync.Mutex
+
+	pool   *redis.Pool
+	ensure sync.Once
 }
 
+/*
+WARNING:
+	Code here assumes that redis-server is started by core0 by the configuration files. If it wasn't started or failed
+	to start, commands like core.create, core.dispatch, etc... will fail.
+TODO:
+	May be make redis-server start part of the bootstrap process without the need to depend on external configuration
+	to run it.
+*/
+
 func init() {
-	containerMgr := &containerManager{}
+	containerMgr := &containerManager{
+		pool: utils.NewRedisPool("unix", redisSocket, ""),
+	}
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
+	pm.CmdMap[cmdContainerDispatch] = process.NewInternalProcessFactory(containerMgr.dispatch)
 }
 
 func (m *containerManager) getNextSequence() uint64 {
@@ -81,9 +100,16 @@ func (m *containerManager) unbind(root string) {
 	}
 }
 
+//
+//func (m *containerManager) ensurePoll() {
+//	m.ensure.Do(func() {
+//
+//	})
+//}
+
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	var args ContainerCreateArguments
-	if err := json.Unmarshal(cmd.Arguments, &args); err != nil {
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
 		return nil, err
 	}
 
@@ -154,4 +180,43 @@ func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
 	}
 
 	return containers, nil
+}
+
+type ContainerDispatchArguments struct {
+	Container uint64       `json:"container"`
+	Command   core.Command `json:"command"`
+}
+
+func (m *containerManager) getCoreXQueue(id uint64) string {
+	return fmt.Sprintf("core:default:core-%v", id)
+}
+
+func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
+	var args ContainerDispatchArguments
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+
+	if args.Container <= 0 {
+		return nil, fmt.Errorf("invalid container id")
+	}
+
+	if _, ok := pm.GetManager().Runners()[fmt.Sprintf("core-%d", args.Container)]; !ok {
+		return nil, fmt.Errorf("container does not exist")
+	}
+
+	id := uuid.New()
+	args.Command.ID = id
+
+	db := m.pool.Get()
+	defer db.Close()
+
+	data, err := json.Marshal(args.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Do("RPUSH", m.getCoreXQueue(args.Container), string(data))
+
+	return id, err
 }

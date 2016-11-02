@@ -2,7 +2,7 @@
 [startup.ipfs-daemon]
 name = "system"
 after = ["net"]
-running_delay = 10
+running_delay = 5
 
 [startup.ipfs-daemon.args]
 name = "ipfs"
