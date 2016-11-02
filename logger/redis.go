@@ -20,7 +20,7 @@ type redisLogger struct {
 
 func NewRedisLogger(address string, password string, defaults []int) Logger {
 	return &redisLogger{
-		pool:     utils.NewRedisPool(address, password),
+		pool:     utils.NewRedisPool("tcp", address, password),
 		defaults: defaults,
 	}
 }

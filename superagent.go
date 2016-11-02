@@ -1,17 +1,20 @@
 package main
 
 import (
-	"time"
-
 	"github.com/g8os/core.base"
 	"github.com/g8os/core.base/pm"
 	pmcore "github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/settings"
 	"github.com/g8os/core0/bootstrap"
-	_ "github.com/g8os/core0/builtin"
 	"github.com/g8os/core0/logger"
 	"github.com/op/go-logging"
 	"os"
+	"time"
+
+	"fmt"
+	_ "github.com/g8os/core.base/builtin"
+	_ "github.com/g8os/core0/builtin"
+	"github.com/g8os/core0/options"
 )
 
 var (
@@ -24,7 +27,7 @@ func init() {
 }
 
 func main() {
-	if errors := settings.Options.Validate(); len(errors) != 0 {
+	if errors := options.Options.Validate(); len(errors) != 0 {
 		for _, err := range errors {
 			log.Errorf("Validation Error: %s\n", err)
 		}
@@ -32,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var options = settings.Options
+	var options = options.Options
 
 	if err := settings.LoadSettings(options.Config()); err != nil {
 		log.Fatal(err)
@@ -77,10 +80,12 @@ func main() {
 	bs := bootstrap.NewBootstrap()
 	bs.Bootstrap()
 
+	sinkID := fmt.Sprintf("%d:%d", options.Gid(), options.Nid())
+
 	//build list with ACs that we will poll from.
 	sinks := make(map[string]*settings.SinkClient)
 	for key, sinkCfg := range config.Sink {
-		cl, err := sinkCfg.GetClient()
+		cl, err := sinkCfg.GetClient(sinkID)
 		if err != nil {
 			log.Warning("Can't reach sink %s: %s", sinkCfg.URL, err)
 			continue
@@ -98,7 +103,6 @@ func main() {
 		redis := core.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
 		mgr.AddStatsFlushHandler(redis.Handler)
 	}
-
 
 	//start jobs sinks.
 	core.StartSinks(pm.GetManager(), sinks)

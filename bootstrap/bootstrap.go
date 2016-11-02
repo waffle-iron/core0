@@ -66,7 +66,8 @@ func (b *Bootstrap) startupServices(s, e settings.After) {
 }
 
 func (b *Bootstrap) pingController(controller *settings.SinkConfig) bool {
-	_, err := controller.GetClient()
+	panic("not implemented")
+	_, err := controller.GetClient("")
 	if err != nil {
 		return false
 	}
