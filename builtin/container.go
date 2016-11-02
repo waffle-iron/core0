@@ -15,6 +15,7 @@ import (
 
 const (
 	cmdContainerCreate = "corex.create"
+	cmdContainerList   = "corex.list"
 
 	coreXBinaryName = "coreX"
 
@@ -30,6 +31,7 @@ func init() {
 	containerMgr := &containerManager{}
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
+	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
 }
 
 func (m *containerManager) getNextSequence() uint64 {
@@ -131,4 +133,25 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	}
 
 	return id, nil
+}
+
+func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
+	containers := make(map[string]*process.ProcessStats)
+
+	for name, runner := range pm.GetManager().Runners() {
+		var id uint64
+		if n, err := fmt.Sscanf(name, "core-%d", &id); err != nil || n != 1 {
+			continue
+		}
+		ps := runner.Process()
+		if ps != nil {
+			state := ps.GetStats()
+			state.Cmd = nil
+			containers[name] = state
+		} else {
+			containers[name] = nil
+		}
+	}
+
+	return containers, nil
 }
