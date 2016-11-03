@@ -1,3 +1,9 @@
+#WARNING:
+# This redis instance is required for core0/coreX communication and must not be removed or modified unless you really really
+# know what you are doing.
+#
+# Code assumes that this socket is available in the given location
+
 [startup.redis]
 name = "system"
 
