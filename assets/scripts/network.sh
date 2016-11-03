@@ -25,6 +25,7 @@ daemonpid=$!
 function cleanup {
 	echo "[+] cleaning up"
 	kill $daemonpid
+	rm -rf "$zerohome"
 	exit 0
 }
 
@@ -68,4 +69,5 @@ ip l set dev $zeroiface netns $nsname
 ip netns exec $nsname ip l set dev $zeroiface up
 ip netns exec $nsname ip a add $zeroaddr dev $zeroiface
 
-read
+wait
+cleanup

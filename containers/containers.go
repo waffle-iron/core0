@@ -67,11 +67,13 @@ func Containers(sinks map[string]base.SinkClient) {
 		panic(err)
 	}
 
-	ioutil.WriteFile(
+	if err := ioutil.WriteFile(
 		zeroTierScriptPath,
 		script,
 		0754,
-	)
+	); err != nil {
+		panic(err)
+	}
 
 	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}"}, nil)
 
@@ -186,6 +188,8 @@ func (m *containerManager) postStart(coreID string, pid int) error {
 func (m *containerManager) cleanup(coreID string, pid int, args *ContainerCreateArguments) {
 	redisSocketTarget := path.Join(args.RootMount, redisSocket)
 	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
+
+	pm.GetManager().Kill(fmt.Sprintf("net-%s", coreID))
 
 	if pid > 0 {
 		targetNs := fmt.Sprintf("/run/netns/%s", coreID)
