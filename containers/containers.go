@@ -8,9 +8,11 @@ import (
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
 	"github.com/g8os/core.base/utils"
+	"github.com/g8os/core0/assets"
 	"github.com/garyburd/redigo/redis"
 	"github.com/op/go-logging"
 	"github.com/pborman/uuid"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -27,7 +29,8 @@ const (
 
 	coreXBinaryName = "coreX"
 
-	redisSocket = "/var/run/redis.socket"
+	redisSocket        = "/var/run/redis.socket"
+	zeroTierScriptPath = "/tmp/zerotier.sh"
 )
 
 var (
@@ -58,6 +61,19 @@ func Containers(sinks map[string]base.SinkClient) {
 		pool:  utils.NewRedisPool("unix", redisSocket, ""),
 		sinks: sinks,
 	}
+
+	script, err := assets.Asset("scripts/network.sh")
+	if err != nil {
+		panic(err)
+	}
+
+	ioutil.WriteFile(
+		zeroTierScriptPath,
+		script,
+		0754,
+	)
+
+	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}"}, nil)
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
@@ -113,7 +129,7 @@ type ContainerCreateArguments struct {
 	RootMount string `json:"root_mount"`
 }
 
-func (m *containerManager) preBind(args *ContainerCreateArguments) error {
+func (m *containerManager) preStart(args *ContainerCreateArguments) error {
 	redisSocketTarget := path.Join(args.RootMount, redisSocket)
 	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
 
@@ -141,7 +157,7 @@ func (m *containerManager) preBind(args *ContainerCreateArguments) error {
 	return nil
 }
 
-func (m *containerManager) postBind(coreID string, pid int) error {
+func (m *containerManager) postStart(coreID string, pid int) error {
 	sourceNs := fmt.Sprintf("/proc/%d/ns/net", pid)
 	targetNs := fmt.Sprintf("/run/netns/%s", coreID)
 
@@ -149,10 +165,25 @@ func (m *containerManager) postBind(coreID string, pid int) error {
 		f.Close()
 	}
 
-	return syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, "")
+	if err := syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, ""); err != nil {
+		return err
+	}
+
+	args := map[string]interface{}{
+		"netns": coreID,
+	}
+
+	netcmd := core.Command{
+		ID:        fmt.Sprintf("net-%s", coreID),
+		Command:   "zerotier",
+		Arguments: core.MustArguments(args),
+	}
+
+	_, err := pm.GetManager().RunCmd(&netcmd)
+	return err
 }
 
-func (m *containerManager) unbind(coreID string, pid int, args *ContainerCreateArguments) {
+func (m *containerManager) cleanup(coreID string, pid int, args *ContainerCreateArguments) {
 	redisSocketTarget := path.Join(args.RootMount, redisSocket)
 	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
 
@@ -188,8 +219,8 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	id := m.getNextSequence()
 	coreID := fmt.Sprintf("core-%d", id)
 
-	if err := m.preBind(&args); err != nil {
-		m.unbind(coreID, 0, &args)
+	if err := m.preStart(&args); err != nil {
+		m.cleanup(coreID, 0, &args)
 		return nil, err
 	}
 
