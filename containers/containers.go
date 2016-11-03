@@ -180,6 +180,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 				Args: []string{
 					"-core-id", fmt.Sprintf("%d", id),
 					"-redis-socket", "/var/run/redis.socket",
+					"-reply-to", coreXResponseQueue,
 				},
 				Env: map[string]string{
 					"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",

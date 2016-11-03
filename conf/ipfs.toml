@@ -22,7 +22,6 @@ mkdir -p /ipns
 [startup.ipfs-mount]
 name = "system"
 after = ["ipfs-daemon", "ipfs-mount-init"]
-running_delay = -1
 
 [startup.ipfs-mount.args]
 name = "ipfs"
