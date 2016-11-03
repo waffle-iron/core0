@@ -22,12 +22,13 @@ import (
 )
 
 const (
-	cmdContainerCreate   = "corex.create"
-	cmdContainerList     = "corex.list"
-	cmdContainerDispatch = "corex.dispatch"
-	coreXResponseQueue   = "corex:results"
+	cmdContainerCreate    = "corex.create"
+	cmdContainerList      = "corex.list"
+	cmdContainerDispatch  = "corex.dispatch"
+	cmdContainerTerminate = "corex.terminate"
 
-	coreXBinaryName = "coreX"
+	coreXResponseQueue = "corex:results"
+	coreXBinaryName    = "coreX"
 
 	redisSocket        = "/var/run/redis.socket"
 	zeroTierScriptPath = "/tmp/zerotier.sh"
@@ -80,6 +81,7 @@ func Containers(sinks map[string]base.SinkClient) {
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
 	pm.CmdMap[cmdContainerDispatch] = process.NewInternalProcessFactory(containerMgr.dispatch)
+	pm.CmdMap[cmdContainerTerminate] = process.NewInternalProcessFactory(containerMgr.terminate)
 
 	go containerMgr.startForwarder()
 }
@@ -272,7 +274,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 }
 
 func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
-	containers := make(map[string]*process.ProcessStats)
+	containers := make(map[uint64]*process.ProcessStats)
 
 	for name, runner := range pm.GetManager().Runners() {
 		var id uint64
@@ -283,22 +285,22 @@ func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
 		if ps != nil {
 			state := ps.GetStats()
 			state.Cmd = nil
-			containers[name] = state
+			containers[id] = state
 		} else {
-			containers[name] = nil
+			containers[id] = nil
 		}
 	}
 
 	return containers, nil
 }
 
+func (m *containerManager) getCoreXQueue(id uint64) string {
+	return fmt.Sprintf("core:default:core-%v", id)
+}
+
 type ContainerDispatchArguments struct {
 	Container uint64       `json:"container"`
 	Command   core.Command `json:"command"`
-}
-
-func (m *containerManager) getCoreXQueue(id uint64) string {
-	return fmt.Sprintf("core:default:core-%v", id)
 }
 
 func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
@@ -330,4 +332,20 @@ func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
 	_, err = db.Do("RPUSH", m.getCoreXQueue(args.Container), string(data))
 
 	return id, err
+}
+
+type ContainerTerminateArguments struct {
+	Container uint64 `json:"container"`
+}
+
+func (m *containerManager) terminate(cmd *core.Command) (interface{}, error) {
+	var args ContainerTerminateArguments
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+
+	coreID := fmt.Sprintf("core-%d", args.Container)
+	pm.GetManager().Kill(coreID)
+
+	return nil, nil
 }
