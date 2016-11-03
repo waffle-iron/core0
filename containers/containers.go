@@ -113,12 +113,17 @@ type ContainerCreateArguments struct {
 	RootMount string `json:"root_mount"`
 }
 
-func (m *containerManager) bind(root string) error {
+func (m *containerManager) preBind(root string) error {
 	redisSocketTarget := path.Join(root, redisSocket)
 	coreXTarget := path.Join(root, coreXBinaryName)
 
-	os.Create(redisSocketTarget)
-	os.Create(coreXTarget)
+	if f, err := os.Create(redisSocketTarget); err == nil {
+		f.Close()
+	}
+
+	if f, err := os.Create(coreXTarget); err == nil {
+		f.Close()
+	}
 
 	if err := syscall.Mount(redisSocket, redisSocketTarget, "", syscall.MS_BIND, ""); err != nil {
 		return err
@@ -134,6 +139,17 @@ func (m *containerManager) bind(root string) error {
 	}
 
 	return nil
+}
+
+func (m *containerManager) postBind(id string, pid int) error {
+	sourceNs := fmt.Sprintf("/proc/%d/ns/net", pid)
+	targetNs := fmt.Sprintf("/run/netns/%s", id)
+
+	if f, err := os.Create(targetNs); err == nil {
+		f.Close()
+	}
+
+	return syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, "")
 }
 
 func (m *containerManager) unbind(root string) {
@@ -163,7 +179,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	id := m.getNextSequence()
 	coreID := fmt.Sprintf("core-%d", id)
 
-	if err := m.bind(args.RootMount); err != nil {
+	if err := m.preBind(args.RootMount); err != nil {
 		m.unbind(args.RootMount)
 		return nil, err
 	}
@@ -189,14 +205,22 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		),
 	}
 
-	hook := &pm.ExitHook{
+	onExit := &pm.ExitHook{
 		Action: func(state bool) {
 			log.Debugf("Container %d exited with state %v", id, state)
 			m.unbind(args.RootMount)
 		},
 	}
 
-	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, hook)
+	onPID := &pm.PIDHook{
+		Action: func(pid int) {
+			if err := m.postBind(coreID, pid); err != nil {
+				log.Errorf("Failed to initialize network namespace: %s", err)
+			}
+		},
+	}
+
+	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, onPID, onExit)
 	if err != nil {
 		return nil, err
 	}
