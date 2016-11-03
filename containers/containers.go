@@ -189,14 +189,14 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		),
 	}
 
-	cleanup := func(id uint64, root string) pm.RunnerHook {
-		return func(state bool) {
+	hook := &pm.ExitHook{
+		Action: func(state bool) {
 			log.Debugf("Container %d exited with state %v", id, state)
-			m.unbind(root)
-		}
-	}(id, args.RootMount)
+			m.unbind(args.RootMount)
+		},
+	}
 
-	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, -1, cleanup)
+	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, hook)
 	if err != nil {
 		return nil, err
 	}
