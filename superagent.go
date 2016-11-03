@@ -14,6 +14,7 @@ import (
 	"fmt"
 	_ "github.com/g8os/core.base/builtin"
 	_ "github.com/g8os/core0/builtin"
+	"github.com/g8os/core0/containers"
 	"github.com/g8os/core0/options"
 )
 
@@ -103,6 +104,9 @@ func main() {
 		redis := core.NewRedisStatsBuffer(config.Stats.Redis.Address, "", 1000, time.Duration(config.Stats.Redis.FlushInterval)*time.Millisecond)
 		mgr.AddStatsFlushHandler(redis.Handler)
 	}
+
+	//start/register containers commands and process
+	containers.Containers(sinks)
 
 	//start jobs sinks.
 	core.StartSinks(pm.GetManager(), sinks)

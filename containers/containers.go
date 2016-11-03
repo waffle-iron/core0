@@ -1,4 +1,4 @@
-package builtin
+package containers
 
 import (
 	"encoding/json"
@@ -6,24 +6,32 @@ import (
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
+	"github.com/g8os/core.base/settings"
 	"github.com/g8os/core.base/utils"
 	"github.com/garyburd/redigo/redis"
+	"github.com/op/go-logging"
 	"github.com/pborman/uuid"
 	"os"
 	"os/exec"
 	"path"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const (
 	cmdContainerCreate   = "corex.create"
 	cmdContainerList     = "corex.list"
 	cmdContainerDispatch = "corex.dispatch"
+	coreXResponseQueue   = "corex:results"
 
 	coreXBinaryName = "coreX"
 
 	redisSocket = "/var/run/redis.socket"
+)
+
+var (
+	log = logging.MustGetLogger("containers")
 )
 
 type containerManager struct {
@@ -32,6 +40,8 @@ type containerManager struct {
 
 	pool   *redis.Pool
 	ensure sync.Once
+
+	sinks map[string]*settings.SinkClient
 }
 
 /*
@@ -43,14 +53,53 @@ TODO:
 	to run it.
 */
 
-func init() {
+func Containers(sinks map[string]*settings.SinkClient) {
 	containerMgr := &containerManager{
-		pool: utils.NewRedisPool("unix", redisSocket, ""),
+		pool:  utils.NewRedisPool("unix", redisSocket, ""),
+		sinks: sinks,
 	}
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
 	pm.CmdMap[cmdContainerDispatch] = process.NewInternalProcessFactory(containerMgr.dispatch)
+
+	go containerMgr.startForwarder()
+}
+
+func (m *containerManager) forwardNext() error {
+	db := m.pool.Get()
+	defer db.Close()
+
+	payload, err := redis.ByteSlices(db.Do("BLPOP", coreXResponseQueue, 0))
+	if err != nil {
+		return err
+	}
+
+	var result core.JobResult
+	if err := json.Unmarshal(payload[1], &result); err != nil {
+		log.Errorf("Failed to load command: %s", err)
+		return nil //no wait.
+	}
+
+	//use command tags for routing.
+	if sink, ok := m.sinks[result.Tags]; ok {
+		log.Debugf("Forwarding job result to %s", result.Tags)
+		return sink.Respond(&result)
+	} else {
+		log.Warningf("Received a corex result for an unknown sink: %s", result.Tags)
+	}
+
+	return nil
+}
+
+func (m *containerManager) startForwarder() {
+	log.Debugf("Start container results forwarder")
+	for {
+		if err := m.forwardNext(); err != nil {
+			log.Warning("Failed to forward command result: %s", err)
+			time.Sleep(2 * time.Second)
+		}
+	}
 }
 
 func (m *containerManager) getNextSequence() uint64 {
@@ -99,13 +148,6 @@ func (m *containerManager) unbind(root string) {
 		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
 	}
 }
-
-//
-//func (m *containerManager) ensurePoll() {
-//	m.ensure.Do(func() {
-//
-//	})
-//}
 
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	var args ContainerCreateArguments
@@ -207,6 +249,7 @@ func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
 
 	id := uuid.New()
 	args.Command.ID = id
+	args.Command.Tags = string(cmd.Route)
 
 	db := m.pool.Get()
 	defer db.Close()
