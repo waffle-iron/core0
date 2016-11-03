@@ -84,9 +84,9 @@ func main() {
 	sinkID := fmt.Sprintf("%d:%d", options.Gid(), options.Nid())
 
 	//build list with ACs that we will poll from.
-	sinks := make(map[string]*settings.SinkClient)
+	sinks := make(map[string]core.SinkClient)
 	for key, sinkCfg := range config.Sink {
-		cl, err := sinkCfg.GetClient(sinkID)
+		cl, err := core.NewSinkClient(&sinkCfg, sinkID)
 		if err != nil {
 			log.Warning("Can't reach sink %s: %s", sinkCfg.URL, err)
 			continue
@@ -97,7 +97,7 @@ func main() {
 
 	//configure logging handlers from configurations
 	log.Infof("Configure logging")
-	logger.ConfigureLogging(sinks)
+	logger.ConfigureLogging()
 
 	log.Infof("Setting up stats buffers")
 	if config.Stats.Redis.Enabled {

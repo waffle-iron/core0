@@ -3,10 +3,10 @@ package containers
 import (
 	"encoding/json"
 	"fmt"
+	base "github.com/g8os/core.base"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
-	"github.com/g8os/core.base/settings"
 	"github.com/g8os/core.base/utils"
 	"github.com/garyburd/redigo/redis"
 	"github.com/op/go-logging"
@@ -41,7 +41,7 @@ type containerManager struct {
 	pool   *redis.Pool
 	ensure sync.Once
 
-	sinks map[string]*settings.SinkClient
+	sinks map[string]base.SinkClient
 }
 
 /*
@@ -53,7 +53,7 @@ TODO:
 	to run it.
 */
 
-func Containers(sinks map[string]*settings.SinkClient) {
+func Containers(sinks map[string]base.SinkClient) {
 	containerMgr := &containerManager{
 		pool:  utils.NewRedisPool("unix", redisSocket, ""),
 		sinks: sinks,

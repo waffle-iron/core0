@@ -13,7 +13,7 @@ import (
 /*
 ConfigureLogging attached the correct message handler on top the process manager from the configurations
 */
-func ConfigureLogging(controllers map[string]*settings.SinkClient) {
+func ConfigureLogging() {
 	//apply logging handlers.
 	mgr := pm.GetManager()
 	dbLoggerConfigured := false

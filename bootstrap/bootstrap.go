@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/g8os/core.base"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/settings"
 	"github.com/g8os/core0/network"
@@ -67,7 +68,7 @@ func (b *Bootstrap) startupServices(s, e settings.After) {
 
 func (b *Bootstrap) pingController(controller *settings.SinkConfig) bool {
 	panic("not implemented")
-	_, err := controller.GetClient("")
+	_, err := core.NewSinkClient(controller, "")
 	if err != nil {
 		return false
 	}
