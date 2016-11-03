@@ -113,9 +113,9 @@ type ContainerCreateArguments struct {
 	RootMount string `json:"root_mount"`
 }
 
-func (m *containerManager) preBind(root string) error {
-	redisSocketTarget := path.Join(root, redisSocket)
-	coreXTarget := path.Join(root, coreXBinaryName)
+func (m *containerManager) preBind(args *ContainerCreateArguments) error {
+	redisSocketTarget := path.Join(args.RootMount, redisSocket)
+	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
 
 	if f, err := os.Create(redisSocketTarget); err == nil {
 		f.Close()
@@ -141,9 +141,9 @@ func (m *containerManager) preBind(root string) error {
 	return nil
 }
 
-func (m *containerManager) postBind(id string, pid int) error {
+func (m *containerManager) postBind(coreID string, pid int) error {
 	sourceNs := fmt.Sprintf("/proc/%d/ns/net", pid)
-	targetNs := fmt.Sprintf("/run/netns/%s", id)
+	targetNs := fmt.Sprintf("/run/netns/%s", coreID)
 
 	if f, err := os.Create(targetNs); err == nil {
 		f.Close()
@@ -152,9 +152,18 @@ func (m *containerManager) postBind(id string, pid int) error {
 	return syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, "")
 }
 
-func (m *containerManager) unbind(root string) {
-	redisSocketTarget := path.Join(root, redisSocket)
-	coreXTarget := path.Join(root, coreXBinaryName)
+func (m *containerManager) unbind(coreID string, pid int, args *ContainerCreateArguments) {
+	redisSocketTarget := path.Join(args.RootMount, redisSocket)
+	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
+
+	if pid > 0 {
+		targetNs := fmt.Sprintf("/run/netns/%s", coreID)
+
+		if err := syscall.Unmount(targetNs, 0); err != nil {
+			log.Errorf("Failed to unmount %s: %s", targetNs, err)
+		}
+		os.RemoveAll(targetNs)
+	}
 
 	if err := syscall.Unmount(redisSocketTarget, 0); err != nil {
 		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
@@ -179,8 +188,8 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	id := m.getNextSequence()
 	coreID := fmt.Sprintf("core-%d", id)
 
-	if err := m.preBind(args.RootMount); err != nil {
-		m.unbind(args.RootMount)
+	if err := m.preBind(&args); err != nil {
+		m.unbind(coreID, 0, &args)
 		return nil, err
 	}
 
@@ -205,19 +214,18 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		),
 	}
 
+	hook := hooks{
+		mgr:    m,
+		args:   &args,
+		coreID: coreID,
+	}
+
 	onExit := &pm.ExitHook{
-		Action: func(state bool) {
-			log.Debugf("Container %d exited with state %v", id, state)
-			m.unbind(args.RootMount)
-		},
+		Action: hook.onExit,
 	}
 
 	onPID := &pm.PIDHook{
-		Action: func(pid int) {
-			if err := m.postBind(coreID, pid); err != nil {
-				log.Errorf("Failed to initialize network namespace: %s", err)
-			}
-		},
+		Action: hook.onPID,
 	}
 
 	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, onPID, onExit)
