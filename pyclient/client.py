@@ -49,13 +49,13 @@ class Return:
 
     @property
     def stdout(self):
-        streams = self._payload['streams']
-        return streams[0] if len(streams) >= 1 else ''
+        streams = self._payload.get('streams', None)
+        return streams[0] if streams is not None and len(streams) >= 1 else ''
 
     @property
     def stderr(self):
-        streams = self._payload['streams']
-        return streams[1] if len(streams) >= 2 else ''
+        streams = self._payload.get('streams', None)
+        return streams[1] if streams is not None len(streams) >= 2 else ''
 
     def __repr__(self):
         return str(self)
@@ -138,9 +138,9 @@ class ContainerManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, mount):
+    def create(self, plist_url):
         response = self._client.raw('corex.create', {
-            'root_mount': mount,
+            'plist': plist_url,
         })
 
         result = response.get()

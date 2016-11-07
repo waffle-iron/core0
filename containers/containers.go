@@ -30,7 +30,7 @@ const (
 	coreXResponseQueue = "corex:results"
 	coreXBinaryName    = "coreX"
 
-	redisSocket        = "/var/run/redis.socket"
+	redisSocketSrc     = "/var/run/redis.socket"
 	zeroTierScriptPath = "/tmp/zerotier.sh"
 )
 
@@ -59,7 +59,7 @@ TODO:
 
 func Containers(sinks map[string]base.SinkClient) {
 	containerMgr := &containerManager{
-		pool:  utils.NewRedisPool("unix", redisSocket, ""),
+		pool:  utils.NewRedisPool("unix", redisSocketSrc, ""),
 		sinks: sinks,
 	}
 
@@ -130,22 +130,26 @@ func (m *containerManager) getNextSequence() uint64 {
 }
 
 type ContainerCreateArguments struct {
-	RootMount string `json:"root_mount"`
+	PList string `json:"plist"`
 }
 
-func (m *containerManager) preStart(args *ContainerCreateArguments) error {
-	redisSocketTarget := path.Join(args.RootMount, redisSocket)
-	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
+func (m *containerManager) preStart(root string) error {
+	redisSocketTarget := path.Join(root, "redis.socket")
+	coreXTarget := path.Join(root, coreXBinaryName)
 
 	if f, err := os.Create(redisSocketTarget); err == nil {
 		f.Close()
+	} else {
+		log.Errorf("Failed to touch file '%s': %s", redisSocketTarget, err)
 	}
 
 	if f, err := os.Create(coreXTarget); err == nil {
 		f.Close()
+	} else {
+		log.Errorf("Failed to touch file '%s': %s", coreXTarget, err)
 	}
 
-	if err := syscall.Mount(redisSocket, redisSocketTarget, "", syscall.MS_BIND, ""); err != nil {
+	if err := syscall.Mount(redisSocketSrc, redisSocketTarget, "", syscall.MS_BIND, ""); err != nil {
 		return err
 	}
 
@@ -187,9 +191,9 @@ func (m *containerManager) postStart(coreID string, pid int) error {
 	return err
 }
 
-func (m *containerManager) cleanup(coreID string, pid int, args *ContainerCreateArguments) {
-	redisSocketTarget := path.Join(args.RootMount, redisSocket)
-	coreXTarget := path.Join(args.RootMount, coreXBinaryName)
+func (m *containerManager) cleanup(coreID string, pid int, root string) {
+	//redisSocketTarget := path.Join(root, "redis.socket")
+	//coreXTarget := path.Join(root, coreXBinaryName)
 
 	pm.GetManager().Kill(fmt.Sprintf("net-%s", coreID))
 
@@ -201,14 +205,19 @@ func (m *containerManager) cleanup(coreID string, pid int, args *ContainerCreate
 		}
 		os.RemoveAll(targetNs)
 	}
+	//
+	//if err := syscall.Unmount(redisSocketTarget, 0); err != nil {
+	//	log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
+	//}
+	//
+	//if err := syscall.Unmount(coreXTarget, 0); err != nil {
+	//	log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
+	//}
 
-	if err := syscall.Unmount(redisSocketTarget, 0); err != nil {
-		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
-	}
-
-	if err := syscall.Unmount(coreXTarget, 0); err != nil {
-		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
-	}
+	//
+	//if err := syscall.Unmount(root, 0); err != nil {
+	//	log.Errorf("Failed to unmount %s: %s", root, err)
+	//}
 }
 
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
@@ -218,15 +227,20 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	}
 
 	//TODO: this need to be replaced by a plist url or similar
-	if args.RootMount == "" {
-		return nil, fmt.Errorf("invalid root_mount")
+	if args.PList == "" {
+		return nil, fmt.Errorf("invalid plist")
 	}
 
 	id := m.getNextSequence()
 	coreID := fmt.Sprintf("core-%d", id)
 
-	if err := m.preStart(&args); err != nil {
-		m.cleanup(coreID, 0, &args)
+	root, err := m.mountPList(id, args.PList)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := m.preStart(root); err != nil {
+		m.cleanup(coreID, 0, root)
 		return nil, err
 	}
 
@@ -237,11 +251,11 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		Arguments: core.MustArguments(
 			process.ContainerCommandArguments{
 				Name:   "/coreX",
-				Chroot: args.RootMount,
+				Chroot: args.PList,
 				Dir:    "/",
 				Args: []string{
 					"-core-id", fmt.Sprintf("%d", id),
-					"-redis-socket", "/var/run/redis.socket",
+					"-redis-socket", "/redis.socket",
 					"-reply-to", coreXResponseQueue,
 				},
 				Env: map[string]string{
@@ -253,7 +267,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 
 	hook := hooks{
 		mgr:    m,
-		args:   &args,
+		root:   root,
 		coreID: coreID,
 	}
 
@@ -265,7 +279,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		Action: hook.onPID,
 	}
 
-	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, onPID, onExit)
+	_, err = mgr.NewRunner(extCmd, process.NewContainerProcess, onPID, onExit)
 	if err != nil {
 		return nil, err
 	}
