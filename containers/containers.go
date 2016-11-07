@@ -192,8 +192,8 @@ func (m *containerManager) postStart(coreID string, pid int) error {
 }
 
 func (m *containerManager) cleanup(coreID string, pid int, root string) {
-	//redisSocketTarget := path.Join(root, "redis.socket")
-	//coreXTarget := path.Join(root, coreXBinaryName)
+	redisSocketTarget := path.Join(root, "redis.socket")
+	coreXTarget := path.Join(root, coreXBinaryName)
 
 	pm.GetManager().Kill(fmt.Sprintf("net-%s", coreID))
 
@@ -205,19 +205,18 @@ func (m *containerManager) cleanup(coreID string, pid int, root string) {
 		}
 		os.RemoveAll(targetNs)
 	}
-	//
-	//if err := syscall.Unmount(redisSocketTarget, 0); err != nil {
-	//	log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
-	//}
-	//
-	//if err := syscall.Unmount(coreXTarget, 0); err != nil {
-	//	log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
-	//}
 
-	//
-	//if err := syscall.Unmount(root, 0); err != nil {
-	//	log.Errorf("Failed to unmount %s: %s", root, err)
-	//}
+	if err := syscall.Unmount(redisSocketTarget, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
+	}
+
+	if err := syscall.Unmount(coreXTarget, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
+	}
+
+	if err := syscall.Unmount(root, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", root, err)
+	}
 }
 
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
@@ -243,7 +242,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		m.cleanup(coreID, 0, root)
 		return nil, err
 	}
-
+	//
 	mgr := pm.GetManager()
 	extCmd := &core.Command{
 		ID:    coreID,
@@ -251,7 +250,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		Arguments: core.MustArguments(
 			process.ContainerCommandArguments{
 				Name:   "/coreX",
-				Chroot: args.PList,
+				Chroot: root,
 				Dir:    "/",
 				Args: []string{
 					"-core-id", fmt.Sprintf("%d", id),

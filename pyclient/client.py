@@ -55,7 +55,7 @@ class Return:
     @property
     def stderr(self):
         streams = self._payload.get('streams', None)
-        return streams[1] if streams is not None len(streams) >= 2 else ''
+        return streams[1] if streams is not None and len(streams) >= 2 else ''
 
     def __repr__(self):
         return str(self)
