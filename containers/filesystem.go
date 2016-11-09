@@ -5,7 +5,7 @@ import (
 	"github.com/g8os/fs/config"
 	"github.com/g8os/fs/files"
 	"github.com/g8os/fs/meta"
-	"github.com/g8os/fs/stor"
+	"github.com/g8os/fs/storage"
 	"io"
 	"net/http"
 	"net/url"
@@ -64,6 +64,8 @@ func (c *containerManager) mountPList(container uint64, src string) (string, err
 	}
 
 	backend := path.Join(BACKEND_BASE_DIR, fmt.Sprintf("container-%d", container))
+	metaBackend := path.Join(BACKEND_BASE_DIR, fmt.Sprintf("container-%d+meta", container))
+
 	target := path.Join(CONTAINER_BASE_ROOT_DIR, fmt.Sprintf("container-%d", container))
 
 	os.RemoveAll(backend)
@@ -77,19 +79,19 @@ func (c *containerManager) mountPList(container uint64, src string) (string, err
 
 	be := &config.Backend{Path: backend}
 
-	if err := meta.PopulateFromPList(be, "/", plist, "/"); err != nil {
+	ms := meta.NewFileMetaStore(metaBackend)
+	if err := ms.Populate(plist, "/"); err != nil {
 		return "", err
 	}
 
 	u, _ := url.Parse("ipfs://localhost:5001")
 
-	store, err := stor.NewIPFSStor(u)
+	store, err := storage.NewIPFSStorage(u)
 	if err != nil {
 		return "", err
 	}
 
-	fs, err := files.NewFS(target, be, store,
-		true, false)
+	fs, err := files.NewFS(target, be, store, ms, false)
 
 	if err != nil {
 		return "", err
