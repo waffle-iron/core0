@@ -8,7 +8,7 @@ When starts it first configure the networking then. It also starts a local redis
 
 ## Command structure
 
-```json
+```javascript
 {
 	"id": "command-id",
 	"command": "command-name",
@@ -49,7 +49,7 @@ Doesn't take any arguments. returns a "pong". Main use case is to check the the 
 
 ### core.system
 Arguments:
-```json
+```javascript
 {
 	"name": "executable",
 	"dir": "pwd",
@@ -62,7 +62,7 @@ Executes an arbitrary command
 
 ### core.kill
 Arguments:
-```json
+```javascript
 {
     "id": "process-id-to-kill"
 }
@@ -124,7 +124,7 @@ List all available `live` Cores on a host.
 
 ### corex.terminate
 Arguemnts:
-```json
+```javascript
 {
     "container": container_id,
 }
@@ -133,10 +133,10 @@ Destroys a Core and stops the Core processes. It takes a mandatory core ID.
 
 ### corex.dispatch
 Arguments:
-```json
+```javascript
 {
-     container: core_id,
-     Command: {
+     "container": core_id,
+     "command": {
          //the full command payload
      }
 }
