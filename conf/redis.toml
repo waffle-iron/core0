@@ -5,7 +5,7 @@
 # Code assumes that this socket is available in the given location
 
 [startup.redis]
-name = "system"
+name = "core.system"
 
 [startup.redis.args]
 name = "redis-server"

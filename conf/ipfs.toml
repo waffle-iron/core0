@@ -1,6 +1,6 @@
 # Start the ipfs daemon, after the networkin is already configured
 [startup.ipfs-daemon]
-name = "system"
+name = "core.system"
 after = ["net"]
 running_match = "Daemon is ready"
 
@@ -20,7 +20,7 @@ mkdir -p /ipns
 """
 
 [startup.ipfs-mount]
-name = "system"
+name = "core.system"
 after = ["ipfs-daemon", "ipfs-mount-init"]
 
 [startup.ipfs-mount.args]

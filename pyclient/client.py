@@ -88,10 +88,35 @@ class Response:
         return None
 
 
+class InfoManager:
+    def __init__(self, client):
+        self._client = client
+
+    def cpu(self):
+        return self._client.raw(command='info.cpu', arguments={})
+
+    def nic(self):
+        return self._client.raw(command='info.nic', arguments={})
+
+    def mem(self):
+        return self._client.raw(command='info.mem', arguments={})
+
+    def disk(self):
+        return self._client.raw(command='info.disk', arguments={})
+
+    def os(self):
+        return self._client.raw(command='info.os', arguments={})
+
+
 class BaseClient:
     def __init__(self, gid, nid):
         self._gid = gid
         self._nid = nid
+        self._info = InfoManager(self)
+
+    @property
+    def info(self):
+        return self._info
 
     def raw(self, command, arguments):
         raise NotImplemented()
@@ -101,7 +126,7 @@ class BaseClient:
         if len(parts) == 0:
             raise ValueError('invalid command')
 
-        response = self.raw(command='system', arguments={
+        response = self.raw(command='core.system', arguments={
             'name': parts[0],
             'args': parts[1:],
             'dir': dir,
