@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	InternetTestAddress = "www.google.com"
+	InternetTestAddress = "http://www.google.com"
 )
 
 var (
