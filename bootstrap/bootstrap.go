@@ -2,23 +2,20 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/g8os/core.base"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/settings"
 	"github.com/g8os/core0/network"
 	"github.com/op/go-logging"
-	"math/rand"
-	"net"
+	"net/http"
 	"time"
 )
 
 const (
-	FallbackControllerURL = "http://10.254.254.254:8966/"
+	InternetTestAddress = "www.google.com"
 )
 
 var (
-	FallbackMask = net.IPv4Mask(255, 255, 255, 0)
-	log          = logging.MustGetLogger("bootstrap")
+	log = logging.MustGetLogger("bootstrap")
 )
 
 type Bootstrap struct {
@@ -66,68 +63,14 @@ func (b *Bootstrap) startupServices(s, e settings.After) {
 	pm.GetManager().RunSlice(slice)
 }
 
-func (b *Bootstrap) pingController(controller *settings.SinkConfig) bool {
-	panic("not implemented")
-	_, err := core.NewSinkClient(controller, "")
+func (b *Bootstrap) canReachInternet() bool {
+	log.Infof("Testing internet reachability to %s", InternetTestAddress)
+	resp, err := http.Get(InternetTestAddress)
 	if err != nil {
 		return false
 	}
+	resp.Body.Close()
 	return true
-}
-
-func (b *Bootstrap) pingControllers() bool {
-	log.Infof("Testing controller reachability to %s", settings.Settings.Sink)
-	for _, controller := range settings.Settings.Sink {
-		log.Infof("Trying controller '%s'", controller.URL)
-		if ok := b.pingController(&controller); ok {
-			//we were able to reach at least one controller
-			return ok
-		}
-	}
-
-	return false
-}
-
-func (b *Bootstrap) setupFallbackNetworking(interfaces []network.Interface, fallbackController *settings.SinkConfig) error {
-	for _, inf := range interfaces {
-		inf.Clear()
-		if inf.Name() == "lo" {
-			continue
-		}
-
-		proto, _ := network.GetProtocol(network.ProtocolStatic)
-		static := proto.(network.StaticProtocol)
-
-		buf := make([]byte, 1)
-		for buf[0] == 0 || buf[0] >= 254 {
-			rand.Read(buf)
-		}
-
-		sip := net.IPv4(10, 254, 254, buf[0])
-
-		log.Debugf("Random static IP '%s/%s'", sip, FallbackMask)
-
-		ip := &net.IPNet{
-			IP:   sip,
-			Mask: FallbackMask,
-		}
-
-		if err := static.ConfigureStatic(ip, inf.Name()); err != nil {
-			log.Errorf("Force static IP '%s' on '%s' failed: %s\n", sip, inf.Name(), err)
-		}
-
-		if ok := b.pingController(fallbackController); ok {
-			return nil
-		}
-
-		inf.Clear()
-		//reset interface to original setup.
-		if err := inf.Configure(); err != nil {
-			log.Errorf("%s", err)
-		}
-	}
-
-	return fmt.Errorf("no cotroller reachable with fallback plan")
 }
 
 func (b *Bootstrap) setupNetworking() error {
@@ -159,8 +102,7 @@ func (b *Bootstrap) setupNetworking() error {
 		}
 	}
 
-	if ok := b.pingControllers(); ok {
-		//we were able to reach one of the controllers.
+	if ok := b.canReachInternet(); ok {
 		return nil
 	}
 
@@ -182,7 +124,7 @@ func (b *Bootstrap) setupNetworking() error {
 			log.Errorf("Force dhcp %s", err)
 		}
 
-		if ok := b.pingControllers(); ok {
+		if ok := b.canReachInternet(); ok {
 			return nil
 		}
 		//stop dhcp
@@ -195,20 +137,7 @@ func (b *Bootstrap) setupNetworking() error {
 		}
 	}
 
-	//we force static IPS on our network interfaces according to the following roles.
-	controller := settings.SinkConfig{
-		URL: FallbackControllerURL,
-	} //add the fallback controller by default.
-
-	//damn, we still can't reach the configured controller. we have to start our fallback plan
-	if err := b.setupFallbackNetworking(interfaces, &controller); err == nil {
-		//was able to reach fallback controller
-		//push fallback controller to the controllers list
-		settings.Settings.Sink["__fallback__"] = controller
-		return nil
-	} else {
-		return err
-	}
+	return fmt.Errorf("couldn't reach internet")
 }
 
 //Bootstrap registers extensions and startup system services.
