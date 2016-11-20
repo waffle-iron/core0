@@ -1,19 +1,110 @@
 package containers
 
+import (
+	"fmt"
+	"github.com/g8os/core.base/pm"
+	"github.com/g8os/core.base/pm/core"
+	"os"
+	"path"
+	"syscall"
+)
+
 type hooks struct {
-	mgr  *containerManager
-	root string
-
+	args   *ContainerCreateArguments
+	root   string
 	coreID string
-	pid    int
+
+	onPID  pm.RunnerHook
+	onExit pm.RunnerHook
+
+	pid int
 }
 
-func (h *hooks) onPID(pid int) {
+func newHook(args *ContainerCreateArguments, root, coreID string) *hooks {
+	h := &hooks{
+		args:   args,
+		root:   root,
+		coreID: coreID,
+	}
+
+	h.onPID = &pm.PIDHook{
+		Action: h.onpid,
+	}
+
+	h.onExit = &pm.ExitHook{
+		Action: h.onexit,
+	}
+
+	return h
+}
+
+func (h *hooks) onpid(pid int) {
 	h.pid = pid
-	h.mgr.postStart(h.coreID, pid)
+	h.postStart()
 }
 
-func (h *hooks) onExit(state bool) {
+func (h *hooks) onexit(state bool) {
 	log.Debugf("Container %s exited with state %v", h.coreID, state)
-	h.mgr.cleanup(h.coreID, h.pid, h.root)
+	h.cleanup()
+}
+
+func (h *hooks) cleanup() {
+	redisSocketTarget := path.Join(h.root, "redis.socket")
+	coreXTarget := path.Join(h.root, coreXBinaryName)
+
+	pm.GetManager().Kill(fmt.Sprintf("net-%s", h.coreID))
+
+	if h.pid > 0 {
+		targetNs := fmt.Sprintf("/run/netns/%s", h.coreID)
+
+		if err := syscall.Unmount(targetNs, 0); err != nil {
+			log.Errorf("Failed to unmount %s: %s", targetNs, err)
+		}
+		os.RemoveAll(targetNs)
+	}
+
+	for _, guest := range h.args.Mount {
+		target := path.Join(h.root, guest)
+		if err := syscall.Unmount(target, syscall.MNT_FORCE); err != nil {
+			log.Errorf("Failed to unmount %s: %s", target, err)
+		}
+	}
+
+	if err := syscall.Unmount(redisSocketTarget, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
+	}
+
+	if err := syscall.Unmount(coreXTarget, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
+	}
+
+	if err := syscall.Unmount(h.root, syscall.MNT_FORCE); err != nil {
+		log.Errorf("Failed to unmount %s: %s", h.root, err)
+	}
+}
+
+func (h *hooks) postStart() error {
+	sourceNs := fmt.Sprintf("/proc/%d/ns/net", h.pid)
+	targetNs := fmt.Sprintf("/run/netns/%s", h.coreID)
+
+	if f, err := os.Create(targetNs); err == nil {
+		f.Close()
+	}
+
+	if err := syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, ""); err != nil {
+		return err
+	}
+
+	args := map[string]interface{}{
+		"netns": h.coreID,
+	}
+
+	netcmd := core.Command{
+		ID:        fmt.Sprintf("net-%s", h.coreID),
+		Command:   "zerotier",
+		Arguments: core.MustArguments(args),
+	}
+
+	_, err := pm.GetManager().RunCmd(&netcmd)
+	return err
 }

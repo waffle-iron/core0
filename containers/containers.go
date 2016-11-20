@@ -38,6 +38,47 @@ var (
 	log = logging.MustGetLogger("containers")
 )
 
+type Network struct {
+	ZeroTier string `json:"zerotier,omitempty"`
+	Bridge   string `json:"bridge,omitempty"`
+}
+
+type ContainerCreateArguments struct {
+	PList   string            `json:"plist"`   //Root plist
+	Mount   map[string]string `json:"mount"`   //data disk mounts.
+	Network Network           `json:"network"` // network setup
+	Port    map[int]int       `json:"port"`    //port forwards
+}
+
+func (c *ContainerCreateArguments) Valid() error {
+	if c.PList == "" {
+		return fmt.Errorf("plist is required")
+	}
+
+	for host, guest := range c.Mount {
+		if !path.IsAbs(host) {
+			return fmt.Errorf("host path '%s' must be absolute", host)
+		}
+		if !path.IsAbs(guest) {
+			return fmt.Errorf("guest path '%s' must be absolute", guest)
+		}
+		if _, err := os.Stat(host); os.IsNotExist(err) {
+			return fmt.Errorf("host path '%s' does not exist", host)
+		}
+	}
+
+	for host, guest := range c.Port {
+		if host < 0 || host > 65535 {
+			return fmt.Errorf("invalid host port '%d'", host)
+		}
+		if guest < 0 || guest > 65535 {
+			return fmt.Errorf("invalid guest port '%d'", guest)
+		}
+	}
+
+	return nil
+}
+
 type containerManager struct {
 	sequence uint64
 	mutex    sync.Mutex
@@ -129,10 +170,6 @@ func (m *containerManager) getNextSequence() uint64 {
 	return m.sequence
 }
 
-type ContainerCreateArguments struct {
-	PList string `json:"plist"`
-}
-
 func (m *containerManager) preStart(root string) error {
 	redisSocketTarget := path.Join(root, "redis.socket")
 	coreXTarget := path.Join(root, coreXBinaryName)
@@ -165,69 +202,14 @@ func (m *containerManager) preStart(root string) error {
 	return nil
 }
 
-func (m *containerManager) postStart(coreID string, pid int) error {
-	sourceNs := fmt.Sprintf("/proc/%d/ns/net", pid)
-	targetNs := fmt.Sprintf("/run/netns/%s", coreID)
-
-	if f, err := os.Create(targetNs); err == nil {
-		f.Close()
-	}
-
-	if err := syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, ""); err != nil {
-		return err
-	}
-
-	args := map[string]interface{}{
-		"netns": coreID,
-	}
-
-	netcmd := core.Command{
-		ID:        fmt.Sprintf("net-%s", coreID),
-		Command:   "zerotier",
-		Arguments: core.MustArguments(args),
-	}
-
-	_, err := pm.GetManager().RunCmd(&netcmd)
-	return err
-}
-
-func (m *containerManager) cleanup(coreID string, pid int, root string) {
-	redisSocketTarget := path.Join(root, "redis.socket")
-	coreXTarget := path.Join(root, coreXBinaryName)
-
-	pm.GetManager().Kill(fmt.Sprintf("net-%s", coreID))
-
-	if pid > 0 {
-		targetNs := fmt.Sprintf("/run/netns/%s", coreID)
-
-		if err := syscall.Unmount(targetNs, 0); err != nil {
-			log.Errorf("Failed to unmount %s: %s", targetNs, err)
-		}
-		os.RemoveAll(targetNs)
-	}
-
-	if err := syscall.Unmount(redisSocketTarget, syscall.MNT_FORCE); err != nil {
-		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
-	}
-
-	if err := syscall.Unmount(coreXTarget, syscall.MNT_FORCE); err != nil {
-		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
-	}
-
-	if err := syscall.Unmount(root, syscall.MNT_FORCE); err != nil {
-		log.Errorf("Failed to unmount %s: %s", root, err)
-	}
-}
-
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	var args ContainerCreateArguments
 	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
 		return nil, err
 	}
 
-	//TODO: this need to be replaced by a plist url or similar
-	if args.PList == "" {
-		return nil, fmt.Errorf("invalid plist")
+	if err := args.Valid(); err != nil {
+		return nil, err
 	}
 
 	id := m.getNextSequence()
@@ -238,8 +220,15 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		return nil, err
 	}
 
+	hook := newHook(&args, root, coreID)
+
+	if err := m.mountData(root, &args); err != nil {
+		hook.cleanup()
+		return nil, err
+	}
+
 	if err := m.preStart(root); err != nil {
-		m.cleanup(coreID, 0, root)
+		hook.cleanup()
 		return nil, err
 	}
 	//
@@ -264,21 +253,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		),
 	}
 
-	hook := hooks{
-		mgr:    m,
-		root:   root,
-		coreID: coreID,
-	}
-
-	onExit := &pm.ExitHook{
-		Action: hook.onExit,
-	}
-
-	onPID := &pm.PIDHook{
-		Action: hook.onPID,
-	}
-
-	_, err = mgr.NewRunner(extCmd, process.NewContainerProcess, onPID, onExit)
+	_, err = mgr.NewRunner(extCmd, process.NewContainerProcess, hook.onPID, hook.onExit)
 	if err != nil {
 		return nil, err
 	}

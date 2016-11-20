@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"syscall"
 )
 
 const (
@@ -101,4 +102,15 @@ func (c *containerManager) mountPList(container uint64, src string) (string, err
 
 	fs.WaitMount()
 	return target, nil
+}
+
+func (c *containerManager) mountData(root string, args *ContainerCreateArguments) error {
+	for host, guest := range args.Mount {
+		target := path.Join(root, guest)
+		if err := syscall.Mount(host, target, "", syscall.MS_BIND, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

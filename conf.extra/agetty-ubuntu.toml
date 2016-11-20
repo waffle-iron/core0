@@ -1,15 +1,14 @@
 [startup.hostname]
-name = "execute"
+name = "core.system"
 after = ["init"]
-must_exit = true
+running_delay = -1
 
 [startup.hostname.args]
 name = "hostname"
 args = ["-F", "/etc/hostname"]
 
-
 [startup.tty1]
-name = "execute"
+name = "core.system"
 after = ["hostname"]
 
 [startup.tty1.args]
@@ -18,7 +17,7 @@ args = ["-w", "/sbin/agetty", "tty1", "linux"]
 recurring_period = 1
 
 [startup.tty2]
-name = "execute"
+name = "core.system"
 after = ["hostname"]
 
 [startup.tty2.args]
@@ -27,7 +26,7 @@ args = ["-w", "/sbin/agetty", "tty2", "linux"]
 recurring_period = 1
 
 [startup.tty3]
-name = "execute"
+name = "core.system"
 after = ["hostname"]
 
 [startup.tty3.args]
