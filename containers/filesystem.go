@@ -70,6 +70,7 @@ func (c *containerManager) mountPList(container uint64, src string) (string, err
 	target := path.Join(CONTAINER_BASE_ROOT_DIR, fmt.Sprintf("container-%d", container))
 
 	os.RemoveAll(backend)
+	os.RemoveAll(metaBackend)
 	os.RemoveAll(target)
 
 	for _, p := range []string{backend, target} {
@@ -107,6 +108,9 @@ func (c *containerManager) mountPList(container uint64, src string) (string, err
 func (c *containerManager) mountData(root string, args *ContainerCreateArguments) error {
 	for host, guest := range args.Mount {
 		target := path.Join(root, guest)
+		if err := os.MkdirAll(target, 0755); err != nil {
+			return err
+		}
 		if err := syscall.Mount(host, target, "", syscall.MS_BIND, ""); err != nil {
 			return err
 		}

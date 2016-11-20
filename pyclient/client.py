@@ -163,9 +163,10 @@ class ContainerManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, plist_url):
+    def create(self, plist_url, mount={}):
         response = self._client.raw('corex.create', {
             'plist': plist_url,
+            'mount': mount,
         })
 
         result = response.get()
