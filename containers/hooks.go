@@ -40,7 +40,10 @@ func newHook(args *ContainerCreateArguments, root, coreID string) *hooks {
 
 func (h *hooks) onpid(pid int) {
 	h.pid = pid
-	h.postStart()
+	if err := h.postStart(); err != nil {
+		log.Errorf("Container post start error: %s", err)
+		//TODO. Should we shut the container down?
+	}
 }
 
 func (h *hooks) onexit(state bool) {
