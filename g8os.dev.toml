@@ -6,7 +6,7 @@ include = "/root/conf"
 # network = "./network.toml"
 
 [sink.main]
-url = "redis://172.17.0.1:6379"
+url = "redis://127.0.0.1:6379"
 password = ""
 
 [channel]
