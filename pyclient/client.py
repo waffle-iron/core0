@@ -109,9 +109,7 @@ class InfoManager:
 
 
 class BaseClient:
-    def __init__(self, gid, nid):
-        self._gid = gid
-        self._nid = nid
+    def __init__(self):
         self._info = InfoManager(self)
 
     @property
@@ -202,8 +200,8 @@ class ContainerManager:
 
 
 class Client(BaseClient):
-    def __init__(self, gid, nid, host="localhost", port=6379, password="", db=0):
-        super().__init__(gid, nid)
+    def __init__(self, host, port=6379, password="", db=0):
+        super().__init__()
 
         self._redis = redis.Redis(host=host, port=port, password=password, db=db)
         self._container_manager = ContainerManager(self)
@@ -221,8 +219,7 @@ class Client(BaseClient):
             'arguments': arguments,
         }
 
-        queue = 'core:default:{}:{}'.format(self._gid, self._nid)
-        self._redis.rpush(queue, json.dumps(payload))
+        self._redis.rpush('core:default', json.dumps(payload))
 
         return Response(self, id)
 

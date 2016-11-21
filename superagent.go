@@ -8,7 +8,6 @@ import (
 	"github.com/g8os/core0/bootstrap"
 	"github.com/g8os/core0/logger"
 	"github.com/op/go-logging"
-	"os"
 	"time"
 
 	"fmt"
@@ -28,14 +27,6 @@ func init() {
 }
 
 func main() {
-	if errors := options.Options.Validate(); len(errors) != 0 {
-		for _, err := range errors {
-			log.Errorf("Validation Error: %s\n", err)
-		}
-
-		os.Exit(1)
-	}
-
 	var options = options.Options
 
 	if err := settings.LoadSettings(options.Config()); err != nil {
@@ -85,7 +76,7 @@ func main() {
 	bs := bootstrap.NewBootstrap()
 	bs.Bootstrap()
 
-	sinkID := fmt.Sprintf("%d:%d", options.Gid(), options.Nid())
+	sinkID := fmt.Sprintf("default")
 
 	//build list with ACs that we will poll from.
 	sinks := make(map[string]core.SinkClient)
@@ -98,7 +89,6 @@ func main() {
 
 		sinks[key] = cl
 	}
-
 
 	log.Infof("Setting up stats buffers")
 	if config.Stats.Redis.Enabled {

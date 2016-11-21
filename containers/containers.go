@@ -174,7 +174,7 @@ func (m *containerManager) startForwarder() {
 	log.Debugf("Start container results forwarder")
 	for {
 		if err := m.forwardNext(); err != nil {
-			log.Warning("Failed to forward command result: %s", err)
+			log.Warningf("Failed to forward command result: %s", err)
 			time.Sleep(2 * time.Second)
 		}
 	}
