@@ -12,6 +12,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/op/go-logging"
 	"github.com/pborman/uuid"
+	"github.com/vishvananda/netlink"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -39,8 +40,8 @@ var (
 )
 
 type Network struct {
-	ZeroTier string `json:"zerotier,omitempty"`
-	Bridge   string `json:"bridge,omitempty"`
+	ZeroTier string   `json:"zerotier,omitempty"`
+	Bridge   []string `json:"bridge,omitempty"`
 }
 
 type ContainerCreateArguments struct {
@@ -78,6 +79,17 @@ func (c *ContainerCreateArguments) Valid() error {
 		}
 		if guest < 0 || guest > 65535 {
 			return fmt.Errorf("invalid guest port '%d'", guest)
+		}
+	}
+
+	for _, bridge := range c.Network.Bridge {
+		link, err := netlink.LinkByName(bridge)
+		if err != nil {
+			return err
+		}
+
+		if link.Type() != "bridge" {
+			return fmt.Errorf("bridge '%s' doesn't exist", c.Network.Bridge)
 		}
 	}
 

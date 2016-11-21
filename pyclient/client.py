@@ -153,7 +153,7 @@ class ContainerClient(BaseClient):
 
         result = response.get()
         if result.state != 'SUCCESS':
-            raise RuntimeError('failed to dispatch command to container: %s', result.data)
+            raise RuntimeError('failed to dispatch command to container: %s' % result.data)
 
         cmd_id = json.loads(result.data)
         return self._client.response_for(cmd_id)
@@ -163,12 +163,13 @@ class ContainerManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, plist_url, mount={}, zerotier=None):
+    def create(self, plist_url, mount={}, zerotier=None, bridge=[]):
         response = self._client.raw('corex.create', {
             'plist': plist_url,
             'mount': mount,
             'network': {
                 'zerotier': zerotier,
+                'bridge': bridge,
             },
         })
 
