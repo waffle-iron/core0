@@ -83,7 +83,7 @@ func (h *hooks) cleanup() {
 	}
 }
 
-func (h *hooks) postStart() error {
+func (h *hooks) zeroTier(netID string) error {
 	sourceNs := fmt.Sprintf("/proc/%d/ns/net", h.pid)
 	targetNs := fmt.Sprintf("/run/netns/%s", h.coreID)
 
@@ -96,7 +96,8 @@ func (h *hooks) postStart() error {
 	}
 
 	args := map[string]interface{}{
-		"netns": h.coreID,
+		"netns":    h.coreID,
+		"zerotier": netID,
 	}
 
 	netcmd := core.Command{
@@ -107,4 +108,15 @@ func (h *hooks) postStart() error {
 
 	_, err := pm.GetManager().RunCmd(&netcmd)
 	return err
+}
+
+func (h *hooks) postStart() error {
+	if h.args.Network.ZeroTier != "" {
+		log.Debugf("Joining zerotier networ '%s'", h.args.Network.ZeroTier)
+		if err := h.zeroTier(h.args.Network.ZeroTier); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

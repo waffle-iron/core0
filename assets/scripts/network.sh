@@ -3,8 +3,8 @@ set -e
 
 #PATH=/tmp/ZeroTierOne/:$PATH
 nsname=$(echo $1 | tr " " "-")
+zeronet="$2"
 zerohome="/tmp/zerotier-home-$nsname"
-zeronet="8056c2e21c000001"
 
 #
 # sanity check

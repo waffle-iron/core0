@@ -50,6 +50,11 @@ type ContainerCreateArguments struct {
 	Port    map[int]int       `json:"port"`    //port forwards
 }
 
+type ContainerDispatchArguments struct {
+	Container uint64       `json:"container"`
+	Command   core.Command `json:"command"`
+}
+
 func (c *ContainerCreateArguments) Valid() error {
 	if c.PList == "" {
 		return fmt.Errorf("plist is required")
@@ -117,7 +122,7 @@ func Containers(sinks map[string]base.SinkClient) {
 		panic(err)
 	}
 
-	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}"}, nil)
+	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
@@ -284,11 +289,6 @@ func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
 
 func (m *containerManager) getCoreXQueue(id uint64) string {
 	return fmt.Sprintf("core:default:core-%v", id)
-}
-
-type ContainerDispatchArguments struct {
-	Container uint64       `json:"container"`
-	Command   core.Command `json:"command"`
 }
 
 func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
