@@ -88,6 +88,13 @@ func (h *hooks) cleanup() {
 	if err := syscall.Unmount(h.root, syscall.MNT_FORCE); err != nil {
 		log.Errorf("Failed to unmount %s: %s", h.root, err)
 	}
+
+	//remove bridge links
+	for _, bridge := range h.args.Network.Bridge {
+		if err := h.unbridge(bridge); err != nil {
+			log.Errorf("failed to unbridge %s: %s", h.coreID, err)
+		}
+	}
 }
 
 func (h *hooks) namespace() error {
@@ -119,6 +126,17 @@ func (h *hooks) zeroTier(netID string) error {
 
 	_, err := pm.GetManager().RunCmd(&netcmd)
 	return err
+}
+
+func (h *hooks) unbridge(bridge string) error {
+	name := fmt.Sprintf("%s-%s", bridge, h.coreID)
+
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return err
+	}
+
+	return netlink.LinkDel(link)
 }
 
 func (h *hooks) bridge(index int, bridge string) error {
