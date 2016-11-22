@@ -91,14 +91,13 @@ func (h *hooks) cleanup() {
 
 	//remove bridge links
 	for _, bridge := range h.args.Network.Bridge {
-		if err := h.unbridge(bridge); err != nil {
-			log.Errorf("failed to unbridge %s: %s", h.coreID, err)
-		}
+		h.unbridge(bridge)
 	}
 }
 
 func (h *hooks) namespace() error {
 	sourceNs := fmt.Sprintf("/proc/%d/ns/net", h.pid)
+	os.MkdirAll("/run/netns", 0755)
 	targetNs := fmt.Sprintf("/run/netns/%s", h.coreID)
 
 	if f, err := os.Create(targetNs); err == nil {
@@ -106,7 +105,7 @@ func (h *hooks) namespace() error {
 	}
 
 	if err := syscall.Mount(sourceNs, targetNs, "", syscall.MS_BIND, ""); err != nil {
-		return err
+		return fmt.Errorf("namespace mount: %s", err)
 	}
 
 	return nil
@@ -145,9 +144,7 @@ func (h *hooks) bridge(index int, bridge string) error {
 		return err
 	}
 
-	br, ok := link.(*netlink.Bridge)
-
-	if link.Type() != "bridge" || !ok {
+	if link.Type() != "bridge" {
 		return fmt.Errorf("'%s' is not a bridge", link.Attrs().Name)
 	}
 
@@ -156,8 +153,11 @@ func (h *hooks) bridge(index int, bridge string) error {
 
 	veth := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
-			Name:  name,
-			Flags: net.FlagUp,
+			Name:        name,
+			Flags:       net.FlagUp,
+			MTU:         1500,
+			TxQLen:      1000,
+			MasterIndex: link.Attrs().Index,
 		},
 		PeerName: peerName,
 	}
@@ -169,10 +169,6 @@ func (h *hooks) bridge(index int, bridge string) error {
 	peer, err := netlink.LinkByName(peerName)
 	if err != nil {
 		return fmt.Errorf("get peer: %s", err)
-	}
-
-	if err := netlink.LinkSetMaster(veth, br); err != nil {
-		return fmt.Errorf("set master: %s", err)
 	}
 
 	if err := netlink.LinkSetUp(peer); err != nil {

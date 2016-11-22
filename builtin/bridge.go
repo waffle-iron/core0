@@ -44,7 +44,7 @@ func bridgeCreate(cmd *core.Command) (interface{}, error) {
 		LinkAttrs: netlink.LinkAttrs{
 			Name:         args.Name,
 			HardwareAddr: hw,
-			Flags:        net.FlagUp,
+			TxQLen:       1000, //needed other wise bridge won't work
 		},
 	}
 

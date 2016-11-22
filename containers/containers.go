@@ -300,7 +300,7 @@ func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
 }
 
 func (m *containerManager) getCoreXQueue(id uint64) string {
-	return fmt.Sprintf("core:default:core-%v", id)
+	return fmt.Sprintf("core:%v", id)
 }
 
 func (m *containerManager) dispatch(cmd *core.Command) (interface{}, error) {
