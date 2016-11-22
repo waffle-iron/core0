@@ -193,10 +193,45 @@ class ContainerManager:
 
         result = response.get()
         if result.state != 'SUCCESS':
-            raise RuntimeError('failed to list containers: %s' % result.data)
+            raise RuntimeError('failed to terminate container: %s' % result.data)
 
     def client(self, container):
         return ContainerClient(self._client, container)
+
+
+class BridgeManager:
+    def __init__(self, client):
+        self._client = client
+
+    def create(self, name, hwaddr=None):
+        response = self._client.raw('bridge.create', {
+            'name': name,
+            'hwaddr': hwaddr,
+        })
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create bridge %s' % result.data)
+
+        return json.loads(result.data)
+
+    def list(self):
+        response = self._client.raw('bridge.list', {})
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list bridges: %s' % result.data)
+
+        return json.loads(result.data)
+
+    def delete(self, bridge):
+        response = self._client.raw('bridge.delete', {
+            'name': bridge,
+        })
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list delete: %s' % result.data)
 
 
 class Client(BaseClient):
@@ -205,10 +240,15 @@ class Client(BaseClient):
 
         self._redis = redis.Redis(host=host, port=port, password=password, db=db)
         self._container_manager = ContainerManager(self)
+        self._bridge_manager = BridgeManager(self)
 
     @property
     def container(self):
         return self._container_manager
+
+    @property
+    def bridge(self):
+        return self._bridge_manager
 
     def raw(self, command, arguments):
         id = str(uuid.uuid4())
