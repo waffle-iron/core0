@@ -42,6 +42,10 @@ The `Core0` Core understands a very specific set of management commands:
  - corex.list
  - corex.dispatch
  - corex.terminate
+- Bridge
+ - bridge.create
+ - bridge.list
+ - bridge.delete
 
 ## Commands arguments
 ### core.ping
@@ -107,10 +111,13 @@ Arguments:
 ```
 {
     "plist": "http://url/to/plist",
-    //TODO:
     "mount": {
         "/host/directory": "/container/directory"
     },
+    "network": {
+        "zerotier": "zerotier network id", //options
+        "bridge": [], //list of bridges names to connect to
+    }
     //TODO:
     "port": {
         host_port: container_port,
@@ -142,3 +149,25 @@ Arguments:
 }
 ```
 
+### bridge.create
+Arguments:
+```javascript
+{
+    "name": "bridge-name", //required
+    "hwaddr": "MAC address" //optional
+}
+```
+Creates a new bridge
+
+### bridge.list
+takes no argumetns
+List all available bridges
+
+### bridge.delete
+Arguments:
+```javascript
+{
+    "name": "bridge-name", //required
+}
+```
+Delete the given bridge name
