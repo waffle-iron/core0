@@ -48,3 +48,29 @@ To follow the container logs do
 ```bash
 docker logs -f core0
 ```
+
+## Using the client
+Before using the client make sure the `./pyclient` is in your *PYTHONPATH*
+
+```python
+import client
+
+cl = client.Client(host='ip of docker container running core0')
+
+#validate that core0 is reachable
+print(cl.ping())
+
+#then u can do stuff like
+print(
+    cl.system('ps -eF').get()
+)
+
+print(
+    cl.system('ip a').get()
+)
+
+#client exposes more tools for disk, bridges, and container mgmt 
+print(
+    cl.disk.list()
+)
+```
