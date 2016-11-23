@@ -41,8 +41,8 @@ docker run --privileged -d \
 ```
 
 > Note: You might ask why we do this instead of copying those files directly to the image
-> the point is, not it's easy for development each time u rebuild the binary of change the config
-> u can just do `docker restart core0`
+> the point is, now it's very easy for development, each time u rebuild the binary or change the config
+> u can just do `docker restart core0` without rebuilding the whole image.
 
 To follow the container logs do
 ```bash
