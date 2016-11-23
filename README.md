@@ -14,6 +14,7 @@ First we need to prepare the base docker image to host core0
 FROM ubuntu:16.04
 RUN apt-get update && \
     apt-get install -y wget && \
+    apt-get install -y fuse && \
     apt-get install -y redis-server
 
 RUN wget -O /tmp/ipfs.tgz https://dist.ipfs.io/go-ipfs/v0.4.4/go-ipfs_v0.4.4_linux-amd64.tar.gz && \
