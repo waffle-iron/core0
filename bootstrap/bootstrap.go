@@ -109,8 +109,7 @@ func (b *Bootstrap) setupNetworking() error {
 
 	//force dhcp on all interfaces, and try again.
 	log.Infof("Trying dhcp on all interfaces one by one")
-	proto, _ := network.GetProtocol(network.ProtocolDHCP)
-	dhcp := proto.(network.DHCPProtocol)
+	dhcp, _ := network.GetProtocol(network.ProtocolDHCP)
 	for _, inf := range interfaces {
 		//try interfaces one by one
 		if inf.Protocol() == network.NoneProtocol || inf.Protocol() == network.ProtocolDHCP || inf.Name() == "lo" {
@@ -128,8 +127,7 @@ func (b *Bootstrap) setupNetworking() error {
 		if ok := b.canReachInternet(); ok {
 			return nil
 		}
-		//stop dhcp
-		dhcp.Stop(inf.Name())
+
 		//clear interface
 		inf.Clear()
 		//reset interface to original setup.

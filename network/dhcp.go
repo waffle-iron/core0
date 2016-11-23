@@ -15,11 +15,6 @@ func init() {
 	protocols[ProtocolDHCP] = &dhcpProtocol{}
 }
 
-type DHCPProtocol interface {
-	Protocol
-	Stop(inf string)
-}
-
 type dhcpProtocol struct {
 }
 
