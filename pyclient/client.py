@@ -5,6 +5,10 @@ import textwrap
 import shlex
 
 
+class Timeout(Exception):
+    pass
+
+
 class Return:
     def __init__(self, payload):
         self._payload = payload
@@ -82,10 +86,10 @@ class Response:
     def get(self, timeout=10):
         r = self._client._redis
         v = r.brpoplpush(self._queue, self._queue, timeout)
-        if v is not None:
-            payload = json.loads(v.decode())
-            return Return(payload)
-        return None
+        if v is None:
+            raise Timeout()
+        payload = json.loads(v.decode())
+        return Return(payload)
 
 
 class InfoManager:
@@ -118,6 +122,15 @@ class BaseClient:
 
     def raw(self, command, arguments):
         raise NotImplemented()
+
+    def ping(self):
+        response = self.raw('core.ping', {})
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('invalid response: %s' % result.state)
+
+        return json.loads(result.data)
 
     def system(self, command, dir='', stdin='', env=None):
         parts = shlex.split(command)
@@ -234,6 +247,118 @@ class BridgeManager:
             raise RuntimeError('failed to list delete: %s' % result.data)
 
 
+class DiskManager:
+    def __init__(self, client):
+        self._client = client
+
+    def list(self):
+        """
+        List available block devices
+        """
+        response = self._client.raw('disk.list', {})
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list disks: %s' % result.stderr)
+
+        if result.level != 20:  # 20 is JSON output.
+            raise RuntimeError('invalid response type from disk.list command')
+
+        return json.loads(result.data)
+
+    def mktable(self, disk, table_type='gpt'):
+        """
+        Make partition table on block device.
+        :param disk: Full device path like /dev/sda
+        :param table_type: Partition table type as accepted by parted
+        """
+
+        response = self._client.raw('disk.mktable', {
+            'disk': disk,
+            'table_type': table_type,
+        })
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create table: %s' % result.stderr)
+
+    def mkpart(self, disk, start, end, part_type='primary'):
+        """
+        Make partition on disk
+        :param disk: Full device path like /dev/sda
+        :param start: partition start as accepted by parted mkpart
+        :param end: partition end as accepted by parted mkpart
+        :param part_type: partition type as accepted by parted mkpart
+        """
+
+        response = self._client.raw('disk.mkpart', {
+            'disk': disk,
+            'start': start,
+            'end': end,
+            'part_type': part_type,
+        })
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create partition: %s' % result.stderr)
+
+    def rmpart(self, disk, number):
+        """
+        Remove partion from disk
+        :param disk: Full device path like /dev/sda
+        :param number: Partition number (starting from 1)
+        """
+        response = self._client.raw('disk.rmpart', {
+            'disk': disk,
+            'number': number,
+        })
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to remove partition: %s' % result.stderr)
+
+    def mount(self, source, target, options=[]):
+        """
+        Mount partion on target
+        :param source: Full partition path like /dev/sda1
+        :param target: Mount point
+        :param options: Optional mount options
+        """
+
+        if len(options) == 0:
+            options = ['auto']
+
+        response = self._client.raw('disk.mount', {
+            'options': ','.join(options),
+            'source': source,
+            'target': target,
+        })
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to mount partition: %s' % result.stderr)
+
+    def umount(self, source):
+        """
+        Unmount partion
+        :param source: Full partition path like /dev/sda1
+        """
+
+        response = self._client.raw('disk.umount', {
+            'source': source,
+        })
+
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to umount partition: %s' % result.stderr)
+
+
 class Client(BaseClient):
     def __init__(self, host, port=6379, password="", db=0):
         super().__init__()
@@ -241,6 +366,7 @@ class Client(BaseClient):
         self._redis = redis.Redis(host=host, port=port, password=password, db=db)
         self._container_manager = ContainerManager(self)
         self._bridge_manager = BridgeManager(self)
+        self._disk_manager = DiskManager(self)
 
     @property
     def container(self):
@@ -249,6 +375,10 @@ class Client(BaseClient):
     @property
     def bridge(self):
         return self._bridge_manager
+
+    @property
+    def disk(self):
+        return self._disk_manager
 
     def raw(self, command, arguments):
         id = str(uuid.uuid4())
