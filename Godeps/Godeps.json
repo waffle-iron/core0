@@ -1,15 +1,15 @@
 {
-	"ImportPath": "github.com/g8os/core",
-	"GoVersion": "go1.6",
-	"GodepVersion": "v60",
+	"ImportPath": "github.com/g8os/core0",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v75",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
-		},
-		{
-			"ImportPath": "github.com/Jumpscale/hubble/agent",
-			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
+			"ImportPath": "github.com/BurntSushi/toml",
+			"Comment": "v0.2.0-9-gf0aeabc",
+			"Rev": "f0aeabca5a127c4078abb8c8d64298b147264b55"
 		},
 		{
 			"ImportPath": "github.com/StackExchange/wmi",
@@ -17,8 +17,78 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.1.0-40-g34a0fa5",
-			"Rev": "34a0fa5307f7562980fb8e7ff4723f7987edf49b"
+			"Comment": "v1.2.0-23-gc1c3bd7",
+			"Rev": "c1c3bd7e847a231b2b1f9592fa86182a121ad734"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress/brotli",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/builtin",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/pm",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/pm/core",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/pm/process",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/pm/stream",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/settings",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/stats",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/core.base/utils",
+			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/config",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/crypto",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/files",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/meta",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/storage",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/utils",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
@@ -39,8 +109,25 @@
 			"Rev": "97ac8b05c02bbb755d36549e7e607433dfbef4b2"
 		},
 		{
-			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "3986be78bf859e01f01af631ad76da5b269d270c"
+			"ImportPath": "github.com/hanwen/go-fuse/fuse",
+			"Rev": "ed841342e5daf4711f24106b93c1035864a8914b"
+		},
+		{
+			"ImportPath": "github.com/hanwen/go-fuse/fuse/nodefs",
+			"Rev": "ed841342e5daf4711f24106b93c1035864a8914b"
+		},
+		{
+			"ImportPath": "github.com/hanwen/go-fuse/fuse/pathfs",
+			"Rev": "ed841342e5daf4711f24106b93c1035864a8914b"
+		},
+		{
+			"ImportPath": "github.com/hanwen/go-fuse/splice",
+			"Rev": "ed841342e5daf4711f24106b93c1035864a8914b"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v1.1.0-11-gb808f01",
+			"Rev": "b808f01f660667b1510acf216aa2b9fe7f555ddb"
 		},
 		{
 			"ImportPath": "github.com/naoina/go-stringutil",
@@ -48,10 +135,12 @@
 		},
 		{
 			"ImportPath": "github.com/naoina/toml",
+			"Comment": "v0.1.0",
 			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
 		},
 		{
 			"ImportPath": "github.com/naoina/toml/ast",
+			"Comment": "v0.1.0",
 			"Rev": "751171607256bb66e64c9f0220c00662420c38e9"
 		},
 		{
@@ -101,10 +190,6 @@
 		{
 			"ImportPath": "github.com/shirou/w32",
 			"Rev": "ada3ba68f000aa1b58580e45c9d308fe0b7fc5c5"
-		},
-		{
-			"ImportPath": "github.com/ugorji/go/codec",
-			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
 		},
 		{
 			"ImportPath": "github.com/vishvananda/netlink",
