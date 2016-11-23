@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/g8os/core/tests/client"
+	"github.com/g8os/core0/tests/client"
 	"strings"
 )
 
