@@ -100,6 +100,7 @@ func main() {
 	containers.Containers(sinks)
 
 	//start jobs sinks.
+	log.Infof("Starting Sinks")
 	core.StartSinks(pm.GetManager(), sinks)
 
 	//wait

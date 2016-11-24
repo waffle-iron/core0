@@ -245,17 +245,50 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 			return err
 		}
 
-		cmd := &core.Command{
-			ID:      uuid.New(),
-			Command: process.CommandSystem,
-			Arguments: core.MustArguments(
-				process.SystemCommandArguments{
-					Name: "ip",
-					Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "address", "add", bridge.Setup(), "dev", dev},
-				},
-			),
+		{
+			//setting up the interface
+			cmd := &core.Command{
+				ID:      uuid.New(),
+				Command: process.CommandSystem,
+				Arguments: core.MustArguments(
+					process.SystemCommandArguments{
+						Name: "ip",
+						Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "link", "set", "dev", dev, "up"},
+					},
+				),
+			}
+
+			runner, err := pm.GetManager().RunCmd(cmd)
+			if err != nil {
+				return err
+			}
+			result := runner.Wait()
+			if result.State != core.StateSuccess {
+				return fmt.Errorf("error brinding interface up: %v", result.Streams)
+			}
 		}
-		pm.GetManager().RunCmd(cmd)
+
+		{
+			cmd := &core.Command{
+				ID:      uuid.New(),
+				Command: process.CommandSystem,
+				Arguments: core.MustArguments(
+					process.SystemCommandArguments{
+						Name: "ip",
+						Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "address", "add", bridge.Setup(), "dev", dev},
+					},
+				),
+			}
+
+			runner, err := pm.GetManager().RunCmd(cmd)
+			if err != nil {
+				return err
+			}
+			result := runner.Wait()
+			if result.State != core.StateSuccess {
+				return fmt.Errorf("error settings interface ip: %v", result.Streams)
+			}
+		}
 	}
 	return nil
 }

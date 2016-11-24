@@ -55,6 +55,7 @@ func (poll *sinkImpl) run() {
 	lastError := time.Now()
 
 	poll.mgr.AddRouteResultHandler(core.Route(poll.key), poll.handler)
+	log.Infof("Waiting for commands from: %s", poll.client)
 
 	for {
 		var command core.Command
