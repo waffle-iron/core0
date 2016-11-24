@@ -420,3 +420,23 @@ class Client(BaseClient):
 
     def response_for(self, id):
         return Response(self, id)
+
+
+class BtrfsManager:
+    def __init__(self, client):
+        self._client = client
+
+    def list(self):
+        """
+        List all btrfs filesystem
+        """
+        response = self._client.raw('btrfs.list', {})
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list btrfs: %s' % result.stderr)
+
+        if result.level != 20:  # 20 is JSON output.
+            raise RuntimeError('invalid response type from btrfs.list command')
+
+        return json.loads(result.data)
