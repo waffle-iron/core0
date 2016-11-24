@@ -8,6 +8,7 @@ import (
 	"github.com/g8os/core.base/pm/process"
 	"github.com/vishvananda/netlink"
 	"net"
+	"os"
 )
 
 func init() {
@@ -26,6 +27,12 @@ type BridgeNetworkMode string
 
 type NetworkStaticSettings struct {
 	CIDR string `json:"cidr"`
+}
+
+type NetworkDnsMasqSettings struct {
+	NetworkStaticSettings
+	Start net.IP `json:"start"`
+	End   net.IP `json:"end"`
 }
 
 type BridgeNetwork struct {
@@ -57,12 +64,63 @@ func bridgeStaticNetworking(bridge *netlink.Bridge, network *BridgeNetwork) erro
 	return netlink.AddrAdd(bridge, addr)
 }
 
+func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
+	var settings NetworkDnsMasqSettings
+	if err := json.Unmarshal(network.Settings, &settings); err != nil {
+		return err
+	}
+
+	os.MkdirAll("/var/run/dnsmasq", 0755)
+
+	addr, err := netlink.ParseAddr(settings.CIDR)
+	if err != nil {
+		return err
+	}
+
+	if err := netlink.AddrAdd(bridge, addr); err != nil {
+		return err
+	}
+
+	args := []string{
+		"--no-hosts",
+		"--keep-in-foreground",
+		fmt.Sprintf("--pid-file=/var/run/dnsmasq/%s.pid", bridge.Name),
+		fmt.Sprintf("--interface=%s", bridge.Name),
+		fmt.Sprintf("--dhcp-range=%s,%s,%s,infinite", settings.Start, settings.End, net.IP(addr.Mask)),
+	}
+
+	cmd := &core.Command{
+		ID:      fmt.Sprintf("dnsmasq-%s", bridge.Name),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "dnsmasq",
+				Args: args,
+			},
+		),
+	}
+
+	onExit := &pm.ExitHook{
+		Action: func(state bool) {
+			if !state {
+				log.Errorf("dnsmasq for %s exited with an error", bridge.Name)
+			}
+		},
+	}
+
+	log.Debugf("dnsmasq(%s): %s", bridge.Name, args)
+	_, err = pm.GetManager().RunCmd(cmd, onExit)
+	return err
+}
+
 func bridgeNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
 	switch network.Mode {
 	case StaticBridgeNetworkMode:
 		return bridgeStaticNetworking(bridge, network)
 	case DnsMasqBridgeNetworkMode:
+		return bridgeDnsMasqNetworking(bridge, network)
 	case NoneBridgeNetworkMode:
+		//nothing to do
 	default:
 		return fmt.Errorf("invalid networking mode %s", network.Mode)
 	}
@@ -94,6 +152,10 @@ func bridgeCreate(cmd *core.Command) (interface{}, error) {
 	}
 
 	if err := netlink.LinkAdd(bridge); err != nil {
+		return nil, err
+	}
+
+	if err := netlink.LinkSetUp(bridge); err != nil {
 		return nil, err
 	}
 
@@ -136,6 +198,9 @@ func bridgeDelete(cmd *core.Command) (interface{}, error) {
 	if link.Type() != "bridge" {
 		return nil, fmt.Errorf("bridge not found")
 	}
+
+	//make sure to stop dnsmasq, just in case it's running
+	pm.GetManager().Kill(fmt.Sprintf("dnsmasq-%s", link.Attrs().Name))
 
 	if err := netlink.LinkDel(link); err != nil {
 		return nil, err
