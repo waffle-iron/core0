@@ -150,6 +150,8 @@ class BaseClient:
 
 class ContainerClient(BaseClient):
     def __init__(self, client, container):
+        super().__init__()
+
         self._client = client
         self._container = container
 
@@ -424,3 +426,42 @@ class Client(BaseClient):
 
     def response_for(self, id):
         return Response(self, id)
+
+
+class BtrfsManager:
+    def __init__(self, client):
+        self._client = client
+
+    def list(self):
+        """
+        List all btrfs filesystem
+        """
+        result = self._client.raw('btrfs.list', {}).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list btrfs: %s' % result.stderr)
+
+        if result.level != 20:  # 20 is JSON output.
+            raise RuntimeError('invalid response type from btrfs.list command')
+
+        return json.loads(result.data)
+
+    def create(self, label, devices, metadata_profile="", data_profile=""):
+        """
+        Create a btrfs filesystem with the given label, devices, and profiles
+        :param label: name/label
+        :param devices : array of devices (under /dev)
+        :metadata_profile: raid0, raid1, raid5, raid6, raid10, dup or single
+        :data_profile: same as metadata profile
+        """
+        result = self._client.raw('btrfs.create', {
+            'label': label,
+            'metadata': metadata_profile,
+            'data': data_profile,
+            'devices': devices
+        }).get()
+        print(result)
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create btrfs FS %s' % result.data)
+
+        return result.data
