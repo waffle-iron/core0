@@ -150,6 +150,8 @@ class BaseClient:
 
 class ContainerClient(BaseClient):
     def __init__(self, client, container):
+        super().__init__()
+
         self._client = client
         self._container = container
 
