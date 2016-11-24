@@ -177,6 +177,26 @@ class ContainerManager:
         self._client = client
 
     def create(self, plist_url, mount={}, zerotier=None, bridge=[]):
+        """
+        Creater a new container with the given root plist, mount points and
+        zerotier id, and connected to the given bridges
+        :param plist_url: The root filesystem plist
+        :param mount: a dict with {host_source: container_target} mount points.
+                      where host_source directory must exists.
+        :param zerotier: An optional zerotier netowrk ID to join
+        :param bridge: A dict of tuples as ('bridge_name': 'network_setup')
+                       where :network_setup: can be one of the following
+                       '' or 'none':
+                            no IP is gonna be set on the link
+                       'dhcp':
+                            Run `udhcpc` on the container link, of course this will
+                            only work if the `bridge` is created with `dnsmasq` networking
+                       'CIDR':
+                            Assign static IP to the link
+
+                       Examples:
+                        `bridge=[('br0', '127.0.0.100/24'), ('br1', 'dhcp')]`
+        """
         response = self._client.raw('corex.create', {
             'plist': plist_url,
             'mount': mount,
@@ -383,6 +403,45 @@ class DiskManager:
             raise RuntimeError('failed to umount partition: %s' % result.stderr)
 
 
+class BtrfsManager:
+    def __init__(self, client):
+        self._client = client
+
+    def list(self):
+        """
+        List all btrfs filesystem
+        """
+        result = self._client.raw('btrfs.list', {}).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list btrfs: %s' % result.stderr)
+
+        if result.level != 20:  # 20 is JSON output.
+            raise RuntimeError('invalid response type from btrfs.list command')
+
+        return json.loads(result.data)
+
+    def create(self, label, devices, metadata_profile="", data_profile=""):
+        """
+        Create a btrfs filesystem with the given label, devices, and profiles
+        :param label: name/label
+        :param devices : array of devices (under /dev)
+        :metadata_profile: raid0, raid1, raid5, raid6, raid10, dup or single
+        :data_profile: same as metadata profile
+        """
+        result = self._client.raw('btrfs.create', {
+            'label': label,
+            'metadata': metadata_profile,
+            'data': data_profile,
+            'devices': devices
+        }).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create btrfs FS %s' % result.data)
+
+        return result.data
+
+
 class Client(BaseClient):
     def __init__(self, host, port=6379, password="", db=0):
         super().__init__()
@@ -427,41 +486,3 @@ class Client(BaseClient):
     def response_for(self, id):
         return Response(self, id)
 
-
-class BtrfsManager:
-    def __init__(self, client):
-        self._client = client
-
-    def list(self):
-        """
-        List all btrfs filesystem
-        """
-        result = self._client.raw('btrfs.list', {}).get()
-
-        if result.state != 'SUCCESS':
-            raise RuntimeError('failed to list btrfs: %s' % result.stderr)
-
-        if result.level != 20:  # 20 is JSON output.
-            raise RuntimeError('invalid response type from btrfs.list command')
-
-        return json.loads(result.data)
-
-    def create(self, label, devices, metadata_profile="", data_profile=""):
-        """
-        Create a btrfs filesystem with the given label, devices, and profiles
-        :param label: name/label
-        :param devices : array of devices (under /dev)
-        :metadata_profile: raid0, raid1, raid5, raid6, raid10, dup or single
-        :data_profile: same as metadata profile
-        """
-        result = self._client.raw('btrfs.create', {
-            'label': label,
-            'metadata': metadata_profile,
-            'data': data_profile,
-            'devices': devices
-        }).get()
-        print(result)
-        if result.state != 'SUCCESS':
-            raise RuntimeError('failed to create btrfs FS %s' % result.data)
-
-        return result.data

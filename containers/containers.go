@@ -39,9 +39,23 @@ var (
 	log = logging.MustGetLogger("containers")
 )
 
+type ContainerBridgeSettings [2]string
+
+func (s ContainerBridgeSettings) Name() string {
+	return s[0]
+}
+
+func (s ContainerBridgeSettings) Setup() string {
+	return s[1]
+}
+
+func (s ContainerBridgeSettings) String() string {
+	return fmt.Sprintf("%v:%v", s[0], s[1])
+}
+
 type Network struct {
-	ZeroTier string   `json:"zerotier,omitempty"`
-	Bridge   []string `json:"bridge,omitempty"`
+	ZeroTier string                    `json:"zerotier,omitempty"`
+	Bridge   []ContainerBridgeSettings `json:"bridge,omitempty"`
 }
 
 type ContainerCreateArguments struct {
@@ -83,7 +97,7 @@ func (c *ContainerCreateArguments) Valid() error {
 	}
 
 	for _, bridge := range c.Network.Bridge {
-		link, err := netlink.LinkByName(bridge)
+		link, err := netlink.LinkByName(bridge.Name())
 		if err != nil {
 			return err
 		}
@@ -237,7 +251,7 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 		return nil, err
 	}
 
-	hook := newHook(&args, root, coreID)
+	hook := newHook(&args, root, id)
 
 	if err := m.mountData(root, &args); err != nil {
 		hook.cleanup()
