@@ -430,9 +430,8 @@ class BtrfsManager:
         """
         List all btrfs filesystem
         """
-        response = self._client.raw('btrfs.list', {})
+        result = self._client.raw('btrfs.list', {}).get()
 
-        result = response.get()
         if result.state != 'SUCCESS':
             raise RuntimeError('failed to list btrfs: %s' % result.stderr)
 
@@ -440,3 +439,23 @@ class BtrfsManager:
             raise RuntimeError('invalid response type from btrfs.list command')
 
         return json.loads(result.data)
+
+    def create(self, label, devices, metadata_profile="", data_profile=""):
+        """
+        Create a btrfs filesystem with the given label, devices, and profiles
+        :param label: name/label
+        :param devices : array of devices (under /dev)
+        :metadata_profile: raid0, raid1, raid5, raid6, raid10, dup or single
+        :data_profile: same as metadata profile
+        """
+        result = self._client.raw('btrfs.create', {
+            'label': label,
+            'metadata': metadata_profile,
+            'data': data_profile,
+            'devices': devices
+        }).get()
+        print(result)
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create btrfs FS %s' % result.data)
+
+        return result.data

@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -18,21 +19,85 @@ var (
 
 func init() {
 	pm.CmdMap["btrfs.list"] = process.NewInternalProcessFactory(btrfsList)
+	pm.CmdMap["btrfs.create"] = process.NewInternalProcessFactory(btrfsCreate)
 }
 
 type btrfsFS struct {
-	Label        string
-	UUID         string
-	TotalDevices int
-	Used         string
-	Devices      []btrfsDevice
+	Label        string        `json:"label"`
+	UUID         string        `json:"uuid"`
+	TotalDevices int           `json:"total_devices"`
+	Used         string        `json:"used"`
+	Devices      []btrfsDevice `json:"devices"`
 }
 
 type btrfsDevice struct {
-	DevID string
-	Size  string
-	Used  string
-	Path  string
+	DevID string `json:"dev_id"`
+	Size  string `json:"size"`
+	Used  string `json:"used"`
+	Path  string `json:"path"`
+}
+
+var (
+	// valid btrfs data & metadata profiles
+	btrfsProfiles = map[string]struct{}{
+		"raid0":  struct{}{},
+		"raid1":  struct{}{},
+		"raid5":  struct{}{},
+		"raid6":  struct{}{},
+		"raid10": struct{}{},
+		"dup":    struct{}{},
+		"single": struct{}{},
+		"":       struct{}{},
+	}
+)
+
+type btrfsCreateArgument struct {
+	Label    string   `json:"label"`
+	Metadata string   `json:"metadata"`
+	Data     string   `json:"data"`
+	Devices  []string `json:"devices"`
+}
+
+func (arg btrfsCreateArgument) Validate() error {
+	if len(arg.Devices) == 0 {
+		return fmt.Errorf("need to specify devices to create btrfs")
+	}
+	if v, ok := btrfsProfiles[arg.Metadata]; !ok {
+		return fmt.Errorf("invalid metadata profile:%v", v)
+	}
+	if v, ok := btrfsProfiles[arg.Data]; !ok {
+		return fmt.Errorf("invalid data profile:%v", v)
+	}
+	return nil
+}
+
+func btrfsCreate(cmd *core.Command) (interface{}, error) {
+	var args btrfsCreateArgument
+	var opts []string
+
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+	if err := args.Validate(); err != nil {
+		return nil, err
+	}
+
+	if args.Label != "" {
+		opts = append(opts, "-L", args.Label)
+	}
+	if args.Metadata != "" {
+		opts = append(opts, "-m", args.Metadata)
+	}
+	if args.Data != "" {
+		opts = append(opts, "-d", args.Data)
+	}
+	opts = append(opts, strings.Join(args.Devices, " "))
+
+	out, err := exec.Command("mkfs.btrfs", opts...).Output()
+	if err != nil {
+		return string(out), err
+	}
+	return "OK", nil
 }
 
 // list btrfs FSs
