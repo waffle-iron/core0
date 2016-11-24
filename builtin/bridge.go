@@ -16,13 +16,58 @@ func init() {
 	pm.CmdMap["bridge.delete"] = process.NewInternalProcessFactory(bridgeDelete)
 }
 
+const (
+	NoneBridgeNetworkMode    BridgeNetworkMode = ""
+	DnsMasqBridgeNetworkMode BridgeNetworkMode = "dnsmasq"
+	StaticBridgeNetworkMode  BridgeNetworkMode = "static"
+)
+
+type BridgeNetworkMode string
+
+type NetworkStaticSettings struct {
+	CIDR string `json:"cidr"`
+}
+
+type BridgeNetwork struct {
+	Mode     BridgeNetworkMode `json:"mode"`
+	Settings json.RawMessage   `json:"settings"`
+}
+
 type BridgeCreateArguments struct {
-	Name      string `json:"name"`
-	HwAddress string `json:"hwaddr"`
+	Name      string        `json:"name"`
+	HwAddress string        `json:"hwaddr"`
+	Network   BridgeNetwork `json:"network"`
 }
 
 type BridgeDeleteArguments struct {
 	Name string `json:"name"`
+}
+
+func bridgeStaticNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
+	var settings NetworkStaticSettings
+	if err := json.Unmarshal(network.Settings, &settings); err != nil {
+		return err
+	}
+
+	addr, err := netlink.ParseAddr(settings.CIDR)
+	if err != nil {
+		return err
+	}
+
+	return netlink.AddrAdd(bridge, addr)
+}
+
+func bridgeNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
+	switch network.Mode {
+	case StaticBridgeNetworkMode:
+		return bridgeStaticNetworking(bridge, network)
+	case DnsMasqBridgeNetworkMode:
+	case NoneBridgeNetworkMode:
+	default:
+		return fmt.Errorf("invalid networking mode %s", network.Mode)
+	}
+
+	return nil
 }
 
 func bridgeCreate(cmd *core.Command) (interface{}, error) {
@@ -49,6 +94,12 @@ func bridgeCreate(cmd *core.Command) (interface{}, error) {
 	}
 
 	if err := netlink.LinkAdd(bridge); err != nil {
+		return nil, err
+	}
+
+	if err := bridgeNetworking(bridge, &args.Network); err != nil {
+		//delete bridge?
+		netlink.LinkDel(bridge)
 		return nil, err
 	}
 

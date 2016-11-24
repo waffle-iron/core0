@@ -216,10 +216,26 @@ class BridgeManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, name, hwaddr=None):
+    def create(self, name, hwaddr=None, network=None, settings={}):
+        """
+        Create a bridge with the given name, hwaddr and networking setup
+        :param name: name of the bridge (must be unique)
+        :param hwaddr: MAC address of the bridge. If none, a one will be created for u
+        :param network: Networking mode, options are none, static, and dnsmasq
+        :param settings: Networking setting, depending on the selected mode.
+                        None:
+                            no settings, bridge won't get any ip settings
+                        static:
+                            settings={'cidr': 'ip/net'}
+                            bridge will get assigned the given IP address
+        """
         response = self._client.raw('bridge.create', {
             'name': name,
             'hwaddr': hwaddr,
+            'network': {
+                'mode': network,
+                'settings': settings,
+            }
         })
 
         result = response.get()
