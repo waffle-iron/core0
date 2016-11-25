@@ -46,6 +46,12 @@ The `Core0` Core understands a very specific set of management commands:
  - bridge.create
  - bridge.list
  - bridge.delete
+- Btrfs
+ - btrfs.create
+ - btrfs.list
+ - btrfs.subvol_create
+ - btrfs.subvol_list
+ - btrfs.subvol_delete
 
 ## Commands arguments
 ### core.ping
@@ -171,3 +177,56 @@ Arguments:
 }
 ```
 Delete the given bridge name
+
+## btrfs.create
+
+Create a btrfs filesystem
+
+Arguments:
+```javascript
+{
+    "label": "FS label/name", // required
+    "devices": ["/dev/sdc1", "/dev/sdc2"], // the devices, required
+    "data": "data profile",
+    "metadata": "metadata profile"
+}
+```
+
+## btrfs.list
+
+List all btrfs filesystems.
+
+Takes no argument. Return array of all filesystems.
+
+## btrfs.subvol_create
+
+Creates a new btrfs subvolume
+
+arguments:
+```javascript
+{
+    "path": "/path/of/subvolume" required
+}
+```
+
+## btrfs.subvol_list
+
+List subvolume under a path
+
+arguments:
+```javascript
+{
+    "path": "/path/of/filesystem" required
+}
+```
+
+## btrfs.subvol_delete
+
+Delete a btrfs subvolume
+
+arguments:
+```javascript
+{
+    "path": "/path/of/subvolume" required
+}
+```
