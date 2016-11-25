@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
-	"strconv"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -31,15 +29,15 @@ type btrfsFS struct {
 	Label        string        `json:"label"`
 	UUID         string        `json:"uuid"`
 	TotalDevices int           `json:"total_devices"`
-	Used         string        `json:"used"`
+	Used         int64         `json:"used"`
 	Devices      []btrfsDevice `json:"devices"`
 }
 
 type btrfsDevice struct {
 	Missing bool   `json:"missing,omitempty"`
-	DevID   string `json:"dev_id"`
-	Size    string `json:"size"`
-	Used    string `json:"used"`
+	DevID   int    `json:"dev_id"`
+	Size    int64  `json:"size"`
+	Used    int64  `json:"used"`
 	Path    string `json:"path"`
 }
 
@@ -106,9 +104,25 @@ func btrfsCreate(cmd *core.Command) (interface{}, error) {
 	}
 	opts = append(opts, strings.Join(args.Devices, " "))
 
-	out, err := exec.Command("mkfs.btrfs", opts...).Output()
+	shellCmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "mkfs.btrfs",
+				Args: opts,
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
 	if err != nil {
-		return string(out), err
+		return "", err
+	}
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess {
+		return "", fmt.Errorf("error creating btrfs filesystem: %v", result.Streams)
 	}
 	return "OK", nil
 }
@@ -121,7 +135,7 @@ func btrfsList(cmd *core.Command) (interface{}, error) {
 		Arguments: core.MustArguments(
 			process.SystemCommandArguments{
 				Name: "btrfs",
-				Args: []string{"filesystem", "show"},
+				Args: []string{"filesystem", "show", "--raw"},
 			},
 		),
 	}
@@ -137,6 +151,9 @@ func btrfsList(cmd *core.Command) (interface{}, error) {
 	}
 
 	fss, err := btrfsParseList(result.Streams[0])
+	if err != nil {
+		log.Error("failed to list btrfs=", err)
+	}
 	return fss, err
 }
 
@@ -306,37 +323,19 @@ func btrfsParseList(output string) ([]btrfsFS, error) {
 
 func btrfsParseFS(lines []string) (btrfsFS, error) {
 	// first line should be label && uuid
-	label, uuid := func(line string) (label string, uuid string) {
-		parts := strings.Split(line, " ")
-		if parts[0] == "Label:" {
-			label = strings.TrimSpace(parts[1][1 : len(parts[1])-1])
-		}
-		if parts[3] == "uuid:" {
-			uuid = strings.TrimSpace(parts[4])
-		}
-		return
-	}(lines[0])
+	var label, uuid string
+	_, err := fmt.Sscanf(lines[0], `Label: %s uuid: %s`, &label, &uuid)
+	if err != nil {
+		return btrfsFS{}, err
+	}
+	if label != "none" {
+		label = label[1 : len(label)-1]
+	}
 
 	// total device & byte used
-	totDevice, used, err := func(line string) (totDevice int, used string, err error) {
-		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "Total devices") {
-			err = fmt.Errorf("Line 2 not prefixed with `Total Devices`")
-			return
-		}
-		line = strings.TrimSpace(strings.TrimPrefix(line, "Total devices"))
-
-		parts := strings.Split(line, "FS bytes used")
-		if len(parts) != 2 {
-			err = fmt.Errorf("invalid line :%v", line)
-			return
-		}
-		totDevice, err = strconv.Atoi(strings.TrimSpace(parts[0]))
-		used = strings.TrimSpace(parts[1])
-		return
-	}(lines[1])
-
-	if err != nil {
+	var totDevice int
+	var used int64
+	if _, err := fmt.Sscanf(lines[1], "Total devices %d FS bytes used %d", &totDevice, &used); err != nil {
 		return btrfsFS{}, err
 	}
 
@@ -360,17 +359,9 @@ func btrfsParseDevices(lines []string) ([]btrfsDevice, error) {
 			continue
 		}
 		var dev btrfsDevice
-		parts := strings.Fields(line)
-		if len(parts) == 8 {
-			dev = btrfsDevice{
-				Missing: false,
-				DevID:   parts[1],
-				Size:    parts[3],
-				Used:    parts[5],
-				Path:    parts[7],
-			}
+		if _, err := fmt.Sscanf(line, "devid    %d size %d used %d path %s", &dev.DevID, &dev.Size, &dev.Used, &dev.Path); err == nil {
+			devs = append(devs, dev)
 		}
-		devs = append(devs, dev)
 	}
 	return devs, nil
 }
