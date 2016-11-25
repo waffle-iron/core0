@@ -36,3 +36,23 @@ func TestParseFS(t *testing.T) {
 	assert.Equal(t, "208.00MiB", dev.Used)
 	assert.Equal(t, "/dev/loop1", dev.Path)
 }
+
+var (
+	subvolStr = `ID 259 gen 14 top level 5 path svol
+ID 262 gen 21 top level 5 path cobavol
+
+`
+)
+
+func TestParseSubvolume(t *testing.T) {
+	svs, err := btrfsParseSubvolList(subvolStr)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(svs))
+
+	sv := svs[0]
+	assert.Equal(t, sv.ID, 259)
+	assert.Equal(t, sv.Gen, 14)
+	assert.Equal(t, sv.TopLevel, 5)
+	assert.Equal(t, sv.Path, "svol")
+}

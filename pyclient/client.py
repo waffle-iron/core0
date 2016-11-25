@@ -441,6 +441,51 @@ class BtrfsManager:
 
         return result.data
 
+    def subvol_create(self, path):
+        """
+        Create a btrfs subvolume in the specified path
+        :param path: path to create
+        """
+        result = self._client.raw('btrfs.subvol_create', {
+            'path': path
+        }).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to create btrfs subvolume %s' % result.data)
+
+        return result.data
+ 
+    def subvol_list(self, path):
+        """
+        List a btrfs subvolume in the specified path
+        :param path: path to be listed
+        """
+        result = self._client.raw('btrfs.subvol_list', {
+            'path': path
+        }).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list btrfs subvolume %s' % result.data)
+
+        if result.level != 20:  # 20 is JSON output.
+            raise RuntimeError('invalid response type from btrfs.subvol_list command')
+
+        return json.loads(result.data)
+
+    def subvol_delete(self, path):
+        """
+        Delete a btrfs subvolume in the specified path
+        :param path: path to delete
+        """
+        result = self._client.raw('btrfs.subvol_delete', {
+            'path': path
+        }).get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to list btrfs subvolume %s' % result.data)
+
+        return result.data
+
 
 class Client(BaseClient):
     def __init__(self, host, port=6379, password="", db=0):

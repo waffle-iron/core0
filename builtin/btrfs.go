@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pborman/uuid"
+
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
@@ -20,6 +22,9 @@ var (
 func init() {
 	pm.CmdMap["btrfs.list"] = process.NewInternalProcessFactory(btrfsList)
 	pm.CmdMap["btrfs.create"] = process.NewInternalProcessFactory(btrfsCreate)
+	pm.CmdMap["btrfs.subvol_create"] = process.NewInternalProcessFactory(btrfsSubvolCreate)
+	pm.CmdMap["btrfs.subvol_delete"] = process.NewInternalProcessFactory(btrfsSubvolDelete)
+	pm.CmdMap["btrfs.subvol_list"] = process.NewInternalProcessFactory(btrfsSubvolList)
 }
 
 type btrfsFS struct {
@@ -31,7 +36,7 @@ type btrfsFS struct {
 }
 
 type btrfsDevice struct {
-	Missing bool   `json:"missing"`
+	Missing bool   `json:"missing,omitempty"`
 	DevID   string `json:"dev_id"`
 	Size    string `json:"size"`
 	Used    string `json:"used"`
@@ -57,6 +62,13 @@ type btrfsCreateArgument struct {
 	Metadata string   `json:"metadata"`
 	Data     string   `json:"data"`
 	Devices  []string `json:"devices"`
+}
+
+type btrfsSubvol struct {
+	ID       int
+	Gen      int
+	TopLevel int
+	Path     string
 }
 
 func (arg btrfsCreateArgument) Validate() error {
@@ -104,7 +116,7 @@ func btrfsCreate(cmd *core.Command) (interface{}, error) {
 // list btrfs FSs
 func btrfsList(cmd *core.Command) (interface{}, error) {
 	shellCmd := &core.Command{
-		ID:      "12345",
+		ID:      uuid.New(),
 		Command: process.CommandSystem,
 		Arguments: core.MustArguments(
 			process.SystemCommandArguments{
@@ -126,6 +138,129 @@ func btrfsList(cmd *core.Command) (interface{}, error) {
 
 	fss, err := btrfsParseList(result.Streams[0])
 	return fss, err
+}
+
+type btrfsSubvolArgument struct {
+	Path string `json:"path"`
+}
+
+// create subvolume under a mount point
+func btrfsSubvolCreate(cmd *core.Command) (interface{}, error) {
+	var args btrfsSubvolArgument
+
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+	if args.Path == "" || !strings.HasPrefix(args.Path, "/") {
+		return nil, fmt.Errorf("invalid path=%v", args.Path)
+	}
+
+	shellCmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "btrfs",
+				Args: []string{"subvolume", "create", args.Path},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
+	if err != nil {
+		return "", err
+	}
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess {
+		return "", fmt.Errorf("error creating btrfs subvolume: %v:%v", result.Streams, result.Data)
+	}
+	return "OK", nil
+}
+
+// delete subvolume under a mount point
+func btrfsSubvolDelete(cmd *core.Command) (interface{}, error) {
+	var args btrfsSubvolArgument
+
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+	if args.Path == "" || !strings.HasPrefix(args.Path, "/") {
+		return nil, fmt.Errorf("invalid path=%v", args.Path)
+	}
+
+	shellCmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "btrfs",
+				Args: []string{"subvolume", "delete", args.Path},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
+	if err != nil {
+		return "", err
+	}
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess {
+		return "", fmt.Errorf("error deleting btrfs subvolume: %v:%v", result.Streams, result.Data)
+	}
+	return "OK", nil
+}
+
+// list subvolume under a mount point
+func btrfsSubvolList(cmd *core.Command) (interface{}, error) {
+	var args btrfsSubvolArgument
+
+	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
+		return nil, err
+	}
+	if args.Path == "" || !strings.HasPrefix(args.Path, "/") {
+		return nil, fmt.Errorf("invalid path=%v", args.Path)
+	}
+
+	shellCmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "btrfs",
+				Args: []string{"subvolume", "list", args.Path},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
+	if err != nil {
+		return "", err
+	}
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess || len(result.Streams) != 2 {
+		return "", fmt.Errorf("error list btrfs subvolume: %v:%v", result.Streams, result.Data)
+	}
+	return btrfsParseSubvolList(result.Streams[0])
+}
+
+func btrfsParseSubvolList(out string) ([]btrfsSubvol, error) {
+	var svs []btrfsSubvol
+
+	for _, line := range strings.Split(out, "\n") {
+		var sv btrfsSubvol
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if _, err := fmt.Sscanf(line, "ID %d gen %d top level %d path %s", &sv.ID, &sv.Gen, &sv.TopLevel, &sv.Path); err != nil {
+			return svs, err
+		}
+		svs = append(svs, sv)
+	}
+	return svs, nil
 }
 
 // parse `btrfs filesystem show` output
