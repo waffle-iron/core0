@@ -31,10 +31,11 @@ type btrfsFS struct {
 }
 
 type btrfsDevice struct {
-	DevID string `json:"dev_id"`
-	Size  string `json:"size"`
-	Used  string `json:"used"`
-	Path  string `json:"path"`
+	Missing bool   `json:"missing"`
+	DevID   string `json:"dev_id"`
+	Size    string `json:"size"`
+	Used    string `json:"used"`
+	Path    string `json:"path"`
 }
 
 var (
@@ -102,23 +103,36 @@ func btrfsCreate(cmd *core.Command) (interface{}, error) {
 
 // list btrfs FSs
 func btrfsList(cmd *core.Command) (interface{}, error) {
-	out, err := exec.Command("btrfs", "filesystem", "show").Output()
+	shellCmd := &core.Command{
+		ID:      "12345",
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "btrfs",
+				Args: []string{"filesystem", "show"},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
 	if err != nil {
 		return "", err
 	}
-	fss, err := btrfsParseList(out)
-	if err == errBtrfsNoFS {
-		err = nil
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess || len(result.Streams) == 0 {
+		return "", fmt.Errorf("error listing btrfs filesystem: %v", result.Streams)
 	}
+
+	fss, err := btrfsParseList(result.Streams[0])
 	return fss, err
 }
 
 // parse `btrfs filesystem show` output
-func btrfsParseList(output []byte) ([]btrfsFS, error) {
+func btrfsParseList(output string) ([]btrfsFS, error) {
 	var fss []btrfsFS
 
-	all := strings.Split(string(output), "\n")
-
+	all := strings.Split(output, "\n")
 	if len(all) < 3 {
 		return fss, errBtrfsNoFS
 	}
@@ -126,16 +140,28 @@ func btrfsParseList(output []byte) ([]btrfsFS, error) {
 	var fsLines []string
 	for i, line := range all {
 		line = strings.TrimSpace(line)
-		if line == "" || i == len(all)-1 {
-			if len(fsLines) < 3 { // empty line, ignore it
-				break
+
+		// there are 3 markers of a filesystem
+		// - empty line (original btrfs command)
+		// - line started with `Label` and not first line (PM wrapped command)
+		// - last line (original btrfs command & PM wrapped command)
+		if (strings.HasPrefix(line, "Label") && i != 0) || line == "" || i == len(all)-1 {
+			if !strings.HasPrefix(line, "Label") {
+				fsLines = append(fsLines, line)
+			}
+			if len(fsLines) < 3 {
+				continue
 			}
 			fs, err := btrfsParseFS(fsLines)
 			if err != nil {
 				return fss, err
 			}
 			fss = append(fss, fs)
+
 			fsLines = []string{}
+			if strings.HasPrefix(line, "Label") {
+				fsLines = append(fsLines, line)
+			}
 		} else {
 			fsLines = append(fsLines, line)
 		}
@@ -195,15 +221,19 @@ func btrfsParseFS(lines []string) (btrfsFS, error) {
 func btrfsParseDevices(lines []string) ([]btrfsDevice, error) {
 	var devs []btrfsDevice
 	for _, line := range lines {
-		parts := strings.Fields(line)
-		if len(parts) != 8 {
-			return devs, fmt.Errorf("invalid device line:%v", line)
+		if line == "" {
+			continue
 		}
-		dev := btrfsDevice{
-			DevID: parts[1],
-			Size:  parts[3],
-			Used:  parts[5],
-			Path:  parts[7],
+		var dev btrfsDevice
+		parts := strings.Fields(line)
+		if len(parts) == 8 {
+			dev = btrfsDevice{
+				Missing: false,
+				DevID:   parts[1],
+				Size:    parts[3],
+				Used:    parts[5],
+				Path:    parts[7],
+			}
 		}
 		devs = append(devs, dev)
 	}
