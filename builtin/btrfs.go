@@ -104,23 +104,11 @@ func btrfsCreate(cmd *core.Command) (interface{}, error) {
 	}
 	opts = append(opts, strings.Join(args.Devices, " "))
 
-	shellCmd := &core.Command{
-		ID:      uuid.New(),
-		Command: process.CommandSystem,
-		Arguments: core.MustArguments(
-			process.SystemCommandArguments{
-				Name: "mkfs.btrfs",
-				Args: opts,
-			},
-		),
-	}
-
-	runner, err := pm.GetManager().RunCmd(shellCmd)
+	result, err := runBtrfsCmd("mkfs.btrfs", opts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := runner.Wait()
 	if result.State != core.StateSuccess {
 		return "", fmt.Errorf("error creating btrfs filesystem: %v", result.Streams)
 	}
@@ -129,23 +117,11 @@ func btrfsCreate(cmd *core.Command) (interface{}, error) {
 
 // list btrfs FSs
 func btrfsList(cmd *core.Command) (interface{}, error) {
-	shellCmd := &core.Command{
-		ID:      uuid.New(),
-		Command: process.CommandSystem,
-		Arguments: core.MustArguments(
-			process.SystemCommandArguments{
-				Name: "btrfs",
-				Args: []string{"filesystem", "show", "--raw"},
-			},
-		),
-	}
-
-	runner, err := pm.GetManager().RunCmd(shellCmd)
+	result, err := runBtrfsCmd("btrfs", []string{"filesystem", "show", "--raw"})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := runner.Wait()
 	if result.State != core.StateSuccess || len(result.Streams) == 0 {
 		return "", fmt.Errorf("error listing btrfs filesystem: %v", result.Streams)
 	}
@@ -172,23 +148,11 @@ func btrfsSubvolCreate(cmd *core.Command) (interface{}, error) {
 		return nil, fmt.Errorf("invalid path=%v", args.Path)
 	}
 
-	shellCmd := &core.Command{
-		ID:      uuid.New(),
-		Command: process.CommandSystem,
-		Arguments: core.MustArguments(
-			process.SystemCommandArguments{
-				Name: "btrfs",
-				Args: []string{"subvolume", "create", args.Path},
-			},
-		),
-	}
-
-	runner, err := pm.GetManager().RunCmd(shellCmd)
+	result, err := runBtrfsCmd("btrfs", []string{"subvolume", "create", args.Path})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := runner.Wait()
 	if result.State != core.StateSuccess {
 		return "", fmt.Errorf("error creating btrfs subvolume: %v:%v", result.Streams, result.Data)
 	}
@@ -206,23 +170,11 @@ func btrfsSubvolDelete(cmd *core.Command) (interface{}, error) {
 		return nil, fmt.Errorf("invalid path=%v", args.Path)
 	}
 
-	shellCmd := &core.Command{
-		ID:      uuid.New(),
-		Command: process.CommandSystem,
-		Arguments: core.MustArguments(
-			process.SystemCommandArguments{
-				Name: "btrfs",
-				Args: []string{"subvolume", "delete", args.Path},
-			},
-		),
-	}
-
-	runner, err := pm.GetManager().RunCmd(shellCmd)
+	result, err := runBtrfsCmd("btrfs", []string{"subvolume", "delete", args.Path})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := runner.Wait()
 	if result.State != core.StateSuccess {
 		return "", fmt.Errorf("error deleting btrfs subvolume: %v:%v", result.Streams, result.Data)
 	}
@@ -240,29 +192,35 @@ func btrfsSubvolList(cmd *core.Command) (interface{}, error) {
 		return nil, fmt.Errorf("invalid path=%v", args.Path)
 	}
 
-	shellCmd := &core.Command{
-		ID:      uuid.New(),
-		Command: process.CommandSystem,
-		Arguments: core.MustArguments(
-			process.SystemCommandArguments{
-				Name: "btrfs",
-				Args: []string{"subvolume", "list", args.Path},
-			},
-		),
-	}
-
-	runner, err := pm.GetManager().RunCmd(shellCmd)
+	result, err := runBtrfsCmd("btrfs", []string{"subvolume", "list", args.Path})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := runner.Wait()
 	if result.State != core.StateSuccess || len(result.Streams) != 2 {
 		return "", fmt.Errorf("error list btrfs subvolume: %v:%v", result.Streams, result.Data)
 	}
 	return btrfsParseSubvolList(result.Streams[0])
 }
 
+func runBtrfsCmd(cmd string, args []string) (*core.JobResult, error) {
+	shellCmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: cmd,
+				Args: args,
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(shellCmd)
+	if err != nil {
+		return nil, err
+	}
+	return runner.Wait(), nil
+}
 func btrfsParseSubvolList(out string) ([]btrfsSubvol, error) {
 	var svs []btrfsSubvol
 
