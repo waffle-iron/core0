@@ -71,7 +71,7 @@ type ContainerDispatchArguments struct {
 
 func (c *ContainerCreateArguments) Valid() error {
 	if c.Root == "" {
-		return fmt.Errorf("plist is required")
+		return fmt.Errorf("root plist is required")
 	}
 
 	for host, guest := range c.Mount {
