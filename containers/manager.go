@@ -14,11 +14,10 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/vishvananda/netlink"
 	"io/ioutil"
+	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -59,7 +58,7 @@ type Network struct {
 }
 
 type ContainerCreateArguments struct {
-	PList   string            `json:"plist"`   //Root plist
+	Root    string            `json:"plist"`   //Root plist
 	Mount   map[string]string `json:"mount"`   //data disk mounts.
 	Network Network           `json:"network"` // network setup
 	Port    map[int]int       `json:"port"`    //port forwards
@@ -71,19 +70,28 @@ type ContainerDispatchArguments struct {
 }
 
 func (c *ContainerCreateArguments) Valid() error {
-	if c.PList == "" {
+	if c.Root == "" {
 		return fmt.Errorf("plist is required")
 	}
 
 	for host, guest := range c.Mount {
-		if !path.IsAbs(host) {
+		u, err := url.Parse(host)
+		if err != nil {
+			return fmt.Errorf("invalid host mount: %s", err)
+		}
+		if u.Scheme != "" {
+			//probably a plist
+			continue
+		}
+		p := u.Path
+		if !path.IsAbs(p) {
 			return fmt.Errorf("host path '%s' must be absolute", host)
 		}
 		if !path.IsAbs(guest) {
 			return fmt.Errorf("guest path '%s' must be absolute", guest)
 		}
-		if _, err := os.Stat(host); os.IsNotExist(err) {
-			return fmt.Errorf("host path '%s' does not exist", host)
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			return fmt.Errorf("host path '%s' does not exist", p)
 		}
 	}
 
@@ -201,38 +209,6 @@ func (m *containerManager) getNextSequence() uint64 {
 	return m.sequence
 }
 
-func (m *containerManager) preStart(root string) error {
-	redisSocketTarget := path.Join(root, "redis.socket")
-	coreXTarget := path.Join(root, coreXBinaryName)
-
-	if f, err := os.Create(redisSocketTarget); err == nil {
-		f.Close()
-	} else {
-		log.Errorf("Failed to touch file '%s': %s", redisSocketTarget, err)
-	}
-
-	if f, err := os.Create(coreXTarget); err == nil {
-		f.Close()
-	} else {
-		log.Errorf("Failed to touch file '%s': %s", coreXTarget, err)
-	}
-
-	if err := syscall.Mount(redisSocketSrc, redisSocketTarget, "", syscall.MS_BIND, ""); err != nil {
-		return err
-	}
-
-	coreXSrc, err := exec.LookPath(coreXBinaryName)
-	if err != nil {
-		return err
-	}
-
-	if err := syscall.Mount(coreXSrc, coreXTarget, "", syscall.MS_BIND, ""); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	var args ContainerCreateArguments
 	if err := json.Unmarshal(*cmd.Arguments, &args); err != nil {
@@ -244,48 +220,9 @@ func (m *containerManager) create(cmd *core.Command) (interface{}, error) {
 	}
 
 	id := m.getNextSequence()
-	coreID := fmt.Sprintf("core-%d", id)
+	c := newContainer(id, cmd.Route, &args)
 
-	root, err := m.mountPList(id, args.PList)
-	if err != nil {
-		return nil, err
-	}
-
-	hook := newHook(&args, root, id)
-
-	if err := m.mountData(root, &args); err != nil {
-		hook.cleanup()
-		return nil, err
-	}
-
-	if err := m.preStart(root); err != nil {
-		hook.cleanup()
-		return nil, err
-	}
-	//
-	mgr := pm.GetManager()
-	extCmd := &core.Command{
-		ID:    coreID,
-		Route: cmd.Route,
-		Arguments: core.MustArguments(
-			process.ContainerCommandArguments{
-				Name:   "/coreX",
-				Chroot: root,
-				Dir:    "/",
-				Args: []string{
-					"-core-id", fmt.Sprintf("%d", id),
-					"-redis-socket", "/redis.socket",
-					"-reply-to", coreXResponseQueue,
-				},
-				Env: map[string]string{
-					"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-				},
-			},
-		),
-	}
-
-	_, err = mgr.NewRunner(extCmd, process.NewContainerProcess, hook.onPID, hook.onExit)
-	if err != nil {
+	if err := c.Start(); err != nil {
 		return nil, err
 	}
 

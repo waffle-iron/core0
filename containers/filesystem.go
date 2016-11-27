@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"crypto/md5"
 	"fmt"
 	"github.com/g8os/fs/config"
 	"github.com/g8os/fs/files"
@@ -15,12 +16,15 @@ import (
 )
 
 const (
-	PLIST_DIR               = "/tmp"
-	BACKEND_BASE_DIR        = "/tmp"
-	CONTAINER_BASE_ROOT_DIR = "/mnt"
+	BackendBaseDir       = "/tmp"
+	ContainerBaseRootDir = "/mnt"
 )
 
-func (*containerManager) getPlist(container uint64, src string) (string, error) {
+func (c *container) name() string {
+	return fmt.Sprintf("container-%d", c.id)
+}
+
+func (c *container) getPlist(src string) (string, error) {
 	u, err := url.Parse(src)
 	if err != nil {
 		return "", err
@@ -40,7 +44,9 @@ func (*containerManager) getPlist(container uint64, src string) (string, error) 
 		}
 
 		defer response.Body.Close()
-		name := path.Join(PLIST_DIR, fmt.Sprintf("container-%d.plist", container))
+
+		base := path.Base(u.Path)
+		name := path.Join(BackendBaseDir, c.name(), fmt.Sprintf("%s.plist", base))
 
 		file, err := os.Create(name)
 		if err != nil {
@@ -57,62 +63,93 @@ func (*containerManager) getPlist(container uint64, src string) (string, error) 
 	return "", fmt.Errorf("invalid plist url %s", src)
 }
 
-func (c *containerManager) mountPList(container uint64, src string) (string, error) {
+func (c *container) mountPList(src string, target string) error {
 	//check
-	plist, err := c.getPlist(container, src)
-	if err != nil {
-		return "", err
-	}
-
-	backend := path.Join(BACKEND_BASE_DIR, fmt.Sprintf("container-%d", container))
-	metaBackend := path.Join(BACKEND_BASE_DIR, fmt.Sprintf("container-%d+meta", container))
-
-	target := path.Join(CONTAINER_BASE_ROOT_DIR, fmt.Sprintf("container-%d", container))
+	hash := c.hash(src)
+	backend := path.Join(BackendBaseDir, c.name(), hash)
+	metaBackend := path.Join(BackendBaseDir, c.name(), fmt.Sprintf("%s+meta", hash))
 
 	os.RemoveAll(backend)
 	os.RemoveAll(metaBackend)
-	os.RemoveAll(target)
 
-	for _, p := range []string{backend, target} {
+	for _, p := range []string{backend, metaBackend, target} {
 		if err := os.MkdirAll(p, 0755); err != nil {
-			return "", fmt.Errorf("failed to create mount points '%s': %s", p, err)
+			return fmt.Errorf("failed to create mount points '%s': %s", p, err)
 		}
+	}
+
+	plist, err := c.getPlist(src)
+	if err != nil {
+		return err
 	}
 
 	be := &config.Backend{Path: backend}
 
 	ms := meta.NewFileMetaStore(metaBackend)
 	if err := ms.Populate(plist, "/"); err != nil {
-		return "", err
+		return err
 	}
 
 	u, _ := url.Parse("ipfs://localhost:5001")
 
 	store, err := storage.NewIPFSStorage(u)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	fs, err := files.NewFS(target, be, store, ms, false)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	go fs.Serve()
 
 	fs.WaitMount()
-	return target, nil
+	return nil
 }
 
-func (c *containerManager) mountData(root string, args *ContainerCreateArguments) error {
-	for host, guest := range args.Mount {
-		target := path.Join(root, guest)
+func (c *container) hash(src string) string {
+	m := md5.New()
+	io.WriteString(m, src)
+	return fmt.Sprintf("%x", m.Sum(nil))
+}
+
+func (c *container) root() string {
+	return path.Join(ContainerBaseRootDir, c.name())
+}
+
+func (c *container) mount() error {
+	//mount root plist.
+	//prepare root folder.
+	root := c.root()
+	log.Debugf("Container root: %s", root)
+	os.RemoveAll(root)
+
+	if err := c.mountPList(c.args.Root, root); err != nil {
+		return err
+	}
+
+	for src, dst := range c.args.Mount {
+		target := path.Join(root, dst)
 		if err := os.MkdirAll(target, 0755); err != nil {
 			return err
 		}
-		if err := syscall.Mount(host, target, "", syscall.MS_BIND, ""); err != nil {
-			return err
+		//src can either be a location on HD, or another plist
+		u, err := url.Parse(src)
+		if err != nil {
+			log.Errorf("bad mount source '%s'", u)
+		}
+
+		if u.Scheme == "" {
+			if err := syscall.Mount(src, target, "", syscall.MS_BIND, ""); err != nil {
+				return err
+			}
+		} else {
+			//assume a plist
+			if err := c.mountPList(src, target); err != nil {
+				return err
+			}
 		}
 	}
 

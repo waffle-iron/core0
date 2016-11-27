@@ -9,60 +9,137 @@ import (
 	"github.com/vishvananda/netlink"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"syscall"
 )
 
-type hooks struct {
-	args      *ContainerCreateArguments
-	root      string
-	container uint64
-
-	onPID  pm.RunnerHook
-	onExit pm.RunnerHook
+type container struct {
+	id    uint64
+	route core.Route
+	args  *ContainerCreateArguments
 
 	pid int
 }
 
-func newHook(args *ContainerCreateArguments, root string, container uint64) *hooks {
-	h := &hooks{
-		args:      args,
-		root:      root,
-		container: container,
+func newContainer(id uint64, route core.Route, args *ContainerCreateArguments) *container {
+	return &container{
+		id:    id,
+		route: route,
+		args:  args,
 	}
-
-	h.onPID = &pm.PIDHook{
-		Action: h.onpid,
-	}
-
-	h.onExit = &pm.ExitHook{
-		Action: h.onexit,
-	}
-
-	return h
 }
 
-func (h *hooks) onpid(pid int) {
-	h.pid = pid
-	if err := h.postStart(); err != nil {
+func (c *container) Start() error {
+	coreID := fmt.Sprintf("core-%d", c.id)
+
+	if err := c.mount(); err != nil {
+		c.cleanup()
+		return err
+	}
+
+	if err := c.preStart(); err != nil {
+		c.cleanup()
+		return err
+	}
+	//
+	mgr := pm.GetManager()
+	extCmd := &core.Command{
+		ID:    coreID,
+		Route: c.route,
+		Arguments: core.MustArguments(
+			process.ContainerCommandArguments{
+				Name:   "/coreX",
+				Chroot: c.root(),
+				Dir:    "/",
+				Args: []string{
+					"-core-id", fmt.Sprintf("%d", c.id),
+					"-redis-socket", "/redis.socket",
+					"-reply-to", coreXResponseQueue,
+				},
+				Env: map[string]string{
+					"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+				},
+			},
+		),
+	}
+
+	onpid := &pm.PIDHook{
+		Action: c.onpid,
+	}
+
+	onexit := &pm.ExitHook{
+		Action: c.onexit,
+	}
+
+	_, err := mgr.NewRunner(extCmd, process.NewContainerProcess, onpid, onexit)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *container) preStart() error {
+	//mount up redis socket, coreX binary, etc...
+	root := c.root()
+
+	redisSocketTarget := path.Join(root, "redis.socket")
+	coreXTarget := path.Join(root, coreXBinaryName)
+
+	if f, err := os.Create(redisSocketTarget); err == nil {
+		f.Close()
+	} else {
+		log.Errorf("Failed to touch file '%s': %s", redisSocketTarget, err)
+	}
+
+	if f, err := os.Create(coreXTarget); err == nil {
+		f.Close()
+	} else {
+		log.Errorf("Failed to touch file '%s': %s", coreXTarget, err)
+	}
+
+	if err := syscall.Mount(redisSocketSrc, redisSocketTarget, "", syscall.MS_BIND, ""); err != nil {
+		return err
+	}
+
+	coreXSrc, err := exec.LookPath(coreXBinaryName)
+	if err != nil {
+		return err
+	}
+
+	if err := syscall.Mount(coreXSrc, coreXTarget, "", syscall.MS_BIND, ""); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *container) onpid(pid int) {
+	c.pid = pid
+	if err := c.postStart(); err != nil {
 		log.Errorf("Container post start error: %s", err)
 		//TODO. Should we shut the container down?
 	}
 }
 
-func (h *hooks) onexit(state bool) {
-	log.Debugf("Container %s exited with state %v", h.container, state)
-	h.cleanup()
+func (c *container) onexit(state bool) {
+	log.Debugf("Container %s exited with state %v", c.id, state)
+	c.cleanup()
 }
 
-func (h *hooks) cleanup() {
-	redisSocketTarget := path.Join(h.root, "redis.socket")
-	coreXTarget := path.Join(h.root, coreXBinaryName)
+func (c *container) cleanup() {
+	root := c.root()
 
-	pm.GetManager().Kill(fmt.Sprintf("net-%v", h.container))
+	//remove bridge links
+	for _, bridge := range c.args.Network.Bridge {
+		c.unbridge(bridge)
+	}
 
-	if h.pid > 0 {
-		targetNs := fmt.Sprintf("/run/netns/%v", h.container)
+	pm.GetManager().Kill(fmt.Sprintf("net-%v", c.id))
+
+	if c.pid > 0 {
+		targetNs := fmt.Sprintf("/run/netns/%v", c.id)
 
 		if err := syscall.Unmount(targetNs, 0); err != nil {
 			log.Errorf("Failed to unmount %s: %s", targetNs, err)
@@ -70,35 +147,34 @@ func (h *hooks) cleanup() {
 		os.RemoveAll(targetNs)
 	}
 
-	for _, guest := range h.args.Mount {
-		target := path.Join(h.root, guest)
-		if err := syscall.Unmount(target, syscall.MNT_FORCE); err != nil {
+	for _, guest := range c.args.Mount {
+		target := path.Join(root, guest)
+		if err := syscall.Unmount(target, syscall.MNT_DETACH); err != nil {
 			log.Errorf("Failed to unmount %s: %s", target, err)
 		}
 	}
 
-	if err := syscall.Unmount(redisSocketTarget, syscall.MNT_FORCE); err != nil {
+	redisSocketTarget := path.Join(root, "redis.socket")
+	coreXTarget := path.Join(root, coreXBinaryName)
+
+	if err := syscall.Unmount(redisSocketTarget, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", redisSocketTarget, err)
 	}
 
-	if err := syscall.Unmount(coreXTarget, syscall.MNT_FORCE); err != nil {
+	if err := syscall.Unmount(coreXTarget, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", coreXTarget, err)
 	}
 
-	if err := syscall.Unmount(h.root, syscall.MNT_FORCE); err != nil {
-		log.Errorf("Failed to unmount %s: %s", h.root, err)
+	if err := syscall.Unmount(root, syscall.MNT_DETACH); err != nil {
+		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
 
-	//remove bridge links
-	for _, bridge := range h.args.Network.Bridge {
-		h.unbridge(bridge)
-	}
 }
 
-func (h *hooks) namespace() error {
-	sourceNs := fmt.Sprintf("/proc/%d/ns/net", h.pid)
+func (c *container) namespace() error {
+	sourceNs := fmt.Sprintf("/proc/%d/ns/net", c.pid)
 	os.MkdirAll("/run/netns", 0755)
-	targetNs := fmt.Sprintf("/run/netns/%v", h.container)
+	targetNs := fmt.Sprintf("/run/netns/%v", c.id)
 
 	if f, err := os.Create(targetNs); err == nil {
 		f.Close()
@@ -111,14 +187,14 @@ func (h *hooks) namespace() error {
 	return nil
 }
 
-func (h *hooks) zeroTier(netID string) error {
+func (c *container) zeroTier(netID string) error {
 	args := map[string]interface{}{
-		"netns":    h.container,
+		"netns":    c.id,
 		"zerotier": netID,
 	}
 
 	netcmd := core.Command{
-		ID:        fmt.Sprintf("net-%v", h.container),
+		ID:        fmt.Sprintf("net-%v", c.id),
 		Command:   "zerotier",
 		Arguments: core.MustArguments(args),
 	}
@@ -127,8 +203,8 @@ func (h *hooks) zeroTier(netID string) error {
 	return err
 }
 
-func (h *hooks) unbridge(bridge ContainerBridgeSettings) error {
-	name := fmt.Sprintf("%s-%v", bridge.Name(), h.container)
+func (c *container) unbridge(bridge ContainerBridgeSettings) error {
+	name := fmt.Sprintf("%s-%v", bridge.Name(), c.id)
 
 	link, err := netlink.LinkByName(name)
 	if err != nil {
@@ -138,7 +214,7 @@ func (h *hooks) unbridge(bridge ContainerBridgeSettings) error {
 	return netlink.LinkDel(link)
 }
 
-func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
+func (c *container) bridge(index int, bridge ContainerBridgeSettings) error {
 	link, err := netlink.LinkByName(bridge.Name())
 	if err != nil {
 		return err
@@ -148,8 +224,8 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 		return fmt.Errorf("'%s' is not a bridge", link.Attrs().Name)
 	}
 
-	name := fmt.Sprintf("%s-%v", bridge.Name(), h.container)
-	peerName := fmt.Sprintf("%s-%v-eth%d", bridge.Name(), h.container, index)
+	name := fmt.Sprintf("%s-%v", bridge.Name(), c.id)
+	peerName := fmt.Sprintf("%s-%v-eth%d", bridge.Name(), c.id, index)
 
 	veth := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
@@ -175,7 +251,7 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 		return fmt.Errorf("set up: %s", err)
 	}
 
-	if err := netlink.LinkSetNsPid(peer, h.pid); err != nil {
+	if err := netlink.LinkSetNsPid(peer, c.pid); err != nil {
 		return fmt.Errorf("set ns pid: %s", err)
 	}
 
@@ -194,7 +270,7 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 		Arguments: core.MustArguments(
 			process.SystemCommandArguments{
 				Name: "ip",
-				Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "link", "set", peerName, "name", dev},
+				Args: []string{"netns", "exec", fmt.Sprintf("%v", c.id), "ip", "link", "set", peerName, "name", dev},
 			},
 		),
 	}
@@ -220,7 +296,7 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 			Command: cmdContainerDispatch,
 			Arguments: core.MustArguments(
 				ContainerDispatchArguments{
-					Container: h.container,
+					Container: c.id,
 					Command: core.Command{
 						ID:      "dhcpc",
 						Command: process.CommandSystem,
@@ -253,7 +329,7 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 				Arguments: core.MustArguments(
 					process.SystemCommandArguments{
 						Name: "ip",
-						Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "link", "set", "dev", dev, "up"},
+						Args: []string{"netns", "exec", fmt.Sprintf("%v", c.id), "ip", "link", "set", "dev", dev, "up"},
 					},
 				),
 			}
@@ -275,7 +351,7 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 				Arguments: core.MustArguments(
 					process.SystemCommandArguments{
 						Name: "ip",
-						Args: []string{"netns", "exec", fmt.Sprintf("%v", h.container), "ip", "address", "add", bridge.Setup(), "dev", dev},
+						Args: []string{"netns", "exec", fmt.Sprintf("%v", c.id), "ip", "address", "add", bridge.Setup(), "dev", dev},
 					},
 				),
 			}
@@ -293,21 +369,21 @@ func (h *hooks) bridge(index int, bridge ContainerBridgeSettings) error {
 	return nil
 }
 
-func (h *hooks) postStart() error {
-	if err := h.namespace(); err != nil {
+func (c *container) postStart() error {
+	if err := c.namespace(); err != nil {
 		return err
 	}
 
-	if h.args.Network.ZeroTier != "" {
-		log.Debugf("Joining zerotier networ '%s'", h.args.Network.ZeroTier)
-		if err := h.zeroTier(h.args.Network.ZeroTier); err != nil {
+	if c.args.Network.ZeroTier != "" {
+		log.Debugf("Joining zerotier networ '%s'", c.args.Network.ZeroTier)
+		if err := c.zeroTier(c.args.Network.ZeroTier); err != nil {
 			return err
 		}
 	}
 
-	for i, bridge := range h.args.Network.Bridge {
+	for i, bridge := range c.args.Network.Bridge {
 		log.Debugf("Connecting container to bridge '%s'", bridge)
-		if err := h.bridge(i, bridge); err != nil {
+		if err := c.bridge(i, bridge); err != nil {
 			return err
 		}
 	}

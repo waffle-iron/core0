@@ -86,7 +86,7 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) err
 		"--keep-in-foreground",
 		fmt.Sprintf("--pid-file=/var/run/dnsmasq/%s.pid", bridge.Name),
 		fmt.Sprintf("--interface=%s", bridge.Name),
-		fmt.Sprintf("--dhcp-range=%s,%s,%s,infinite", settings.Start, settings.End, net.IP(addr.Mask)),
+		fmt.Sprintf("--dhcp-range=%s,%s,%s", settings.Start, settings.End, net.IP(addr.Mask)),
 	}
 
 	cmd := &core.Command{
