@@ -58,7 +58,7 @@ type Network struct {
 }
 
 type ContainerCreateArguments struct {
-	Root    string            `json:"plist"`   //Root plist
+	Root    string            `json:"root"`    //Root plist
 	Mount   map[string]string `json:"mount"`   //data disk mounts.
 	Network Network           `json:"network"` // network setup
 	Port    map[int]int       `json:"port"`    //port forwards

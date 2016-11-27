@@ -176,13 +176,14 @@ class ContainerManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, plist_url, mount={}, zerotier=None, bridge=[]):
+    def create(self, root_url, mount={}, zerotier=None, bridge=[]):
         """
         Creater a new container with the given root plist, mount points and
         zerotier id, and connected to the given bridges
-        :param plist_url: The root filesystem plist
+        :param root_url: The root filesystem plist
         :param mount: a dict with {host_source: container_target} mount points.
                       where host_source directory must exists.
+                      host_source can be a url to a plist to mount.
         :param zerotier: An optional zerotier netowrk ID to join
         :param bridge: A dict of tuples as ('bridge_name': 'network_setup')
                        where :network_setup: can be one of the following
@@ -198,7 +199,7 @@ class ContainerManager:
                         `bridge=[('br0', '127.0.0.100/24'), ('br1', 'dhcp')]`
         """
         response = self._client.raw('corex.create', {
-            'plist': plist_url,
+            'root': root_url,
             'mount': mount,
             'network': {
                 'zerotier': zerotier,
@@ -454,7 +455,7 @@ class BtrfsManager:
             raise RuntimeError('failed to create btrfs subvolume %s' % result.data)
 
         return result.data
- 
+
     def subvol_list(self, path):
         """
         List a btrfs subvolume in the specified path
