@@ -202,6 +202,56 @@
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/op/go-logging",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/go-stringutil",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml/ast",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/dsnet/compress/brotli",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/nodefs",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/pathfs",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/BurntSushi/toml",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+		},
+		{
+			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/splice",
+			"Comment": "readonly-98-gfd0d76d",
+			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
 		}
 	]
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/g8os/fs/utils"
+	"io"
 	"os"
 	"os/user"
 	"path"
@@ -125,21 +126,28 @@ func (m metaDir) Children() <-chan Meta {
 		defer close(ch)
 		defer d.Close()
 
-		entries, err := d.Readdir(100)
-		if err != nil {
-			log.Debugf("directory listing err: %s", err)
-			return
-		}
+		for {
+			entries, err := d.Readdir(100)
+			if err != nil && err != io.EOF {
+				log.Debugf("directory listing err: %s", err)
+				return
+			}
 
-		for _, entry := range entries {
-			fullname := path.Join(string(m), entry.Name())
-			log.Debugf("child: %s", fullname)
-			if entry.IsDir() {
-				ch <- metaDir(fullname)
-			} else {
-				ch <- metaFile(fullname)
+			for _, entry := range entries {
+				fullname := path.Join(string(m), entry.Name())
+				log.Debugf("child: %s", fullname)
+				if entry.IsDir() {
+					ch <- metaDir(fullname)
+				} else {
+					ch <- metaFile(fullname)
+				}
+			}
+
+			if err == io.EOF {
+				return
 			}
 		}
+
 	}()
 
 	return ch
