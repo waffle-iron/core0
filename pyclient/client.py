@@ -252,11 +252,12 @@ class BridgeManager:
                             settings={'cidr': 'ip/net'}
                             bridge will get assigned the given IP address
                         dnsmasq:
-                            settings={'cidr': 'ip/net', 'start': 'ip', 'end': 'ip'}
+                            settings={'cidr': 'ip/net', 'start': 'ip', 'end': 'ip', 'nat': true}
                             bridge will get assigned the ip in cidr
                             and each running container that is attached to this IP will get
                             IP from the start/end range. Netmask of the range is the netmask
                             part of the provided cidr.
+                            if nat is true, SNAT rules will be automatically added in the firewall.
         """
         response = self._client.raw('bridge.create', {
             'name': name,

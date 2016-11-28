@@ -1,6 +1,7 @@
 package builtin
 
 import (
+	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"fmt"
 	"github.com/g8os/core.base/pm"
@@ -23,6 +24,19 @@ const (
 	StaticBridgeNetworkMode  BridgeNetworkMode = "static"
 )
 
+const nftScript = `
+nft add table nat
+nft add chain nat pre { type nat hook prerouting priority 0 \; policy accept \;}
+nft add chain nat post { type nat hook postrouting priority 0 \; policy accept \;}
+
+nft add table filter
+nft add chain filter input { type filter hook input priority 0 \; policy accept\; }
+nft add chain filter forward { type filter hook forward priority 0 \; policy accept\; }
+nft add chain filter output { type filter hook output priority 0 \; policy accept\; }
+
+nft add rule  nat post ip saddr %s masquerade
+`
+
 type BridgeNetworkMode string
 
 type NetworkStaticSettings struct {
@@ -33,6 +47,7 @@ type NetworkDnsMasqSettings struct {
 	NetworkStaticSettings
 	Start net.IP `json:"start"`
 	End   net.IP `json:"end"`
+	Nat   bool
 }
 
 type BridgeNetwork struct {
@@ -87,6 +102,7 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) err
 		fmt.Sprintf("--pid-file=/var/run/dnsmasq/%s.pid", bridge.Name),
 		fmt.Sprintf("--interface=%s", bridge.Name),
 		fmt.Sprintf("--dhcp-range=%s,%s,%s", settings.Start, settings.End, net.IP(addr.Mask)),
+		"--dhcp-option=6,8.8.8.8",
 	}
 
 	cmd := &core.Command{
@@ -110,7 +126,30 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) err
 
 	log.Debugf("dnsmasq(%s): %s", bridge.Name, args)
 	_, err = pm.GetManager().RunCmd(cmd, onExit)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	if settings.Nat {
+		//enable natting
+		nat := &core.Command{
+			ID:      uuid.New(),
+			Command: "bash",
+			Arguments: core.MustArguments(
+				map[string]string{
+					"stdin": fmt.Sprintf(nftScript, addr.IPNet.String()),
+				},
+			),
+		}
+
+		_, err := pm.GetManager().RunCmd(nat)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func bridgeNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
