@@ -385,7 +385,7 @@ func (c *container) setDefaultGateway() error {
 			process.SystemCommandArguments{
 				Name: "ip",
 				Args: []string{"netns", "exec", fmt.Sprintf("%v", c.id),
-					"ip", "route", "add", "default", "via", DefaultBridgeIP},
+					"ip", "route", "add", "metric", "1000", "default", "via", DefaultBridgeIP, "dev", "eth0"},
 			},
 		),
 	}

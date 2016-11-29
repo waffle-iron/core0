@@ -145,7 +145,7 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) (*n
 		fmt.Sprintf("--listen-address=%s", addr.IP),
 		fmt.Sprintf("--interface=%s", bridge.Name),
 		fmt.Sprintf("--dhcp-range=%s,%s,%s", settings.Start, settings.End, net.IP(addr.Mask)),
-		"--dhcp-option=6,8.8.8.8",
+		fmt.Sprintf("--dhcp-option=6,%s", addr.IP),
 		"--bind-interfaces",
 		"--except-interface=lo",
 	}
