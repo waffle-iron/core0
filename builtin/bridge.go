@@ -1,12 +1,12 @@
 package builtin
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"fmt"
 	"github.com/g8os/core.base/pm"
 	"github.com/g8os/core.base/pm/core"
 	"github.com/g8os/core.base/pm/process"
+	"github.com/pborman/uuid"
 	"github.com/vishvananda/netlink"
 	"net"
 	"os"
