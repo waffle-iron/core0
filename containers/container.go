@@ -15,14 +15,14 @@ import (
 )
 
 type container struct {
-	id    uint64
+	id    uint16
 	route core.Route
 	args  *ContainerCreateArguments
 
 	pid int
 }
 
-func newContainer(id uint64, route core.Route, args *ContainerCreateArguments) *container {
+func newContainer(id uint16, route core.Route, args *ContainerCreateArguments) *container {
 	return &container{
 		id:    id,
 		route: route,
@@ -322,7 +322,7 @@ func (c *container) bridge(index int, bridge ContainerBridgeSettings) error {
 		}
 
 		{
-			//setting up the interface
+			//putting the interface up
 			cmd := &core.Command{
 				ID:      uuid.New(),
 				Command: process.CommandSystem,
@@ -345,6 +345,7 @@ func (c *container) bridge(index int, bridge ContainerBridgeSettings) error {
 		}
 
 		{
+			//setting the ip address
 			cmd := &core.Command{
 				ID:      uuid.New(),
 				Command: process.CommandSystem,
@@ -369,6 +370,50 @@ func (c *container) bridge(index int, bridge ContainerBridgeSettings) error {
 	return nil
 }
 
+func (c *container) getDefaultIP() net.IP {
+	base := c.id + 1
+	//we increment the ID to avoid getting the ip of the bridge itself.
+	return net.IPv4(BridgeIP[0], BridgeIP[1], byte(base&0xff00>>8), byte(base&0x00ff))
+}
+
+func (c *container) setDefaultGateway() error {
+	////setting the ip address
+	cmd := &core.Command{
+		ID:      uuid.New(),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "ip",
+				Args: []string{"netns", "exec", fmt.Sprintf("%v", c.id),
+					"ip", "route", "add", "default", "via", DefaultBridgeIP},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	result := runner.Wait()
+	if result.State != core.StateSuccess {
+		return fmt.Errorf("error settings interface ip: %v", result.Streams)
+	}
+	return nil
+}
+
+func (c *container) setDefaultDNS() error {
+	file, err := os.OpenFile(path.Join(c.root(), "etc", "resolv.conf"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	_, err = file.WriteString(fmt.Sprintf("\nnameserver %s\n", DefaultBridgeIP))
+
+	return err
+}
+
 func (c *container) postStart() error {
 	if err := c.namespace(); err != nil {
 		return err
@@ -383,9 +428,29 @@ func (c *container) postStart() error {
 
 	for i, bridge := range c.args.Network.Bridge {
 		log.Debugf("Connecting container to bridge '%s'", bridge)
-		if err := c.bridge(i, bridge); err != nil {
+		if err := c.bridge(i+1, bridge); err != nil {
 			return err
 		}
+	}
+
+	//Add to the default bridge
+	brdige := ContainerBridgeSettings{
+		DefaultBridgeName,
+		fmt.Sprintf("%s/16", c.getDefaultIP()),
+	}
+
+	if err := c.bridge(0, brdige); err != nil {
+		return err
+	}
+
+	//set default gateway
+	if err := c.setDefaultGateway(); err != nil {
+		log.Errorf("Failed to set default gateway: %", err)
+	}
+
+	//set nameserver.
+	if err := c.setDefaultDNS(); err != nil {
+		log.Errorf("Failed to set default nameserver: %s", err)
 	}
 
 	return nil

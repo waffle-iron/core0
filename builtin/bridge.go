@@ -47,11 +47,11 @@ type NetworkDnsMasqSettings struct {
 	NetworkStaticSettings
 	Start net.IP `json:"start"`
 	End   net.IP `json:"end"`
-	Nat   bool
 }
 
 type BridgeNetwork struct {
 	Mode     BridgeNetworkMode `json:"mode"`
+	Nat      bool              `json:"nat"`
 	Settings json.RawMessage   `json:"settings"`
 }
 
@@ -65,44 +65,31 @@ type BridgeDeleteArguments struct {
 	Name string `json:"name"`
 }
 
-func bridgeStaticNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
+func bridgeStaticNetworking(bridge *netlink.Bridge, network *BridgeNetwork) (*netlink.Addr, error) {
 	var settings NetworkStaticSettings
 	if err := json.Unmarshal(network.Settings, &settings); err != nil {
-		return err
+		return nil, err
 	}
 
 	addr, err := netlink.ParseAddr(settings.CIDR)
 	if err != nil {
-		return err
-	}
-
-	return netlink.AddrAdd(bridge, addr)
-}
-
-func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
-	var settings NetworkDnsMasqSettings
-	if err := json.Unmarshal(network.Settings, &settings); err != nil {
-		return err
-	}
-
-	os.MkdirAll("/var/run/dnsmasq", 0755)
-
-	addr, err := netlink.ParseAddr(settings.CIDR)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := netlink.AddrAdd(bridge, addr); err != nil {
-		return err
+		return nil, err
 	}
+
+	//we still dnsmasq also for the default bridge for dns resolving.
 
 	args := []string{
 		"--no-hosts",
 		"--keep-in-foreground",
 		fmt.Sprintf("--pid-file=/var/run/dnsmasq/%s.pid", bridge.Name),
+		fmt.Sprintf("--listen-address=%s", addr.IP),
 		fmt.Sprintf("--interface=%s", bridge.Name),
-		fmt.Sprintf("--dhcp-range=%s,%s,%s", settings.Start, settings.End, net.IP(addr.Mask)),
-		"--dhcp-option=6,8.8.8.8",
+		"--bind-interfaces",
+		"--except-interface=lo",
 	}
 
 	cmd := &core.Command{
@@ -128,11 +115,90 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) err
 	_, err = pm.GetManager().RunCmd(cmd, onExit)
 
 	if err != nil {
+		return nil, err
+	}
+
+	return addr, nil
+}
+
+func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) (*netlink.Addr, error) {
+	var settings NetworkDnsMasqSettings
+	if err := json.Unmarshal(network.Settings, &settings); err != nil {
+		return nil, err
+	}
+
+	os.MkdirAll("/var/run/dnsmasq", 0755)
+
+	addr, err := netlink.ParseAddr(settings.CIDR)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := netlink.AddrAdd(bridge, addr); err != nil {
+		return nil, err
+	}
+
+	args := []string{
+		"--no-hosts",
+		"--keep-in-foreground",
+		fmt.Sprintf("--pid-file=/var/run/dnsmasq/%s.pid", bridge.Name),
+		fmt.Sprintf("--listen-address=%s", addr.IP),
+		fmt.Sprintf("--interface=%s", bridge.Name),
+		fmt.Sprintf("--dhcp-range=%s,%s,%s", settings.Start, settings.End, net.IP(addr.Mask)),
+		"--dhcp-option=6,8.8.8.8",
+		"--bind-interfaces",
+		"--except-interface=lo",
+	}
+
+	cmd := &core.Command{
+		ID:      fmt.Sprintf("dnsmasq-%s", bridge.Name),
+		Command: process.CommandSystem,
+		Arguments: core.MustArguments(
+			process.SystemCommandArguments{
+				Name: "dnsmasq",
+				Args: args,
+			},
+		),
+	}
+
+	onExit := &pm.ExitHook{
+		Action: func(state bool) {
+			if !state {
+				log.Errorf("dnsmasq for %s exited with an error", bridge.Name)
+			}
+		},
+	}
+
+	log.Debugf("dnsmasq(%s): %s", bridge.Name, args)
+	_, err = pm.GetManager().RunCmd(cmd, onExit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return addr, nil
+}
+
+func bridgeNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
+	var addr *netlink.Addr
+	var err error
+	switch network.Mode {
+	case StaticBridgeNetworkMode:
+		addr, err = bridgeStaticNetworking(bridge, network)
+	case DnsMasqBridgeNetworkMode:
+		addr, err = bridgeDnsMasqNetworking(bridge, network)
+	case NoneBridgeNetworkMode:
+		return nil
+	default:
+		return fmt.Errorf("invalid networking mode %s", network.Mode)
+	}
+
+	if err != nil {
 		return err
 	}
 
-	if settings.Nat {
-		//enable natting
+	if network.Nat {
+		//enable nat-ting
 		nat := &core.Command{
 			ID:      uuid.New(),
 			Command: "bash",
@@ -147,21 +213,6 @@ func bridgeDnsMasqNetworking(bridge *netlink.Bridge, network *BridgeNetwork) err
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func bridgeNetworking(bridge *netlink.Bridge, network *BridgeNetwork) error {
-	switch network.Mode {
-	case StaticBridgeNetworkMode:
-		return bridgeStaticNetworking(bridge, network)
-	case DnsMasqBridgeNetworkMode:
-		return bridgeDnsMasqNetworking(bridge, network)
-	case NoneBridgeNetworkMode:
-		//nothing to do
-	default:
-		return fmt.Errorf("invalid networking mode %s", network.Mode)
 	}
 
 	return nil

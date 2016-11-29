@@ -32,6 +32,14 @@ const (
 
 	redisSocketSrc     = "/var/run/redis.socket"
 	zeroTierScriptPath = "/tmp/zerotier.sh"
+
+	DefaultBridgeName = "core-0"
+)
+
+var (
+	BridgeIP          = []byte{172, 18, 0, 1}
+	DefaultBridgeIP   = fmt.Sprintf("%d.%d.%d.%d", BridgeIP[0], BridgeIP[1], BridgeIP[2], BridgeIP[3])
+	DefaultBridgeCIDR = fmt.Sprintf("%s/16", DefaultBridgeIP)
 )
 
 var (
@@ -65,7 +73,7 @@ type ContainerCreateArguments struct {
 }
 
 type ContainerDispatchArguments struct {
-	Container uint64       `json:"container"`
+	Container uint16       `json:"container"`
 	Command   core.Command `json:"command"`
 }
 
@@ -119,7 +127,7 @@ func (c *ContainerCreateArguments) Valid() error {
 }
 
 type containerManager struct {
-	sequence uint64
+	sequence uint16
 	mutex    sync.Mutex
 
 	pool   *redis.Pool
@@ -137,7 +145,7 @@ TODO:
 	to run it.
 */
 
-func Containers(sinks map[string]base.SinkClient) {
+func ContainerSubsystem(sinks map[string]base.SinkClient) error {
 	containerMgr := &containerManager{
 		pool:  utils.NewRedisPool("unix", redisSocketSrc, ""),
 		sinks: sinks,
@@ -145,7 +153,7 @@ func Containers(sinks map[string]base.SinkClient) {
 
 	script, err := assets.Asset("scripts/network.sh")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := ioutil.WriteFile(
@@ -153,7 +161,7 @@ func Containers(sinks map[string]base.SinkClient) {
 		script,
 		0754,
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
@@ -163,7 +171,43 @@ func Containers(sinks map[string]base.SinkClient) {
 	pm.CmdMap[cmdContainerDispatch] = process.NewInternalProcessFactory(containerMgr.dispatch)
 	pm.CmdMap[cmdContainerTerminate] = process.NewInternalProcessFactory(containerMgr.terminate)
 
+	if err := containerMgr.setUpDefaultBridge(); err != nil {
+		return err
+	}
+
 	go containerMgr.startForwarder()
+
+	return nil
+}
+
+func (m *containerManager) setUpDefaultBridge() error {
+	cmd := &core.Command{
+		ID:      uuid.New(),
+		Command: "bridge.create",
+		Arguments: core.MustArguments(
+			core.M{
+				"name": DefaultBridgeName,
+				"network": core.M{
+					"nat":  true,
+					"mode": "static",
+					"settings": core.M{
+						"cidr": DefaultBridgeCIDR,
+					},
+				},
+			},
+		),
+	}
+
+	runner, err := pm.GetManager().RunCmd(cmd)
+	if err != nil {
+		return err
+	}
+	result := runner.Wait()
+	if result.State != core.StateSuccess {
+		return fmt.Errorf("failed to create default container bridge: %s", result.Data)
+	}
+
+	return nil
 }
 
 func (m *containerManager) forwardNext() error {
@@ -202,7 +246,7 @@ func (m *containerManager) startForwarder() {
 	}
 }
 
-func (m *containerManager) getNextSequence() uint64 {
+func (m *containerManager) getNextSequence() uint16 {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.sequence += 1
@@ -250,7 +294,7 @@ func (m *containerManager) list(cmd *core.Command) (interface{}, error) {
 	return containers, nil
 }
 
-func (m *containerManager) getCoreXQueue(id uint64) string {
+func (m *containerManager) getCoreXQueue(id uint16) string {
 	return fmt.Sprintf("core:%v", id)
 }
 

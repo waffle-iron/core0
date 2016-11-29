@@ -97,7 +97,9 @@ func main() {
 	}
 
 	//start/register containers commands and process
-	containers.Containers(sinks)
+	if err := containers.ContainerSubsystem(sinks); err != nil {
+		log.Errorf("failed to intialize container subsystem", err)
+	}
 
 	//start jobs sinks.
 	log.Infof("Starting Sinks")

@@ -239,12 +239,13 @@ class BridgeManager:
     def __init__(self, client):
         self._client = client
 
-    def create(self, name, hwaddr=None, network=None, settings={}):
+    def create(self, name, hwaddr=None, network=None, nat=False, settings={}):
         """
         Create a bridge with the given name, hwaddr and networking setup
         :param name: name of the bridge (must be unique)
         :param hwaddr: MAC address of the bridge. If none, a one will be created for u
         :param network: Networking mode, options are none, static, and dnsmasq
+        :param nat: If true, SNAT will be enabled on this bridge.
         :param settings: Networking setting, depending on the selected mode.
                         None:
                             no settings, bridge won't get any ip settings
@@ -252,7 +253,7 @@ class BridgeManager:
                             settings={'cidr': 'ip/net'}
                             bridge will get assigned the given IP address
                         dnsmasq:
-                            settings={'cidr': 'ip/net', 'start': 'ip', 'end': 'ip', 'nat': true}
+                            settings={'cidr': 'ip/net', 'start': 'ip', 'end': 'ip'}
                             bridge will get assigned the ip in cidr
                             and each running container that is attached to this IP will get
                             IP from the start/end range. Netmask of the range is the netmask
@@ -264,6 +265,7 @@ class BridgeManager:
             'hwaddr': hwaddr,
             'network': {
                 'mode': network,
+                'nat': nat,
                 'settings': settings,
             }
         })
