@@ -15,6 +15,9 @@ FROM ubuntu:16.04
 RUN apt-get update && \
     apt-get install -y wget && \
     apt-get install -y fuse && \
+    apt-get install -y iproute2 && \
+    apt-get install -y nftables && \
+    apt-get install -y dnsmasq && \
     apt-get install -y redis-server
 
 RUN wget -O /tmp/ipfs.tgz https://dist.ipfs.io/go-ipfs/v0.4.4/go-ipfs_v0.4.4_linux-amd64.tar.gz && \
