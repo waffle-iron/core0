@@ -26,39 +26,39 @@
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/builtin",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/core",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/process",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/stream",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/settings",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/stats",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/utils",
-			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
+			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/config",

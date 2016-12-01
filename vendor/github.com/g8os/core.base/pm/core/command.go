@@ -23,6 +23,8 @@ type Command struct {
 	Route Route `json:"-"`
 }
 
+type M map[string]interface{}
+
 func MustArguments(args interface{}) *json.RawMessage {
 	bytes, err := json.Marshal(args)
 	if err != nil {
