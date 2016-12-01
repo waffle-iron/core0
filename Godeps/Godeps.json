@@ -21,44 +21,13 @@
 			"Rev": "c1c3bd7e847a231b2b1f9592fa86182a121ad734"
 		},
 		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Comment": "v1.0.0-9-g346938d",
+			"Rev": "346938d642f2ec3594ed81d874461961cd0faa76"
+		},
+		{
 			"ImportPath": "github.com/dsnet/compress/brotli",
 			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/builtin",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/pm",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/pm/core",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/pm/process",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/pm/stream",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/settings",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/stats",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
-		},
-		{
-			"ImportPath": "github.com/g8os/core.base/utils",
-			"Rev": "cff34b972f185886b7fcac9091d90074028392f9"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/config",
@@ -153,6 +122,10 @@
 			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
 		},
 		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
 			"ImportPath": "github.com/shirou/gopsutil/cpu",
 			"Comment": "v2.0.0-1-g5daf090",
 			"Rev": "5daf090513cd856198b04a3f65dd7539c7602112"
@@ -192,6 +165,11 @@
 			"Rev": "ada3ba68f000aa1b58580e45c9d308fe0b7fc5c5"
 		},
 		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.1.4-4-g976c720",
+			"Rev": "976c720a22c8eb4eb6a0b4348ad85ad12491a506"
+		},
+		{
 			"ImportPath": "github.com/vishvananda/netlink",
 			"Rev": "adb0f53af689dd38f1443eba79489feaacf0b22e"
 		},
@@ -202,56 +180,6 @@
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/op/go-logging",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/go-stringutil",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml/ast",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/dsnet/compress/brotli",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/nodefs",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/pathfs",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/BurntSushi/toml",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/splice",
-			"Comment": "readonly-99-g698ac79",
-			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		}
 	]
 }
