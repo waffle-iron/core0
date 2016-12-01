@@ -5,16 +5,16 @@ import (
 	"github.com/g8os/core0/base/pm"
 	pmcore "github.com/g8os/core0/base/pm/core"
 	"github.com/g8os/core0/base/settings"
-	"github.com/g8os/core0/core/bootstrap"
-	"github.com/g8os/core0/core/logger"
+	"github.com/g8os/core0/core0/bootstrap"
+	"github.com/g8os/core0/core0/logger"
 	"github.com/op/go-logging"
 	"time"
 
 	"fmt"
 	_ "github.com/g8os/core0/base/builtin"
-	_ "github.com/g8os/core0/core/builtin"
-	"github.com/g8os/core0/core/containers"
-	"github.com/g8os/core0/core/options"
+	_ "github.com/g8os/core0/core0/builtin"
+	"github.com/g8os/core0/core0/containers"
+	"github.com/g8os/core0/core0/options"
 )
 
 var (

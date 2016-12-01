@@ -23,8 +23,8 @@ RUN wget -O /tmp/ipfs.tgz https://dist.ipfs.io/go-ipfs/v0.4.4/go-ipfs_v0.4.4_lin
 
 Make sure that you build both core0 and coreX as following
 ```bash
-go get github.com/g8os/core0
-go get github.com/g8os/coreX
+go get github.com/g8os/core0/core
+go get github.com/g8os/core0/corex
 ```
 
 The do 
@@ -33,10 +33,10 @@ cd $GOPATH/src/github.com/g8os/core0
 # then start the docker container
 docker run --privileged -d \
     --name core0 \
-    -v `pwd`/core0:/usr/sbin/core0 \
-    -v `pwd`/../coreX/coreX:/usr/sbin/coreX \
-    -v `pwd`/g8os.dev.toml:/root/core.toml \
-    -v `pwd`/conf:/root/conf \
+    -v `pwd`/core0/core0:/usr/sbin/core0 \
+    -v `pwd`/coreX/coreX:/usr/sbin/coreX \
+    -v `pwd`/core0/g8os.dev.toml:/root/core.toml \
+    -v `pwd`/core0/conf:/root/conf \
     corebase \
     core0 -c /root/core.toml
 ```

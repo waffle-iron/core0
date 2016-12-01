@@ -8,7 +8,7 @@ import (
 	"github.com/g8os/core0/base/pm/core"
 	"github.com/g8os/core0/base/pm/process"
 	"github.com/g8os/core0/base/utils"
-	"github.com/g8os/core0/core/assets"
+	"github.com/g8os/core0/core0/assets"
 	"github.com/garyburd/redigo/redis"
 	"github.com/op/go-logging"
 	"github.com/pborman/uuid"

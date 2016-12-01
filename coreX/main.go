@@ -6,14 +6,14 @@ import (
 	"github.com/g8os/core0/base/pm"
 	pmcore "github.com/g8os/core0/base/pm/core"
 	"github.com/g8os/core0/base/settings"
-	"github.com/g8os/core0/corex/bootstrap"
-	"github.com/g8os/core0/corex/logger"
-	"github.com/g8os/core0/corex/options"
+	"github.com/g8os/core0/coreX/bootstrap"
+	"github.com/g8os/core0/coreX/logger"
+	"github.com/g8os/core0/coreX/options"
 	"github.com/op/go-logging"
 	"os"
 
 	_ "github.com/g8os/core0/base/builtin"
-	_ "github.com/g8os/core0/corex/builtin"
+	_ "github.com/g8os/core0/coreX/builtin"
 )
 
 var (
