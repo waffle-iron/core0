@@ -15,6 +15,7 @@ import (
 	_ "github.com/g8os/core0/core0/builtin"
 	"github.com/g8os/core0/core0/containers"
 	"github.com/g8os/core0/core0/options"
+	"os"
 )
 
 var (
@@ -22,8 +23,19 @@ var (
 )
 
 func init() {
-	formatter := logging.MustStringFormatter("%{color}%{module} %{level:.1s} > %{message} %{color:reset}")
+	l, err := os.Create("/var/log/core.log")
+	if err != nil {
+		panic(err)
+	}
+
+	formatter := logging.MustStringFormatter("%{time}: %{color}%{module} %{level:.1s} > %{message} %{color:reset}")
 	logging.SetFormatter(formatter)
+
+	logging.SetBackend(
+		logging.NewLogBackend(os.Stdout, "", 0),
+		logging.NewLogBackend(l, "", 0),
+	)
+
 }
 
 func main() {
