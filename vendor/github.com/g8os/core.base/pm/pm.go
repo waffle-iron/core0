@@ -343,6 +343,7 @@ func (pm *PM) RunSlice(slice settings.StartupSlice) {
 
 			} else {
 				log.Errorf("Can't start %s because one of the dependencies failed", c)
+				state.Release(c.ID, false)
 			}
 		}(startup, cmd)
 	}

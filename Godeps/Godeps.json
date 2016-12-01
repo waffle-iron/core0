@@ -26,69 +26,69 @@
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/builtin",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/core",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/process",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/pm/stream",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/settings",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/stats",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/core.base/utils",
-			"Rev": "c20cad96eb1b8e20c60e8d5d46545d6d38980a92"
+			"Rev": "eda8e48c2a16c5580365a8b87db657f73af27ba1"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/config",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/crypto",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/files",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/meta",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/storage",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/utils",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
@@ -205,53 +205,53 @@
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/op/go-logging",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/go-stringutil",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml/ast",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/dsnet/compress/brotli",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/nodefs",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/pathfs",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/BurntSushi/toml",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		},
 		{
 			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/splice",
-			"Comment": "readonly-98-gfd0d76d",
-			"Rev": "fd0d76d96e5dc63e7fdaa94b6de9848e8797faf1"
+			"Comment": "readonly-99-g698ac79",
+			"Rev": "698ac79daab5c8d193cf203e039acedf43fb49dd"
 		}
 	]
 }
