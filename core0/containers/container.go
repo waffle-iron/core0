@@ -131,6 +131,8 @@ func (c *container) onexit(state bool) {
 func (c *container) cleanup() {
 	root := c.root()
 
+	//TODO: remove port forwards
+
 	//remove bridge links
 	for _, bridge := range c.args.Network.Bridge {
 		c.unbridge(bridge)
@@ -414,6 +416,35 @@ func (c *container) setDefaultDNS() error {
 	return err
 }
 
+func (c *container) setPortForwards() error {
+	for host, container := range c.args.Port {
+		//nft add rule nat prerouting iif eth0 tcp dport { 80, 443 } dnat 192.168.1.120
+		cmd := &core.Command{
+			Command: process.CommandSystem,
+			Arguments: core.MustArguments(
+				process.SystemCommandArguments{
+					Name: "nft",
+					Args: []string{
+						"add", "rule", "nat", "pre", "tcp",
+						"dport", fmt.Sprintf("%d", host),
+						"dnat", fmt.Sprintf("%s:%d", c.getDefaultIP(), container),
+					},
+				},
+			),
+		}
+
+		runner, err := pm.GetManager().RunCmd(cmd)
+		if err != nil {
+			return err
+		}
+		result := runner.Wait()
+		if result.State != core.StateSuccess {
+			return fmt.Errorf("failed to forward port %d:%d err: %v", host, container, result.Streams)
+		}
+	}
+
+	return nil
+}
 func (c *container) postStart() error {
 	if err := c.namespace(); err != nil {
 		return err
@@ -451,6 +482,10 @@ func (c *container) postStart() error {
 	//set nameserver.
 	if err := c.setDefaultDNS(); err != nil {
 		log.Errorf("Failed to set default nameserver: %s", err)
+	}
+
+	if err := c.setPortForwards(); err != nil {
+		log.Errorf("Failed to setup port forwarding: %s", err)
 	}
 
 	return nil
