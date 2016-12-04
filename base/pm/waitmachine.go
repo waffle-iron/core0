@@ -64,6 +64,10 @@ func (s *waitMachineImpl) Release(key string, state bool) error {
 	}
 
 	w.s = state
+	defer func() {
+		//recover from closing a closed channel
+		recover()
+	}()
 	close(w.ch)
 
 	return nil
