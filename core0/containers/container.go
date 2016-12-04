@@ -449,7 +449,7 @@ func (c *container) setPortForwards() error {
 		onExit := &pm.ExitHook{
 			Action: func(s bool) {
 				if !s {
-					log.Errorf("Port forward %d:%d container: %d exited", host, container, c.id)
+					log.Infof("Port forward %d:%d container: %d exited", host, container, c.id)
 				}
 			},
 		}
