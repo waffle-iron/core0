@@ -59,6 +59,13 @@ func main() {
 
 	var config = settings.Settings
 
+	level, err := logging.LogLevel(config.Main.LogLevel)
+	if err != nil {
+		log.Fatal("invalid log level: %s", settings.Settings.Main.LogLevel)
+	}
+
+	logging.SetLevel(level, "")
+
 	pm.InitProcessManager(config.Main.MaxJobs)
 
 	//start process mgr.
@@ -74,7 +81,7 @@ func main() {
 
 	//configure logging handlers from configurations
 	log.Infof("Configure logging")
-	logger.ConfigureLogging()
+	logger.InitLogging()
 
 	//start local transport
 	log.Infof("Starting local transport")
@@ -87,6 +94,9 @@ func main() {
 
 	bs := bootstrap.NewBootstrap()
 	bs.Bootstrap()
+
+	// start logs forwarder
+	logger.StartForwarder()
 
 	sinkID := fmt.Sprintf("default")
 
