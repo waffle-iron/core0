@@ -447,8 +447,6 @@ class BtrfsManager:
         if result.state != 'SUCCESS':
             raise RuntimeError('failed to create btrfs FS %s' % result.data)
 
-        return result.data
-
     def subvol_create(self, path):
         """
         Create a btrfs subvolume in the specified path
@@ -460,8 +458,6 @@ class BtrfsManager:
 
         if result.state != 'SUCCESS':
             raise RuntimeError('failed to create btrfs subvolume %s' % result.data)
-
-        return result.data
 
     def subvol_list(self, path):
         """
@@ -492,8 +488,6 @@ class BtrfsManager:
         if result.state != 'SUCCESS':
             raise RuntimeError('failed to list btrfs subvolume %s' % result.data)
 
-        return result.data
-
 
 class Client(BaseClient):
     def __init__(self, host, port=6379, password="", db=0):
@@ -503,6 +497,7 @@ class Client(BaseClient):
         self._container_manager = ContainerManager(self)
         self._bridge_manager = BridgeManager(self)
         self._disk_manager = DiskManager(self)
+        self._btrfs_manager = BtrfsManager(self)
 
     @property
     def container(self):
@@ -515,6 +510,10 @@ class Client(BaseClient):
     @property
     def disk(self):
         return self._disk_manager
+
+    @property
+    def btrfs(self):
+        return self._btrfs_manager
 
     def raw(self, command, arguments):
         id = str(uuid.uuid4())
@@ -538,4 +537,3 @@ class Client(BaseClient):
 
     def response_for(self, id):
         return Response(self, id)
-
