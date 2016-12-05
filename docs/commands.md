@@ -24,34 +24,41 @@ When starts it first configure the networking then. It also starts a local redis
 
 The `Core0` Core understands a very specific set of management commands:
 
-- Basic
- - core.ping
- - core.system
- - core.kill
- - core.killall
- - core.state
- - core.reboot
-- Info
- - info.cpu
- - info.disk
- - info.mem
- - info.nic
- - info.os
-- CoreX
- - corex.create
- - corex.list
- - corex.dispatch
- - corex.terminate
+- Basic Commands
+    - core.ping
+    - core.system
+    - core.kill
+    - core.killall
+    - core.state
+    - core.reboot
+- Info Query
+    - info.cpu
+    - info.disk
+    - info.mem
+    - info.nic
+    - info.os
+- CoreX Management
+    - corex.create
+    - corex.list
+    - corex.dispatch
+    - corex.terminate
 - Bridge
- - bridge.create
- - bridge.list
- - bridge.delete
-- Btrfs
- - btrfs.create
- - btrfs.list
- - btrfs.subvol_create
- - btrfs.subvol_list
- - btrfs.subvol_delete
+    - bridge.create
+    - bridge.list
+    - bridge.delete
+- Disk Management
+    - disk.list
+    - disk.mktable
+    - disk.mkpart
+    - disk.rmpart
+    - disk.mount
+    - disk.umount
+- Btrfs Management
+    - btrfs.create
+    - btrfs.list
+    - btrfs.subvol_create
+    - btrfs.subvol_list
+    - btrfs.subvol_delete
 
 ## Commands arguments
 ### core.ping
@@ -178,7 +185,63 @@ Arguments:
 ```
 Delete the given bridge name
 
-## btrfs.create
+### disk.list
+Takes no arguments.
+List all block devices (similar to lsblk)
+
+### disk.mktable
+Arguments:
+```javascript
+{
+    "disk": "/dev/disk", //device
+    "table_type": "gpt", //partition table type
+}
+```
+Creates a new partition table on device. `table_type` can be any value 
+that is supported by `parted mktable`
+
+### disk.mkpart
+Arguments:
+```javascript
+{
+    "disk": "/dev/disk", //device
+    "part_type": "primary", //part_type
+    "start": "1", //start sector
+    "end": "100%", //end sector
+}
+```
+Creates a partition on given device. `part_type`, `start`, and `end` values must
+be supported by the `parted mkpart` command
+
+### disk.rmpart
+Arguments:
+```javascript
+{
+    "disk": "/dev/disk", //device
+    "number: 1, //parition number (1 based index)
+}
+```
+Removes a partition on given device with given 1 based index.
+
+### disk.mount
+Arguments:
+```javascript
+{
+    "options": "auto", //mount options (required) if no options are needed set to "auto"
+    "source": "/dev/part", //patition to mount
+    "target": "/mnt/data", //location to mount on
+}
+```
+
+### disk.umount
+Arguments:
+```javascript
+{
+    "source": "/dev/part", //partition to umount
+}
+```
+
+### btrfs.create
 
 Create a btrfs filesystem
 
@@ -192,13 +255,13 @@ Arguments:
 }
 ```
 
-## btrfs.list
+### btrfs.list
 
 List all btrfs filesystems.
 
 Takes no argument. Return array of all filesystems.
 
-## btrfs.subvol_create
+### btrfs.subvol_create
 
 Creates a new btrfs subvolume
 
@@ -209,7 +272,7 @@ arguments:
 }
 ```
 
-## btrfs.subvol_list
+### btrfs.subvol_list
 
 List subvolume under a path
 
@@ -220,7 +283,7 @@ arguments:
 }
 ```
 
-## btrfs.subvol_delete
+### btrfs.subvol_delete
 
 Delete a btrfs subvolume
 
