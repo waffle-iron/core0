@@ -9,9 +9,12 @@ you are doing you can skip this and create a container with no data disks.
 scenario
 
 > NOTE: You can create a loop device (against a file) for testing
-## Creating a data disk
-```python
 
+## Creating a data disk
+To mount a data disk to container, u will have to go through the next process. Note this is just an example of how u may
+use. A real production scenario is probably different.
+
+```python
 # A new disk required a partition table
 cl.disk.mktable('/dev/sdb')
 
