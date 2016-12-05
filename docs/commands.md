@@ -121,7 +121,7 @@ Returns information about the host OS.
 
 ### corex.create
 Arguments:
-```
+```javascript
 {
     "plist": "http://url/to/plist",
     "mount": {
@@ -218,7 +218,7 @@ Arguments:
 ```javascript
 {
     "disk": "/dev/disk", //device
-    "number: 1, //parition number (1 based index)
+    "number": 1, //parition number (1 based index)
 }
 ```
 Removes a partition on given device with given 1 based index.
