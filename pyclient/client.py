@@ -251,7 +251,7 @@ class BridgeManager:
         :param network: Networking mode, options are none, static, and dnsmasq
         :param nat: If true, SNAT will be enabled on this bridge.
         :param settings: Networking setting, depending on the selected mode.
-                        None:
+                        none:
                             no settings, bridge won't get any ip settings
                         static:
                             settings={'cidr': 'ip/net'}
@@ -317,7 +317,11 @@ class DiskManager:
         if result.level != 20:  # 20 is JSON output.
             raise RuntimeError('invalid response type from disk.list command')
 
-        return json.loads(result.data)
+        data = result.data.strip()
+        if data:
+            return json.loads(data)
+        else:
+            return {}
 
     def mktable(self, disk, table_type='gpt'):
         """
