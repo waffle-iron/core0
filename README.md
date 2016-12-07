@@ -8,6 +8,7 @@ Systemd replacement for G8OS
 
 ## Releases: 
 - [0.9.0](https://github.com/g8os/core0/tree/0.9.0) - last release
+- [0.10.0](https://github.com/g8os/core0/tree/0.10.0) - current development branch
 
 ## Sample setup
 The following steps will create a docker container that have core0 as the init process. When running,
