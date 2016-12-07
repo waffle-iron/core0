@@ -2,9 +2,12 @@
 [![Build Status](https://travis-ci.org/g8os/core0.svg?branch=master)](https://travis-ci.org/g8os/core0)
 [![codecov](https://codecov.io/gh/g8os/core0/branch/master/graph/badge.svg)](https://codecov.io/gh/g8os/core0)
 
-# Core 
+# Core
 
 Systemd replacement for G8OS
+
+## Releases: 
+- [0.9.0](https://github.com/g8os/core0/tree/0.9.0) - last release
 
 ## Sample setup
 The following steps will create a docker container that have core0 as the init process. When running,
@@ -31,7 +34,7 @@ go get github.com/g8os/core0/core
 go get github.com/g8os/core0/corex
 ```
 
-The do 
+The do
 ```
 cd $GOPATH/src/github.com/g8os/core0
 # then start the docker container
@@ -101,4 +104,4 @@ With the 0.9 version of core0/coreX, you can:
 ![Schema Plan](specs/schema.png)
 
 # Examples
-You can find example usage [here](docs/examples/index.md) 
+You can find example usage [here](docs/examples/index.md)
