@@ -552,6 +552,38 @@ class BtrfsManager:
             raise RuntimeError('failed to list btrfs subvolume %s' % result.data)
 
 
+class ZerotierManager:
+    def __init__(self, client):
+        self._client = client
+
+    def join(self, network):
+        response = self._client.raw('zerotier.join', {'network': network})
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to join zerotier network: %s', result.stderr)
+
+    def leave(self, network):
+        response = self._client.raw('zerotier.leave', {'network': network})
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to leave zerotier network: %s', result.stderr)
+
+    def list(self):
+        response = self._client.raw('zerotier.list', {})
+        result = response.get()
+
+        if result.state != 'SUCCESS':
+            raise RuntimeError('failed to join zerotier network: %s', result.stderr)
+
+        data = result.data.strip()
+        if data == '':
+            return []
+
+        return json.loads(data)
+
+
 class Client(BaseClient):
     def __init__(self, host, port=6379, password="", db=0):
         super().__init__()
@@ -561,6 +593,7 @@ class Client(BaseClient):
         self._bridge_manager = BridgeManager(self)
         self._disk_manager = DiskManager(self)
         self._btrfs_manager = BtrfsManager(self)
+        self._zerotier = ZerotierManager(self)
 
     @property
     def container(self):
@@ -577,6 +610,10 @@ class Client(BaseClient):
     @property
     def btrfs(self):
         return self._btrfs_manager
+
+    @property
+    def zerotier(self):
+        return self._zerotier
 
     def raw(self, command, arguments):
         id = str(uuid.uuid4())
