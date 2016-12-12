@@ -8,6 +8,17 @@ running_match = "Daemon is ready"
 name = "ipfs"
 args = ["daemon", "--init"]
 
+
+# add default nodes to IPFS
+[startup.ipfs-bootstrap]
+name = "core.system"
+after = ["ipfs-daemon"]
+
+[startup.ipfs-bootstrap.args]
+name = "ipfs"
+args = ["bootstrap", "add", "/ip4/37.59.7.72/tcp/4001/ipfs/QmRcqFGvwtfyCJuTrhrZYH4HrFnqNQkcxvAGhAJGdX5fE8"]
+
+
 # make sure /ipfs and /ipns are in place so we start the mount
 [startup.ipfs-mount-init]
 name = "bash"
