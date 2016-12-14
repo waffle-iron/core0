@@ -197,11 +197,11 @@ func (c *container) cleanup() {
 		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
 
-	for _, d := range devicesToBind {
-		if err := syscall.Unmount(path.Join("/dev/", d), syscall.MNT_DETACH); err != nil {
+	/*for _, d := range devicesToBind {
+		if err := syscall.Unmount(path.Join(root, "/dev/", d), syscall.MNT_DETACH); err != nil {
 			log.Errorf("Failed to unmount /dev/%s: %s", d, err)
 		}
-	}
+	}*/
 
 }
 
