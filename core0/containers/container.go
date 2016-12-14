@@ -197,8 +197,6 @@ func (c *container) cleanup() {
 		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
 
-==== BASE ====
-==== BASE ====
 }
 
 func (c *container) namespace() error {
