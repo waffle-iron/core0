@@ -15,6 +15,10 @@ import (
 	"syscall"
 )
 
+var (
+	devicesToBind = []string{"random", "urandom", "null"}
+)
+
 type container struct {
 	id    uint16
 	route core.Route
@@ -116,7 +120,7 @@ func (c *container) preStart() error {
 
 	// bind char devices
 	if err := os.Mkdir(path.Join(root, "dev"), 0755); err != nil {
-		log.Infof("failed to create /dev:%v", err)
+		log.Infof("failed to create /dev/%v", err)
 	}
 	bindCharDev := func(src, target string) error {
 		if _, err := os.Create(target); err != nil {
@@ -127,10 +131,9 @@ func (c *container) preStart() error {
 		}
 		return syscall.Mount(src, target, "", syscall.MS_BIND, "")
 	}
-	devices := []string{"random", "urandom", "null"}
-	for _, d := range devices {
+	for _, d := range devicesToBind {
 		if err := bindCharDev(path.Join("/dev", d), path.Join(root, "dev", d)); err != nil {
-			return fmt.Errorf("Failed to bin  /dev/%v : %v", d, err)
+			return fmt.Errorf("Failed to bind  /dev/%v : %v", d, err)
 		}
 	}
 
@@ -192,6 +195,12 @@ func (c *container) cleanup() {
 
 	if err := syscall.Unmount(root, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", root, err)
+	}
+
+	for _, d := range devicesToBind {
+		if err := syscall.Unmount(path.Join("/dev/", d), syscall.MNT_DETACH); err != nil {
+			log.Errorf("Failed to unmount /dev/%s: %s", d, err)
+		}
 	}
 
 }
