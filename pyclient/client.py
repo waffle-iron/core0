@@ -97,31 +97,90 @@ class InfoManager:
         self._client = client
 
     def cpu(self):
-        return self._client.raw(command='info.cpu', arguments={})
+        return self._client.json('info.cpu', {})
 
     def nic(self):
-        return self._client.raw(command='info.nic', arguments={})
+        return self._client.json('info.nic', {})
 
     def mem(self):
-        return self._client.raw(command='info.mem', arguments={})
+        return self._client.json('info.mem', {})
 
     def disk(self):
-        return self._client.raw(command='info.disk', arguments={})
+        return self._client.json('info.disk', {})
 
     def os(self):
-        return self._client.raw(command='info.os', arguments={})
+        return self._client.json('info.os', {})
 
+class ProcessManager:
+    def __init__(self, client):
+        self._client = client
+
+    def list(self, id=None):
+        """
+        List all running process (the ones that were started by the core itself)
+
+        :param id: optional ID for the process to list
+        """
+        return self._client.json('process.list', {'id': id})
+
+    def kill(self, id):
+        """
+        Kill a process with given id
+
+        :WARNING: beware of what u kill, if u killed redis for example core0 or coreX won't be reachable
+
+
+        :param id: process id to kill
+        """
+        return self._client.json('process.kill', {'id': id})
 
 class BaseClient:
     def __init__(self):
         self._info = InfoManager(self)
+        self._process = ProcessManager(self)
 
     @property
     def info(self):
         return self._info
 
+    @property
+    def process(self):
+        return self._process
+
     def raw(self, command, arguments):
+        """
+        Implements the low level command call, this needs to build the command structure
+        and push it on the correct queue.
+
+        :return: Response object
+        """
         raise NotImplemented()
+
+    def sync(self, command, arguments):
+        """
+        Same as self.raw except it do a response.get() waiting for the command execution to finish and reads the result
+
+        :return: Result object
+        """
+        response = self.raw(command, arguments)
+
+        result = response.get()
+        if result.state != 'SUCCESS':
+            raise RuntimeError('invalid response: %s' % result.state, result)
+
+        return result
+
+    def json(self, command, arguments):
+        """
+        Same as self.sync except it assumes the returned result is json, and loads the payload of the retun object
+
+        :Return: Data
+        """
+        result = self.sync(command, arguments)
+        if result.level != 20:
+            raise RuntimeError('invalid result level, expecting json(20) got (%d)' % result.level)
+
+        return json.loads(result.data)
 
     def ping(self):
         response = self.raw('core.ping', {})

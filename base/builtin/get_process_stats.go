@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	cmdGetProcessStats = "process.state"
+	cmdGetProcessStats = "process.list"
 )
 
 func init() {
