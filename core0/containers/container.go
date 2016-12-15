@@ -118,25 +118,6 @@ func (c *container) preStart() error {
 		return err
 	}
 
-	// bind char devices
-	if err := os.Mkdir(path.Join(root, "dev"), 0755); err != nil {
-		log.Infof("failed to create /dev/%v", err)
-	}
-	bindCharDev := func(src, target string) error {
-		if _, err := os.Create(target); err != nil {
-			return err
-		}
-		if err := os.Chmod(target, os.ModeCharDevice); err != nil {
-			return err
-		}
-		return syscall.Mount(src, target, "", syscall.MS_BIND, "")
-	}
-	for _, d := range devicesToBind {
-		if err := bindCharDev(path.Join("/dev", d), path.Join(root, "dev", d)); err != nil {
-			return fmt.Errorf("Failed to bind  /dev/%v : %v", d, err)
-		}
-	}
-
 	return nil
 }
 
@@ -196,13 +177,6 @@ func (c *container) cleanup() {
 	if err := syscall.Unmount(root, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
-
-	/*for _, d := range devicesToBind {
-		if err := syscall.Unmount(path.Join(root, "/dev/", d), syscall.MNT_DETACH); err != nil {
-			log.Errorf("Failed to unmount /dev/%s: %s", d, err)
-		}
-	}*/
-
 }
 
 func (c *container) namespace() error {
