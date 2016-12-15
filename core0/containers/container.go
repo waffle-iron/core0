@@ -177,10 +177,6 @@ func (c *container) cleanup() {
 	if err := syscall.Unmount(root, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> Mount dev and devpts
 }
 
 func (c *container) namespace() error {
