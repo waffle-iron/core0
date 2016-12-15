@@ -203,7 +203,7 @@ func (c *container) zeroTier(netID string) error {
 
 	netcmd := core.Command{
 		ID:        fmt.Sprintf("net-%v", c.id),
-		Command:   "zerotier",
+		Command:   zeroTierCommand,
 		Arguments: core.MustArguments(args),
 	}
 

@@ -31,6 +31,7 @@ const (
 	coreXBinaryName    = "coreX"
 
 	redisSocketSrc     = "/var/run/redis.socket"
+	zeroTierCommand    = "_zerotier_"
 	zeroTierScriptPath = "/tmp/zerotier.sh"
 
 	DefaultBridgeName = "core-0"
@@ -164,7 +165,7 @@ func ContainerSubsystem(sinks map[string]base.SinkClient) error {
 		return err
 	}
 
-	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
+	pm.RegisterCmd(zeroTierCommand, "sh", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)
