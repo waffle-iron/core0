@@ -19,5 +19,17 @@ func NewBootstrap() *Bootstrap {
 //Bootstrap registers extensions and startup system services.
 func (b *Bootstrap) Bootstrap() error {
 	log.Infof("Mounting proc")
-	return syscall.Mount("none", "/proc", "proc", 0, "")
+	if err := syscall.Mount("none", "/proc", "proc", 0, ""); err != nil {
+		return err
+	}
+
+	if err := syscall.Mount("none", "/dev", "devtmpfs", 0, ""); err != nil {
+		return err
+	}
+
+	if err := syscall.Mount("none", "/dev/pts", "devpts", 0, ""); err != nil {
+		return err
+	}
+
+	return nil
 }
