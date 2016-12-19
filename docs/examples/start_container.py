@@ -12,6 +12,7 @@ At boot core0 will connect to the zerotier network and you can assing an IP to i
 
 SSHKEY = "INSERT YOUR PUBLIC SSH KEY HERE"
 CORE0IP = "INSERT CORE0 IP HERE"
+ZEROTIER = "INSERT NETWORK ID HERE"
 
 def main():
     print("[+] connect to core0")
@@ -25,7 +26,7 @@ def main():
 
     try:
         print("[+] create container")
-        container_id = cl.container.create('https://stor.jumpscale.org/stor2/flist/ubuntu-g8os-flist/ubuntu-g8os.flist', zerotier='e5cd7a9e1cb05675')
+        container_id = cl.container.create('https://stor.jumpscale.org/stor2/flist/ubuntu-g8os-flist/ubuntu-g8os.flist', zerotier=ZEROTIER)
         print("[+] container created, ID: %s" % container_id)
     except Exception as e:
         print("[-] error during container creation: %s" % e)
