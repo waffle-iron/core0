@@ -48,7 +48,7 @@ def main():
 def get_zerotier_ip(container):
     i = 0
 
-    while i < 5:
+    while i < 10:
         addrs = container.info.nic()
         ifaces = {a['name']:a for a in addrs}
 
@@ -57,6 +57,7 @@ def get_zerotier_ip(container):
                 cidr = info['addrs'][0]['addr']
                 return cidr.split('/')[0]
         time.sleep(2)
+        i += 1
 
     raise TimeoutError("[-] couldn't get an ip on zerotier network")
 
