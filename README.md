@@ -7,8 +7,8 @@
 Systemd replacement for G8OS
 
 ## Releases:
-- [0.9.0](https://github.com/g8os/core0/tree/0.9.0) - last release
-- [0.10.0](https://github.com/g8os/core0/tree/0.10.0) - current development branch
+- [0.9.0](https://github.com/g8os/core0/tree/0.9.0)
+- [0.10.0](https://github.com/g8os/core0/tree/0.10.0) - last release
 
 ## Sample setup
 The following steps will create a docker container that have core0 as the init process. When running,
@@ -82,7 +82,7 @@ print(
 ```
 
 # Features
-With the 0.9 version of core0/coreX, you can:
+v0.9:
 - Boot the core0 as init process
 - Manage disks
 - Create containers
@@ -94,6 +94,10 @@ With the 0.9 version of core0/coreX, you can:
 - Remotly administrate the process
   - via Python client
   - via redis
+
+v0.10:
+- change datastore for fuse filesystem from ipfs to [G8OS Store](https://github.com/g8os/stor).
+
 
 # Available Commands
 [Commands Documentation](docs/commands.md)
