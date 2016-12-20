@@ -6,7 +6,7 @@
 
 Systemd replacement for G8OS
 
-## Releases: 
+## Releases:
 - [0.9.0](https://github.com/g8os/core0/tree/0.9.0) - last release
 - [0.10.0](https://github.com/g8os/core0/tree/0.10.0) - current development branch
 
@@ -24,9 +24,6 @@ RUN apt-get update && \
     apt-get install -y nftables && \
     apt-get install -y dnsmasq && \
     apt-get install -y redis-server
-
-RUN wget -O /tmp/ipfs.tgz https://dist.ipfs.io/go-ipfs/v0.4.4/go-ipfs_v0.4.4_linux-amd64.tar.gz && \
-    cd /tmp && tar -xf /tmp/ipfs.tgz && cp go-ipfs/ipfs /bin
 ```
 
 Make sure that you build both core0 and coreX as following
