@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 #PATH=/tmp/ZeroTierOne/:$PATH
@@ -51,13 +51,14 @@ if [ -z "$(echo $req | grep ^200)" ]; then
 fi
 
 echo "[+] waiting connectivity"
-while ! zerotier-cli -D$zerohome listnetworks | grep 'OK PUBLIC' > /dev/null; do
+while ! zerotier-cli -D$zerohome listnetworks | grep 'OK' | grep $zeronet > /dev/null; do
     sleep 0.5
 done
 
 data=$(zerotier-cli -D$zerohome listnetworks | grep $zeronet | tail -1)
-zeroiface=$(echo $data | awk '{ print $8 }')
-zeroaddr=$(echo $data | awk '{ print $9 }' | cut -d, -f 2)
+zeroiface=$(echo $data | awk '{ print $(NF-1) }')
+zeroaddr=$(echo $data | awk '{ print $NF }' | cut -d, -f 2)
+
 
 echo "[+] network connected: $zeroaddr via $zeroiface"
 

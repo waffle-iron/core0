@@ -15,6 +15,10 @@ import (
 	"syscall"
 )
 
+var (
+	devicesToBind = []string{"random", "urandom", "null"}
+)
+
 type container struct {
 	id    uint16
 	route core.Route
@@ -58,6 +62,7 @@ func (c *container) Start() error {
 					"-core-id", fmt.Sprintf("%d", c.id),
 					"-redis-socket", "/redis.socket",
 					"-reply-to", coreXResponseQueue,
+                    "-hostname", c.args.Hostname,
 				},
 				Env: map[string]string{
 					"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -173,7 +178,6 @@ func (c *container) cleanup() {
 	if err := syscall.Unmount(root, syscall.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount %s: %s", root, err)
 	}
-
 }
 
 func (c *container) namespace() error {
@@ -200,7 +204,7 @@ func (c *container) zeroTier(netID string) error {
 
 	netcmd := core.Command{
 		ID:        fmt.Sprintf("net-%v", c.id),
-		Command:   "zerotier",
+		Command:   zeroTierCommand,
 		Arguments: core.MustArguments(args),
 	}
 

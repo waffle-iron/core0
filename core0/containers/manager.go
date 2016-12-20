@@ -3,6 +3,13 @@ package containers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/url"
+	"os"
+	"path"
+	"sync"
+	"time"
+
 	base "github.com/g8os/core0/base"
 	"github.com/g8os/core0/base/pm"
 	"github.com/g8os/core0/base/pm/core"
@@ -13,12 +20,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/pborman/uuid"
 	"github.com/vishvananda/netlink"
-	"io/ioutil"
-	"net/url"
-	"os"
-	"path"
-	"sync"
-	"time"
 )
 
 const (
@@ -31,6 +32,7 @@ const (
 	coreXBinaryName    = "coreX"
 
 	redisSocketSrc     = "/var/run/redis.socket"
+	zeroTierCommand    = "_zerotier_"
 	zeroTierScriptPath = "/tmp/zerotier.sh"
 
 	DefaultBridgeName = "core-0"
@@ -66,10 +68,11 @@ type Network struct {
 }
 
 type ContainerCreateArguments struct {
-	Root    string            `json:"root"`    //Root plist
-	Mount   map[string]string `json:"mount"`   //data disk mounts.
-	Network Network           `json:"network"` // network setup
-	Port    map[int]int       `json:"port"`    //port forwards
+	Root     string            `json:"root"`     //Root plist
+	Mount    map[string]string `json:"mount"`    //data disk mounts.
+	Network  Network           `json:"network"`  // network setup
+	Port     map[int]int       `json:"port"`     //port forwards
+	Hostname string            `json:"hostname"` //hostname
 }
 
 type ContainerDispatchArguments struct {
@@ -164,7 +167,7 @@ func ContainerSubsystem(sinks map[string]base.SinkClient) error {
 		return err
 	}
 
-	pm.RegisterCmd("zerotier", "bash", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
+	pm.RegisterCmd(zeroTierCommand, "sh", "/", []string{zeroTierScriptPath, "{netns}", "{zerotier}"}, nil)
 
 	pm.CmdMap[cmdContainerCreate] = process.NewInternalProcessFactory(containerMgr.create)
 	pm.CmdMap[cmdContainerList] = process.NewInternalProcessFactory(containerMgr.list)

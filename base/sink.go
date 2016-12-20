@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/g8os/core0/base/pm"
 	"github.com/g8os/core0/base/pm/core"
-	"github.com/g8os/core0/base/settings"
 	"time"
 )
 
@@ -89,19 +88,7 @@ func (poll *sinkImpl) Run() {
 StartSinks starts the long polling routines and feed the manager with received commands
 */
 func StartSinks(mgr *pm.PM, sinks map[string]SinkClient) {
-	var keys []string
-	if len(settings.Settings.Channel.Cmds) > 0 {
-		keys = settings.Settings.Channel.Cmds
-	} else {
-		keys = getKeys(sinks)
-	}
-
-	for _, key := range keys {
-		sinkCl, ok := sinks[key]
-		if !ok {
-			log.Fatalf("No contoller with name '%s'", key)
-		}
-
+	for key, sinkCl := range sinks {
 		poll := NewSink(key, mgr, sinkCl)
 		poll.Run()
 	}

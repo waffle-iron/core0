@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	cmdKill = "core.kill"
+	cmdKill = "process.kill"
 )
 
 func init() {
