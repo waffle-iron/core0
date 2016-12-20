@@ -32,7 +32,6 @@ def main():
         print("[-] error during container creation: %s" % e)
         return 1
 
-
     container = cl.container.client(container_id)
 
     print("[+] authorize ssh key")
@@ -51,7 +50,7 @@ def get_zerotier_ip(container):
 
     while i < 10:
         addrs = container.info.nic()
-        ifaces = {a['name']:a for a in addrs}
+        ifaces = {a['name']: a for a in addrs}
 
         for iface, info in ifaces.items():
             if iface.startswith('zt'):

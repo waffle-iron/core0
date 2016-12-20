@@ -34,15 +34,15 @@ def main(init=False):
         print("[-] need at least one data disk available")
         return
 
-    disks_by_name = {d['name'] : d for d in disks}
+    disks_by_name = {d['name']: d for d in disks}
     if disks_by_name['sda']['mountpoint'] is None:
+        print("[+] mount disk")
         cl.disk.mount('/dev/sda', '/dev/mongodb_storage', [''])
-
 
     try:
         print("[+] create container")
         container_id = cl.container.create('https://stor.jumpscale.org/stor2/flist/ubuntu-g8os-flist/mongodb-g8os.flist',
-                                           mount={"/dev/mongodb_storage":"/mnt/data"},
+                                           mount={"/dev/mongodb_storage": "/mnt/data"},
                                            zerotier=ZEROTIER)
         print("[+] container created, ID: %s" % container_id)
     except Exception as e:
@@ -51,6 +51,9 @@ def main(init=False):
 
     container = cl.container.client(container_id)
 
+    print("[+] get zerotier ip")
+    container_ip = get_zerotier_ip(container)
+
     print("[+] configure mongodb")
     container.system("bash -c 'echo DAEMONUSER=\"root\" > /etc/default/mongodb'").get()
     container.system("sed -i 's/dbpath.*/dbpath=\/mnt\/data/' /etc/mongodb.conf").get()
@@ -58,16 +61,8 @@ def main(init=False):
     container.system("bash -c 'echo nounixsocket=true >> /etc/mongodb.conf'").get()
     print("[+] starts mongod")
     res = container.system('/etc/init.d/mongodb start').get()
-    if res.data.find("OK") == -1:
-        print("[-] could not start mongodb")
-        return
-
-    print("[+] get zerotier ip")
-    container_ip = get_zerotier_ip(container)
 
     print("[+] you can connect to mongodb at %s:27017" % container_ip)
-
-
 
 
 def get_zerotier_ip(container):
@@ -75,7 +70,7 @@ def get_zerotier_ip(container):
 
     while i < 10:
         addrs = container.info.nic()
-        ifaces = {a['name']:a for a in addrs}
+        ifaces = {a['name']: a for a in addrs}
 
         for iface, info in ifaces.items():
             if iface.startswith('zt'):
