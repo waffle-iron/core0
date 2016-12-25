@@ -30,34 +30,20 @@
 			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
 		},
 		{
-			"ImportPath": "github.com/g8os/fs/config",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
+			"ImportPath": "github.com/g8os/g8ufs",
+			"Rev": "0e0f259c47df16ed443923ccbc6069ddc32a206f"
 		},
 		{
-			"ImportPath": "github.com/g8os/fs/crypto",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
+			"ImportPath": "github.com/g8os/g8ufs/meta",
+			"Rev": "0e0f259c47df16ed443923ccbc6069ddc32a206f"
 		},
 		{
-			"ImportPath": "github.com/g8os/fs/files",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
+			"ImportPath": "github.com/g8os/g8ufs/rofs",
+			"Rev": "0e0f259c47df16ed443923ccbc6069ddc32a206f"
 		},
 		{
-			"ImportPath": "github.com/g8os/fs/meta",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/storage",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/utils",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
+			"ImportPath": "github.com/g8os/g8ufs/storage",
+			"Rev": "0e0f259c47df16ed443923ccbc6069ddc32a206f"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
@@ -92,11 +78,6 @@
 		{
 			"ImportPath": "github.com/hanwen/go-fuse/splice",
 			"Rev": "ed841342e5daf4711f24106b93c1035864a8914b"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-sqlite3",
-			"Comment": "v1.1.0-11-gb808f01",
-			"Rev": "b808f01f660667b1510acf216aa2b9fe7f555ddb"
 		},
 		{
 			"ImportPath": "github.com/naoina/go-stringutil",
@@ -178,72 +159,12 @@
 			"Rev": "adb0f53af689dd38f1443eba79489feaacf0b22e"
 		},
 		{
-			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/op/go-logging",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/go-stringutil",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/naoina/toml/ast",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/dsnet/compress/brotli",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/nodefs",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/fuse/pathfs",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/BurntSushi/toml",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/g8os/fs/vendor/github.com/hanwen/go-fuse/splice",
-			"Comment": "0.9.0",
-			"Rev": "2af7d618952cb5dbe9c9a7ee43d6447d187159a1"
-		},
-		{
-			"ImportPath": "github.com/stretchr/testify/vendor/github.com/davecgh/go-spew/spew",
-			"Comment": "v1.1.4-4-g976c720",
-			"Rev": "976c720a22c8eb4eb6a0b4348ad85ad12491a506"
-		},
-		{
-			"ImportPath": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
-			"Comment": "v1.1.4-4-g976c720",
-			"Rev": "976c720a22c8eb4eb6a0b4348ad85ad12491a506"
-		},
-		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "4971afdc2f162e82d185353533d3cf16188a9f4e"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		}
 	]
 }
