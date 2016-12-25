@@ -4,13 +4,13 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/g8os/core0/base/settings"
-	"github.com/g8os/fs/config"
-	"github.com/g8os/fs/files"
-	"github.com/g8os/fs/meta"
+	"github.com/g8os/g8ufs"
+	"github.com/g8os/g8ufs/storage"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"syscall"
 )
@@ -65,51 +65,53 @@ func (c *container) getPlist(src string) (string, error) {
 
 func (c *container) mountPList(src string, target string) error {
 	//check
+	if err := os.MkdirAll(target, 0755); err != nil {
+		return err
+	}
+
 	hash := c.hash(src)
 	backend := path.Join(BackendBaseDir, c.name(), hash)
-	metaBackend := path.Join(BackendBaseDir, c.name(), fmt.Sprintf("%s+meta", hash))
-
-	os.RemoveAll(backend)
-	os.RemoveAll(metaBackend)
-
-	for _, p := range []string{backend, metaBackend, target} {
-		if err := os.MkdirAll(p, 0755); err != nil {
-			return fmt.Errorf("failed to create mount points '%s': %s", p, err)
-		}
-	}
 
 	plist, err := c.getPlist(src)
 	if err != nil {
 		return err
 	}
 
-	be := &config.Backend{Path: backend}
-
-	ms := meta.NewMemoryMetaStore()
-	//NOTE: replace the memory meta store with the file meta store for a smaller memory footprint (but slower startup)
-	//ms := meta.NewFileMetaStore(metaBackend)
-	if err := ms.Populate(plist, "/"); err != nil {
-		return err
-	}
-
-	storageConfig := &config.StorConfig{
-		URL: settings.Settings.Globals.Get("fuse_storage", "https://stor.jumpscale.org/stor2"),
-	}
-
-	storage, err := storageConfig.GetStorClient()
+	u, err := url.Parse(settings.Settings.Globals.Get("fuse_storage", "https://stor.jumpscale.org/stor2"))
 	if err != nil {
 		return err
 	}
 
-	fs, err := files.NewFS(target, be, storage, ms, false)
+	aydo, err := storage.NewAydoStorage(u)
+	if err != nil {
+		return err
+	}
+
+	fs, err := g8ufs.Mount(&g8ufs.Options{
+		Backend: backend,
+		PList:   plist,
+		Target:  target,
+		Storage: aydo,
+		Reset:   true,
+	})
 
 	if err != nil {
 		return err
 	}
 
-	go fs.Serve()
+	go func() {
+		err := fs.Wait()
+		if err != nil {
+			switch e := err.(type) {
+			case *exec.ExitError:
+				log.Errorf("unionfs exited with err: %s", e)
+				log.Debugf("%s", string(e.Stderr))
+			default:
+				log.Errorf("unionfs exited with err: %s", e)
+			}
+		}
+	}()
 
-	fs.WaitMount()
 	return nil
 }
 

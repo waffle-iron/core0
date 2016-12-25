@@ -3,7 +3,7 @@
 [main]
 max_jobs = 200
 include = "/root/conf"
-log_level = "info"
+log_level = "debug"
 # network = "./network.toml"
 
 [sink.main]
